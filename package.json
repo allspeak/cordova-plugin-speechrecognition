@@ -1,0 +1,42 @@
+{
+  "name": "cordova-plugin-audioinput-vad",
+  "version": "0.3.0",
+  "description": "This cordova plugin enables audio capture from the device microphone, by in (near) real-time forwarding raw audio data to the web layer of your application.",
+  "cordova": {
+    "id": "cordova-plugin-audioinput-vad",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.iit.it/AllSpeak/cordova-plugin-audioinput-vad.git"
+  },
+  "keywords": [
+    "ecosystem:cordova",
+    "cordova-android",
+    "cordova-ios",
+    "cordova plugin",
+    "ios",
+    "android",
+    "cordova",
+    "web-audio-api",
+    "web audio api",
+    "web audio",
+    "waapi",
+    "microphone",
+    "mic",
+    "audio",
+    "input",
+    "source",
+    "AudioNode",
+    "phonegap"
+  ],
+  "author": "Alberto Inuggi",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://gitlab.iit.it/AllSpeak/cordova-plugin-audioinput-vad/issues"
+  },
+  "homepage": "https://gitlab.iit.it/AllSpeak/cordova-plugin-audioinput-vad#readme"
+}

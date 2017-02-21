@@ -1,0 +1,69 @@
+<?xml version='1.0' encoding='utf-8'?>
+<plugin id="cordova-plugin-speechrecognition"
+        version="0.3.0"
+        xmlns="http://apache.org/cordova/ns/plugins/1.0"
+        xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <name>Speech Recognition</name>
+    <description>This cordova plugin enables audio capture from the device microphone, by in (near) real-time forwarding raw audio data to the web layer of your web application.</description>
+	<author>Alberto Inuggi</author>
+	<license>MIT</license>
+    <keywords>cordova,phonegap,media,microphone,mic,input,audio,waapi,audionode,web,audio,api,audionode,capture,ios,android</keywords>
+    <repo>https://gitlab.iit.it/AllSpeak/cordova-plugin-speechrecognition.git</repo>
+    <issue>https://gitlab.iit.it/AllSpeak/cordova-plugin-speechrecognition/issues</issue>
+
+    <js-module name="SpeechRecognitionPlugin" src="www/speechrecognition.js">
+        <clobbers target="speechrecognition" />
+    </js-module>
+
+    <dependency id="cordova-plugin-compat" version="^1.0.0" />
+
+    <!-- android -->
+    <platform name="android">
+
+        <config-file parent="/*" target="res/xml/config.xml">
+            <feature name="SpeechRecognitionPlugin">
+                <param name="android-package" value="com.allspeak.SpeechRecognitionPlugin" />
+            </feature>
+        </config-file>
+
+        <config-file parent="/*" target="AndroidManifest.xml">
+            <uses-permission android:name="android.permission.RECORD_AUDIO" />
+        </config-file>
+
+        <source-file src="src/android/com/allspeak/SpeechRecognitionPlugin.java" target-dir="src/com/allspeak" />
+        <source-file src="src/android/com/allspeak/audiocapture/AudioInputCapture.java" target-dir="src/com/allspeak/audiocapture" />
+        <source-file src="src/android/com/allspeak/audiocapture/AudioInputReceiver.java" target-dir="src/com/allspeak/audiocapture" />
+        <source-file src="src/android/com/allspeak/audiocapture/CFGParams.java" target-dir="src/com/allspeak/audiocapture" />
+        <source-file src="src/android/com/allspeak/audioprocessing/FFT.java" target-dir="src/com/allspeak/audioprocessing" />
+        <source-file src="src/android/com/allspeak/audioprocessing/WavFile.java" target-dir="src/com/allspeak/audioprocessing" />
+        <source-file src="src/android/com/allspeak/audioprocessing/mfcc/MFCC.java" target-dir="src/com/allspeak/audioprocessing/mfcc" />
+        <source-file src="src/android/com/allspeak/audioprocessing/mfcc/MFCCCalcJAudio.java" target-dir="src/com/allspeak/audioprocessing/mfcc" />
+        <source-file src="src/android/com/allspeak/audioprocessing/mfcc/MFCCParams.java" target-dir="src/com/allspeak/audioprocessing/mfcc" />
+        <source-file src="src/android/com/allspeak/audioprocessing/vad/VAD.java" target-dir="src/com/allspeak/audioprocessing/vad" />
+        <source-file src="src/android/com/allspeak/audioprocessing/vad/VADParams.java" target-dir="src/com/allspeak/audioprocessing/vad" />
+        <source-file src="src/android/com/allspeak/utility/StringUtility.java" target-dir="src/com/allspeak/utility/" />   
+        <source-file src="src/android/com/allspeak/utility/TrackPerformance.java" target-dir="src/com/allspeak/utility/" />  
+    </platform>
+
+    <!-- ios -->
+    <platform name="ios">
+
+        <config-file parent="/*" target="config.xml">
+            <feature name="AudioInputCapture">
+                <param name="ios-package" value="CDVAudioInputCapture" />
+            </feature>
+        </config-file>
+
+        <source-file src="src/ios/CDVAudioInputCapture.m" />
+        <source-file src="src/ios/AudioReceiver.h" />
+        <source-file src="src/ios/AudioReceiver.m" />
+
+        <framework src="Accelerate.framework" weak="true" />
+        <framework src="CoreAudio.framework" weak="true" />
+        <framework src="AudioToolbox.framework" weak="true" />
+        <framework src="AVFoundation.framework" weak="true" />
+
+    </platform>
+
+</plugin>
