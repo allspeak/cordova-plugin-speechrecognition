@@ -24,24 +24,35 @@
         <config-file parent="/*" target="res/xml/config.xml">
             <feature name="SpeechRecognitionPlugin">
                 <param name="android-package" value="com.allspeak.SpeechRecognitionPlugin" />
+                <param name="onload" value="true" />                   
             </feature>
         </config-file>
 
         <config-file parent="/*" target="AndroidManifest.xml">
             <uses-permission android:name="android.permission.RECORD_AUDIO" />
+            <uses-permission android:name="android.permission.WAKE_LOCK" />  
         </config-file>
-
         <source-file src="src/android/com/allspeak/SpeechRecognitionPlugin.java" target-dir="src/com/allspeak" />
+        <source-file src="src/android/com/allspeak/SpeechRecognitionService.java" target-dir="src/com/allspeak" />
+        <source-file src="src/android/com/allspeak/ENUMS.java" target-dir="src/com/allspeak" />
+        <source-file src="src/android/com/allspeak/ERRORS.java" target-dir="src/com/allspeak" />
         <source-file src="src/android/com/allspeak/audiocapture/AudioInputCapture.java" target-dir="src/com/allspeak/audiocapture" />
         <source-file src="src/android/com/allspeak/audiocapture/AudioInputReceiver.java" target-dir="src/com/allspeak/audiocapture" />
+        <source-file src="src/android/com/allspeak/audiocapture/AudioPlayback.java" target-dir="src/com/allspeak/audiocapture" />
         <source-file src="src/android/com/allspeak/audiocapture/CFGParams.java" target-dir="src/com/allspeak/audiocapture" />
         <source-file src="src/android/com/allspeak/audioprocessing/FFT.java" target-dir="src/com/allspeak/audioprocessing" />
         <source-file src="src/android/com/allspeak/audioprocessing/WavFile.java" target-dir="src/com/allspeak/audioprocessing" />
         <source-file src="src/android/com/allspeak/audioprocessing/mfcc/MFCC.java" target-dir="src/com/allspeak/audioprocessing/mfcc" />
+        <source-file src="src/android/com/allspeak/audioprocessing/mfcc/MFCCHandlerThread.java" target-dir="src/com/allspeak/audioprocessing/mfcc" />
         <source-file src="src/android/com/allspeak/audioprocessing/mfcc/MFCCCalcJAudio.java" target-dir="src/com/allspeak/audioprocessing/mfcc" />
         <source-file src="src/android/com/allspeak/audioprocessing/mfcc/MFCCParams.java" target-dir="src/com/allspeak/audioprocessing/mfcc" />
         <source-file src="src/android/com/allspeak/audioprocessing/vad/VAD.java" target-dir="src/com/allspeak/audioprocessing/vad" />
         <source-file src="src/android/com/allspeak/audioprocessing/vad/VADParams.java" target-dir="src/com/allspeak/audioprocessing/vad" />
+        <source-file src="src/android/com/allspeak/audioprocessing/vad/VADHandlerThread.java" target-dir="src/com/allspeak/audioprocessing/vad" />
+        <source-file src="src/android/com/allspeak/tensorflow/TFHandlerThread.java" target-dir="src/com/allspeak/tensorflow" />
+        <source-file src="src/android/com/allspeak/tensorflow/TF.java" target-dir="src/com/allspeak/tensorflow" />
+        <source-file src="src/android/com/allspeak/tensorflow/TFParams.java" target-dir="src/com/allspeak/tensorflow" />
+        <source-file src="src/android/com/allspeak/utility/Messaging.java" target-dir="src/com/allspeak/utility/" />   
         <source-file src="src/android/com/allspeak/utility/StringUtility.java" target-dir="src/com/allspeak/utility/" />   
         <source-file src="src/android/com/allspeak/utility/TrackPerformance.java" target-dir="src/com/allspeak/utility/" />  
     </platform>

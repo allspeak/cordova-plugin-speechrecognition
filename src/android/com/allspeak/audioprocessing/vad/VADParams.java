@@ -5,7 +5,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 
 // only the classic parameters used by MFCCCalcJAudio
-class VADParams
+public class VADParams
 {
     // parameters
     public int nSpeechDetectionThreshold    = DEFAULT.SPEECH_DETECTION_THRESHOLD;

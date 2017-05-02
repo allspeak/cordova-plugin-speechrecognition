@@ -10,14 +10,16 @@ public class MFCCParams
 {
     
     // map objects in the javascript interface
-    public static final int DATATYPE_NONE       = 0;
     public static final int DATATYPE_MFCC       = 1;
     public static final int DATATYPE_MFFILTERS  = 2;
     
-    public static final int DATADEST_NONE       = 0;
-    public static final int DATADEST_JS         = 1;
-    public static final int DATADEST_FILE       = 2;
-    public static final int DATADEST_BOTH       = 3;    
+    public static final int DATADEST_NONE       = 0;    // data(float[][])=> PLUGIN
+    public static final int DATADEST_JSPROGRESS = 1;    // data=> PLUGIN + progress(filename)=> WEB
+    public static final int DATADEST_JSDATA     = 2;    // data=> PLUGIN + progress(filename) + data(JSONArray)=> WEB
+    public static final int DATADEST_JSDATAWEB  = 3;    // data(JSONArray)=> WEB
+    public static final int DATADEST_FILE       = 4;    // progress(filename)=> PLUGIN + data(String)=> FILE
+    public static final int DATADEST_FILEWEB    = 5;    // progress(filename)=> PLUGIN + data(String)=> FILE + data(JSONArray)=> WEB
+    public static final int DATADEST_ALL        = 6;    // data=> PLUGIN + data(String)=> FILE + data(JSONArray)=> WEB
     
     public static final int DATAORIGIN_JSONDATA = 1;
     public static final int DATAORIGIN_FILE     = 2;
@@ -34,11 +36,18 @@ public class MFCCParams
     public boolean bCalculate0ThCoeff       = true;   
     public int nWindowDistance              = 80;   
     public int nWindowLength                = 200;   
-    public int nDataType                    = DATATYPE_MFFILTERS; //without considering 0-th
+    public int nDataType                    = DATATYPE_MFFILTERS; 
     public int nDataDest                    = DATADEST_NONE;    
     public int nDataOrig                    = DATAORIGIN_RAWDATA;    
     public String sOutputPath               = "";    
+    public int nDeltaWindow                 = 2;    // values used in getDerivatives
 
+    //derived
+    public int nData2Reprocess              = 120;  // last part of the processed vector, that must be the first part of the new one.
+                                                    // 15ms (25ms-10ms) => 120 samples
+    
+    public MFCCParams(){}    
+    
     public MFCCParams(JSONObject init)
     {
         try
@@ -90,8 +99,12 @@ public class MFCCParams
                     case "sOutputPath":
                         sOutputPath             = init.getString(field);
                         break;                        
+                    case "nDeltaWindow":
+                        nDeltaWindow            = init.getInt(field);
+                        break;                        
                 }
-            }
+            }//end for
+            nData2Reprocess = nWindowLength - nWindowDistance;
         }
         catch (JSONException e)
         {

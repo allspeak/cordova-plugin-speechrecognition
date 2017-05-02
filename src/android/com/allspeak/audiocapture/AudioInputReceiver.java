@@ -1,39 +1,42 @@
 package com.allspeak.audiocapture;
 
+import com.allspeak.ENUMS;
+import com.allspeak.ERRORS;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 
-import android.os.Bundle;
 import android.os.Handler;
-import android.os.Message;
 
-import android.util.Base64;
+import com.allspeak.utility.Messaging;
+import com.allspeak.audiocapture.AudioInputCapture;
 
-import java.util.Arrays;
+
 import java.io.InterruptedIOException;
 
-public class AudioInputReceiver extends Thread {
+public class AudioInputReceiver extends Thread 
+{
 
-    private final int RECORDING_BUFFER_FACTOR = 5;
-    private int channelConfig = AudioFormat.CHANNEL_IN_MONO;
-    private int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
-    private int sampleRateInHz = 44100;
-    private int audioSource = 0;
-    private static float fNormalizationFactor = (float)32767.0;
+    private final int RECORDING_BUFFER_FACTOR   = 5;
+    private int channelConfig                   = AudioFormat.CHANNEL_IN_MONO;
+    private int audioFormat                     = AudioFormat.ENCODING_PCM_16BIT;
+    private int sampleRateInHz                  = 44100;
+    private int nTotalReadBytes                 = 0;
+    private static float fNormalizationFactor   = (float)32767.0;
 
     // For the recording buffer
-    private int minBufferSize = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat);
-    private int recordingBufferSize = minBufferSize * RECORDING_BUFFER_FACTOR;
+    private int minBufferSize                   = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat);
+    private int recordingBufferSize             = minBufferSize * RECORDING_BUFFER_FACTOR;
 
     // Used for reading from the AudioRecord buffer
-    private int readBufferSize = minBufferSize;
+    private int readBufferSize                  = minBufferSize;
 
     private AudioRecord recorder;
-    private Handler handler;
-    private Message message;
-    private Bundle messageBundle = new Bundle();
-    
+    private Handler mStatusCallback             = null;   // destination handler of status messages
+    private Handler mResultCallback             = null;   // destination handler of data result
+    private Handler mCommandCallback            = null;   // destination handler of output command
+
+    //==================================================================================================
     public AudioInputReceiver() {
         recorder = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, sampleRateInHz, channelConfig, audioFormat, minBufferSize * RECORDING_BUFFER_FACTOR);
     }
@@ -77,51 +80,32 @@ public class AudioInputReceiver extends Thread {
 
         recorder = new AudioRecord(audioSource, sampleRateInHz, channelConfig, audioFormat, recordingBufferSize);
     }
-
-    public void setHandler(Handler handler) {
-        this.handler = handler;
-    }
-    
-    public void sendMessageToHandler(String field, String info)
+    //==================================================================================================
+    public void setHandler(Handler handler) 
     {
-        message = handler.obtainMessage();
-        messageBundle.putString(field, info);
-        message.setData(messageBundle);
-        handler.sendMessage(message);        
+        mStatusCallback     = handler;        
+        mCommandCallback    = handler;        
+        mResultCallback     = handler;     
     }    
     
-    public void sendDataToHandler(String field, float[] normalized_audio)
+    public void setHandler(Handler scb, Handler ccb, Handler rcb) 
     {
-        message = handler.obtainMessage();
-        messageBundle.putFloatArray(field, normalized_audio);
-        message.setData(messageBundle);
-        handler.sendMessage(message);        
+        mStatusCallback     = scb;        
+        mCommandCallback    = ccb;        
+        mResultCallback     = rcb;     
     }    
-    
-    private float[] normalizeAudio(short[] pcmData) 
-    {
-        int len         = pcmData.length;
-        float[] data    = new float[len];
-        for (int i = 0; i < len ; i++) {
-            data[i]     = (float)(pcmData[i]/fNormalizationFactor);
-        }
-
-//        // If last value is NaN, remove it.
-//        if (Float.isNaN(data[data.length - 1])) {
-//            data = ArrayUtils.remove(data, data.length - 1);
-//        }
-        return data;
-    }
-
-
+    //==================================================================================================
     @Override
-    public void run() {
-        int numReadBytes = 0;
+    public void run() 
+    {
+        int numReadBytes    = 0;
+        nTotalReadBytes     = 0;
         short[] audioBuffer = new short[readBufferSize];
          
-        synchronized(this) {
+        synchronized(this) 
+        {
             recorder.startRecording();
-
+            Messaging.sendMessageToHandler(mStatusCallback, ENUMS.CAPTURE_STATUS_STARTED, "", "");
             while (!isInterrupted()) 
             {
                 try
@@ -129,18 +113,21 @@ public class AudioInputReceiver extends Thread {
                     numReadBytes = recorder.read(audioBuffer, 0, readBufferSize);
                     if (numReadBytes > 0)
                     {
-                        float[] normalizedData  = normalizeAudio(audioBuffer);
-                        sendDataToHandler("data", normalizedData);
+                        nTotalReadBytes         += numReadBytes; 
+                        float[] normalizedData  = AudioInputCapture.normalizeAudio(audioBuffer, fNormalizationFactor);
+                        Messaging.sendDataToHandler(mResultCallback, ENUMS.CAPTURE_RESULT, "data", normalizedData);
                     }
                 }
-                catch(Exception ex) {
-                    sendMessageToHandler("error", ex.toString());
+                catch(Exception ex) 
+                {
+                    Messaging.sendMessageToHandler(mStatusCallback, ERRORS.CAPTURE_ERROR, "error", ex.toString());
                     break;
                 }
             }
-            if (recorder.getRecordingState() == AudioRecord.RECORDSTATE_RECORDING) {
+            if (recorder.getRecordingState() == AudioRecord.RECORDSTATE_RECORDING) 
                 recorder.stop();
-            }
+            
+            Messaging.sendMessageToHandler(mStatusCallback, ENUMS.CAPTURE_STATUS_STOPPED, "stop", Integer.toString(nTotalReadBytes));
             recorder.release();
             recorder = null;
         }
