@@ -267,10 +267,10 @@ speechrecognition.checkCaptureParams = function(capture_params)
     speechrecognition.capture.params.nNormalize                 = typeof capture_params.nNormalize == 'boolean' ? speechrecognition.ENUM.capture.nNormalize : speechrecognition.ENUM.capture.DEFAULT.NORMALIZE;
     speechrecognition.capture.params.fNormalizationFactor       = capture_params.fNormalizationFactor   || speechrecognition.ENUM.capture.DEFAULT.NORMALIZATION_FACTOR;
     speechrecognition.capture.params.nConcatenateMaxChunks      = capture_params.nConcatenateMaxChunks  || speechrecognition.ENUM.capture.DEFAULT.CONCATENATE_MAX_CHUNKS;
-    speechrecognition.capture.params.AudioContext               = null;
-    speechrecognition.capture.params.bStreamToWebAudio          = capture_params.bStreamToWebAudio      || speechrecognition.ENUM.capture.DEFAULT.STREAM_TO_WEBAUDIO;
-    speechrecognition.capture.params.bStartMFCC                 = capture_params.bStartMFCC             || speechrecognition.ENUM.capture.DEFAULT.START_MFCC;
-    speechrecognition.capture.params.bStartVAD                  = capture_params.bStartVAD              || speechrecognition.ENUM.capture.DEFAULT.START_VAD;
+//    speechrecognition.capture.params.AudioContext               = null;
+//    speechrecognition.capture.params.bStreamToWebAudio          = capture_params.bStreamToWebAudio      || speechrecognition.ENUM.capture.DEFAULT.STREAM_TO_WEBAUDIO;
+//    speechrecognition.capture.params.bStartMFCC                 = capture_params.bStartMFCC             || speechrecognition.ENUM.capture.DEFAULT.START_MFCC;
+//    speechrecognition.capture.params.bStartVAD                  = capture_params.bStartVAD              || speechrecognition.ENUM.capture.DEFAULT.START_VAD;
     speechrecognition.capture.params.nDataDest                  = capture_params.nDataDest              || speechrecognition.ENUM.capture.DEFAULT.DATA_DEST;
     
     if (speechrecognition.capture.params.nChannels < 1 && speechrecognition.capture.params.nChannels > 2) {
@@ -492,10 +492,7 @@ speechrecognition._pluginEvent = function (data) {
                     if (data && data.data && data.data.length > 0) 
                     {
                         var audioData = JSON.parse(data.data);
-
-                        if(speechrecognition.capture.params.bStreamToWebAudio && speechrecognition._capturing)
-                                speechrecognition._enqueueAudioData(audioData);
-                        else    cordova.fireWindowEvent("audioinput", {data: audioData});
+                        cordova.fireWindowEvent("audioinput", {data: audioData});
                     }
                     else if (data && data.error) {
                         speechrecognition._captureErrorEvent(data.error);
@@ -504,7 +501,7 @@ speechrecognition._pluginEvent = function (data) {
                 else
                 {
                     //mean decibel
-                    cordova.fireWindowEvent("audiometer", {data: JSON.parse(data.data)});
+                    cordova.fireWindowEvent("audiometer", {data: Math.round(JSON.parse(data.data))});
                 }
                 break;
             
@@ -537,7 +534,6 @@ speechrecognition._pluginEvent = function (data) {
             case speechrecognition.ENUM.RETURN.SPEECH_STATUS_SENTENCE:
             case speechrecognition.ENUM.RETURN.SPEECH_STATUS_MAX_LENGTH:
             case speechrecognition.ENUM.RETURN.SPEECH_STATUS_MIN_LENGTH:
-                
                 cordova.fireWindowEvent("speechstatus", {data: data.type});
                 break;
         }

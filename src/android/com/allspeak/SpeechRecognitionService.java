@@ -69,7 +69,7 @@ public class SpeechRecognitionService extends Service
     private VADParams mVadParams                = null;
     private final VADHandler mVadHandler        = new VADHandler(this);
     private VADHandlerThread vad                = null;        
-    private boolean bStartVAD                   = false;              // do not start VAD on startCapture
+//    private boolean    bStartVAD                   = false;              // do not start VAD on startCapture
 
     private int nDetectedChunks                 = 0;    
     //-----------------------------------------------------------------------------------------------
@@ -78,7 +78,7 @@ public class SpeechRecognitionService extends Service
     private final MFCCHandler mMfccHandler      = new MFCCHandler(this);
     private MFCCHandlerThread mfcc              = null;        
 
-    private boolean bIsCalculatingMFCC          = false;              // do not calculate any mfcc score on startCatpure
+//    private boolean bIsCalculatingMFCC          = false;              // do not calculate any mfcc score on startCatpure
     private int nMFCCProcessedFrames            = 0;
     private int nMFCCFrames2beProcessed         = 0;
 
@@ -167,7 +167,7 @@ public class SpeechRecognitionService extends Service
                 mMfccHandlerThread       = mfcc.getHandlerLooper();                  
             }            
             aicCapture                  = new AudioInputCapture(mCfgParams, aicHandler, null, mMfccHandlerThread);    // if(mfccParams != null) : CAPTURE => MFCC              
-            bIsCalculatingMFCC          = cfgParams.bStartMFCC;
+//            bIsCalculatingMFCC          = cfgParams.bStartMFCC;
             nCapturedDataDest           = cfgParams.nDataDest;
 
         }
@@ -220,7 +220,7 @@ public class SpeechRecognitionService extends Service
         callbackContext             = cb;        
         aicCapture.stop();
         aicCapture = null;
-        bIsCalculatingMFCC          = false;
+//        bIsCalculatingMFCC          = false;
         nCapturedDataDest           = 0;     
     }    
 

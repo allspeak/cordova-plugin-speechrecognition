@@ -99,14 +99,14 @@ public class WavFile
     public static WavFile newWavFile(File file, int numChannels, long numFrames, int validBits, long sampleRate) throws IOException, Exception
     {
         // Instantiate new Wavfile and initialise
-        WavFile wavFile = new WavFile();
-        wavFile.file = file;
-        wavFile.numChannels = numChannels;
-        wavFile.numFrames = numFrames;
-        wavFile.sampleRate = sampleRate;
-        wavFile.bytesPerSample = (validBits + 7) / 8;
-        wavFile.blockAlign = wavFile.bytesPerSample * numChannels;
-        wavFile.validBits = validBits;
+        WavFile wavFile         = new WavFile();
+        wavFile.file            = file;
+        wavFile.numChannels     = numChannels;
+        wavFile.numFrames       = numFrames;
+        wavFile.sampleRate      = sampleRate;
+        wavFile.bytesPerSample  = (validBits + 7) / 8;
+        wavFile.blockAlign      = wavFile.bytesPerSample * numChannels;
+        wavFile.validBits       = validBits;
 
         // Sanity check arguments
         if (numChannels < 1 || numChannels > 65535) throw new Exception("Illegal number of channels, valid range 1 to 65536");
@@ -115,15 +115,15 @@ public class WavFile
         if (sampleRate < 0) throw new Exception("Sample rate must be positive");
 
         // Create output stream for writing data
-        wavFile.oStream = new FileOutputStream(file);
+        wavFile.oStream         = new FileOutputStream(file);
 
         // Calculate the chunk sizes
-        long dataChunkSize = wavFile.blockAlign * numFrames;
-        long mainChunkSize =	4 +	// Riff Type
-                                                                8 +	// Format ID and size
-                                                                16 +	// Format data
-                                                                8 + 	// Data ID and size
-                                                                dataChunkSize;
+        long dataChunkSize      = wavFile.blockAlign * numFrames;
+        long mainChunkSize      = 4 +	// Riff Type
+                                  8 +	// Format ID and size
+                                  16 +	// Format data
+                                  8 + 	// Data ID and size
+                                  dataChunkSize;
 
         // Chunks must be word aligned, so if odd number of audio data bytes
         // adjust the main chunk size
