@@ -202,7 +202,8 @@ public class SpeechRecognitionService extends Service
         {
             callbackContext     = cb;
             mCfgParams          = cfgParams;            
-            aicCapture          = new AudioInputCapture(mCfgParams, aicHandler, ENUMS.PLAYBACK_MODE);                  
+            aicCapture          = new AudioInputCapture(mCfgParams, aicHandler, ENUMS.PLAYBACK_MODE); 
+            aicCapture.setWlCb(callbackContext);
             aicCapture.start();
             return true;
         }

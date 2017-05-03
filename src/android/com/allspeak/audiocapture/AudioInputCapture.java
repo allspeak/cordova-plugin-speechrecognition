@@ -1,6 +1,9 @@
 package com.allspeak.audiocapture;
 
 import org.apache.cordova.CordovaPlugin;
+import org.apache.cordova.CallbackContext;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import android.os.Handler;
 
@@ -24,7 +27,7 @@ public class AudioInputCapture
     private Handler mStatusCallback             = null;   // destination handler of status messages
     private Handler mResultCallback             = null;   // destination handler of data result
     private Handler mCommandCallback            = null;   // destination handler of output command
- 
+    private CallbackContext mWlCb               = null;   // access to web layer 
     //======================================================================================================================
     public AudioInputCapture(CFGParams params, Handler cb)
     {
@@ -70,6 +73,11 @@ public class AudioInputCapture
         this(params, scb, ccb, rcb, _plugin);
         nMode = mode;
     }    
+    
+    public void setWlCb(CallbackContext wlcb)
+    {
+        mWlCb = wlcb;        
+    }    
     //======================================================================================================================
     
     public boolean start()
@@ -89,7 +97,8 @@ public class AudioInputCapture
                 case ENUMS.PLAYBACK_MODE:
 
                     mPlayback = new AudioPlayback(cfgParams.nSampleRate, cfgParams.nBufferSize, cfgParams.nChannels, cfgParams.sFormat, cfgParams.nAudioSourceType);
-                    mAIReceiver.setHandler(mStatusCallback, mCommandCallback, mResultCallback);
+                    mPlayback.setHandler(mStatusCallback, mCommandCallback, mResultCallback);
+                    mPlayback.setWlCb(mWlCb);
                     mPlayback.start();   
                     bIsCapturing = true;                
             }            

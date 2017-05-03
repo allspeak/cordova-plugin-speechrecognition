@@ -1,5 +1,9 @@
 package com.allspeak.audiocapture;
 
+import org.apache.cordova.CallbackContext;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import com.allspeak.ENUMS;
 import com.allspeak.ERRORS;
 import android.media.AudioRecord;
@@ -14,6 +18,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import com.allspeak.utility.Messaging;
+import com.allspeak.audiocapture.AudioInputCapture;
 
 
 public class AudioPlayback extends Thread 
@@ -24,7 +29,8 @@ public class AudioPlayback extends Thread
     private int audioFormat                     = AudioFormat.ENCODING_PCM_16BIT;
     private int sampleRateInHz                  = 8000;
     private int nTotalReadBytes                 = 0;
-
+    private static float fNormalizationFactor   = (float)32767.0;
+    
     // For the recording buffer
     private int minBufferSize                   = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfigIN, audioFormat);
 
@@ -38,7 +44,7 @@ public class AudioPlayback extends Thread
     private Handler mStatusCallback             = null;   // destination handler of status messages
     private Handler mResultCallback             = null;   // destination handler of data result
     private Handler mCommandCallback            = null;   // destination handler of output command
-
+    private CallbackContext mWlCb               = null;   // access to web layer
     //==========================================================================================================
     public AudioPlayback() 
     {
@@ -89,6 +95,12 @@ public class AudioPlayback extends Thread
         mResultCallback     = rcb;     
     } 
     
+    public void setWlCb(CallbackContext wlcb)
+    {
+        mWlCb = wlcb;        
+    }    
+    //==========================================================================================================
+    
     public void setPlayBackPercVol(int newperc) 
     {
         float max       = mAudioTrack.getMaxVolume();
@@ -100,7 +112,7 @@ public class AudioPlayback extends Thread
     public void run() 
     {
         Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO);
-        byte[] audioBuffer  = new byte[readBufferSize];
+        short[] audioBuffer  = new short[readBufferSize];
          
         synchronized(this) 
         {
@@ -113,8 +125,20 @@ public class AudioPlayback extends Thread
             {
                 try
                 {
-                    mRecorder.read(audioBuffer, 0, readBufferSize);
+                    int numReadBytes = mRecorder.read(audioBuffer, 0, readBufferSize);
                     mAudioTrack.write(audioBuffer, 0, audioBuffer.length);                    
+                    if (numReadBytes > 0)
+                    {
+                        float[] normalizedData  = AudioInputCapture.normalizeAudio(audioBuffer, fNormalizationFactor);
+                        float rms               = AudioInputCapture.getAudioLevels(normalizedData);
+                        float decibels          = AudioInputCapture.getDecibelFromAmplitude(rms);
+                        
+                        JSONObject info = new JSONObject(); 
+                        info.put("data_type", ENUMS.CAPTURE_DATADEST_JS_DB); 
+                        info.put("type", ENUMS.CAPTURE_RESULT);                        
+                        info.put("data", Float.toString(decibels));
+                        Messaging.sendUpdate2Web(mWlCb, info, true);
+                    }                                        
                 }
                 catch(Exception ex) 
                 {

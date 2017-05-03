@@ -41,8 +41,7 @@ public class AudioInputReceiver extends Thread
         recorder = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, sampleRateInHz, channelConfig, audioFormat, minBufferSize * RECORDING_BUFFER_FACTOR);
     }
 
-    public AudioInputReceiver(int sampleRate, int bufferSizeInBytes, int channels, String format, int audioSource) 
-    {
+    public AudioInputReceiver(int sampleRate, int bufferSizeInBytes, int channels, String format, int audioSource)  {
         this(sampleRate, bufferSizeInBytes, channels, format, audioSource, fNormalizationFactor);
     }
     public AudioInputReceiver(int sampleRate, int bufferSizeInBytes, int channels, String format, int audioSource, float _normalizationFactor) 
@@ -80,20 +79,19 @@ public class AudioInputReceiver extends Thread
 
         recorder = new AudioRecord(audioSource, sampleRateInHz, channelConfig, audioFormat, recordingBufferSize);
     }
-    //==================================================================================================
-    public void setHandler(Handler handler) 
-    {
+
+    public void setHandler(Handler handler) {
         mStatusCallback     = handler;        
         mCommandCallback    = handler;        
         mResultCallback     = handler;     
     }    
     
-    public void setHandler(Handler scb, Handler ccb, Handler rcb) 
-    {
+    public void setHandler(Handler scb, Handler ccb, Handler rcb)  {
         mStatusCallback     = scb;        
         mCommandCallback    = ccb;        
         mResultCallback     = rcb;     
     }    
+ 
     //==================================================================================================
     @Override
     public void run() 
