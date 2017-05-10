@@ -466,7 +466,10 @@ public class VAD
      * @param bufferSize
      * @private
      */
-    private void calculateTimePeriodsAnalysisBuffers(int sampleRate, int bufferSize) // mVadParams.nAnalysisChunkLength=100ms
+    // nOfAnalysisBuffersPerIteration MUST BE an integer ! thus sampleRate, bufferSize & nAnalysisChunkLength must be linked
+    // (bufferSize*1000)/(samplerate*nAnalysisChunkLength) = INTEGER
+    // possible values are: with sr=8000, bs=512 => acl==64/128/256 etc...
+    private void calculateTimePeriodsAnalysisBuffers(int sampleRate, int bufferSize) // mVadParams.nAnalysisChunkLength=64ms
     {
         try 
         {
@@ -474,14 +477,14 @@ public class VAD
             fBufferLengthInSeconds          = 1 / fAudioInputFrequency;                                                                 // 0.128 sec
 
             float fInputBufferSizeInMs      = fBufferLengthInSeconds * 1000;                                                            // 128 ms
-            nOfAnalysisBuffersPerIteration  = (int)Math.ceil(fInputBufferSizeInMs / mVadParams.nAnalysisChunkLength);                   // ceil(128/100) = 2
+            nOfAnalysisBuffersPerIteration  = (int)Math.ceil(fInputBufferSizeInMs / mVadParams.nAnalysisChunkLength);                   // ceil(128/64) = 2
             nAnalysisBufferSize             = (int)Math.ceil(bufferSize / nOfAnalysisBuffersPerIteration);                              // 512
             fAnalysisBufferLengthInS        = fBufferLengthInSeconds / nOfAnalysisBuffersPerIteration;                                  // 0.064
             fAnalysisBufferLengthInMs       = fAnalysisBufferLengthInS*1000;                                                            // 64 ms
 
             nSpeechAllowedDelayChunks       = Math.round(mVadParams.nSpeechDetectionAllowedDelay / fAnalysisBufferLengthInMs);          // 400/64     = 6.25   => 6
-            nSpeechMinimumLengthChunks      = Math.round(mVadParams.nSpeechDetectionMinimum / fAnalysisBufferLengthInMs);               // 500/64     = 7.81   => 8
-            nSpeechMaximumLengthChunks      = Math.round(mVadParams.nSpeechDetectionMaximum / fAnalysisBufferLengthInMs);               // 10000/64   = 156,25 => 156
+            nSpeechMinimumLengthChunks      = Math.round(mVadParams.nSpeechDetectionMinimum      / fAnalysisBufferLengthInMs);               // 500/64     = 7.81   => 8
+            nSpeechMaximumLengthChunks      = Math.round(mVadParams.nSpeechDetectionMaximum      / fAnalysisBufferLengthInMs);               // 10000/64   = 156,25 => 156
 
             // init of the array containing the longest allowed chunk data
             int nLongestSentenceSamples     = (int)Math.ceil((double)(mVadParams.nSpeechDetectionMaximum*1.0)/1000);                    // 80000

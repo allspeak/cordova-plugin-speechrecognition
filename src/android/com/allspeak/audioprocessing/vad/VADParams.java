@@ -68,7 +68,7 @@ public class VADParams
         public static final int SPEECH_DETECTION_MAX_LENGTH             = 10000; // mS
         public static final int SPEECH_DETECTION_MIN_LENGTH             = 500; // mS
         public static final boolean SPEECH_DETECTION_COMPRESS_PAUSES    = false;
-        public static final int SPEECH_DETECTION_ANALYSIS_CHUNK_LENGTH  = 100; // mS
+        public static final int SPEECH_DETECTION_ANALYSIS_CHUNK_LENGTH  = 64; // mS
         public static final int AUDIO_RESULT_TYPE                       = 1;
         public static final boolean DETECT_ONLY                         = false;
     } 
