@@ -83,7 +83,7 @@ public class SpeechRecognitionService extends Service
     private int nMFCCFrames2beProcessed         = 0;
 
     // what to do with MFCC data
-    private int nMFCCDataDest                   = MFCCParams.DATADEST_NONE;        // send back to Web Layer or not  
+    private int nMFCCDataDest                   = ENUMS.MFCC_DATADEST_NONE;        // send back to Web Layer or not  
     private boolean bTriggerAction              = false;    // monitor nMFCCFrames2beProcessed zero-ing, when it goes to 0 and bTriggerAction=true => 
     
     //-----------------------------------------------------------------------------------------------
@@ -400,8 +400,8 @@ public class SpeechRecognitionService extends Service
         {
             switch(nMFCCDataDest)
             {
-                case MFCCParams.DATADEST_ALL:
-                case MFCCParams.DATADEST_JSDATA:        //   "" + send progress(filename) + data(JSONArray) to WEB
+                case ENUMS.MFCC_DATADEST_ALL:
+                case ENUMS.MFCC_DATADEST_JSDATA:        //   "" + send progress(filename) + data(JSONArray) to WEB
                     info.put("type", ENUMS.MFCC_RESULT);
                     JSONArray data = new JSONArray(params);
                     info.put("data", data);
@@ -409,7 +409,7 @@ public class SpeechRecognitionService extends Service
                     Messaging.sendUpdate2Web(callbackContext, info, true);
                     break;
 
-                case MFCCParams.DATADEST_JSPROGRESS:    //   "" + send progress(filename) to WEB
+                case ENUMS.MFCC_DATADEST_JSPROGRESS:    //   "" + send progress(filename) to WEB
                     info.put("type", ENUMS.MFCC_STATUS_PROGRESS_DATA);
                     info.put("progress", source);
                     Messaging.sendUpdate2Web(callbackContext, info, true);

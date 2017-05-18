@@ -12,7 +12,7 @@ speechrecognition.pluginName    = "SpeechRecognitionPlugin";
 // PLUGIN RETURN VALUES
 //=====================================================================================================
 // MUST MAP a plugin's ENUMS.java subset (results & statuses, excluding internal CMD & enums)
-speechrecognition.ENUM.RETURN   = 
+speechrecognition.ENUM.PLUGIN   = 
 {
     CAPTURE_STATUS_STARTED          : 11, 
     CAPTURE_RESULT                  : 12, 
@@ -88,13 +88,16 @@ speechrecognition.ENUM.capture.CHANNELS = {
 // Common Sampling rates
 speechrecognition.ENUM.capture.SAMPLERATE = {
     TELEPHONE_8000Hz    : 8000,
-    CD_QUARTER_11025Hz  : 11025,
-    VOIP_16000Hz        : 16000,
-    CD_HALF_22050Hz     : 22050,
-    MINI_DV_32000Hz     : 32000,
-    CD_XA_37800Hz       : 37800,
-    NTSC_44056Hz        : 44056,
-    CD_AUDIO_44100Hz    : 44100
+    VOIP_16000Hz        : 16000
+};
+
+// Buffer Size
+speechrecognition.ENUM.capture.BUFFER_SIZES = {
+    BS_256              : 256,
+    BS_512              : 512,
+    BS_1024             : 1024,
+    BS_2048             : 2048,
+    BS_4096             : 4096
 };
 
 // Audio Source types
@@ -169,6 +172,10 @@ speechrecognition.ENUM.vad.STATUS = {
     SPEECH_STATUS_MIN_LENGTH   : 9
 };
 
+speechrecognition.ENUM.vad.MIN_ACL_MS = 32;
+speechrecognition.ENUM.vad.MIN_MXL_MS = 8000;   // minimun SPEECH_DETECTION_MAX_LENGTH
+speechrecognition.ENUM.vad.MIN_MIL_MS = 300;    // minimum SPEECH_DETECTION_MIN_LENGTH
+speechrecognition.ENUM.vad.MAX_MIL_MS = 1000;   // maximum SPEECH_DETECTION_MIN_LENGTH
 //-----------------------------------------------------------------------------------------------------
 speechrecognition.ENUM.tf = {};
 
@@ -204,16 +211,17 @@ speechrecognition.ENUM.mfcc.DEFAULT = {
     nDataType               : speechrecognition.ENUM.mfcc.DATATYPE.MFFILTERS,
     nDataDest               : speechrecognition.ENUM.mfcc.DATADEST.NONE,
     nDataOrig               : speechrecognition.ENUM.mfcc.DATAORIGIN.RAWDATA,
-    sOutputPath             : ""
+    sOutputPath             : "",
+    nContextFrames          : 11
 };
 
 speechrecognition.ENUM.vad.DEFAULT = {
     SPEECH_DETECTION_THRESHOLD              : 15, // dB
-    SPEECH_DETECTION_ALLOWED_DELAY          : 400, // mS
+    SPEECH_DETECTION_ALLOWED_DELAY          : 384, // mS
     SPEECH_DETECTION_MAX_LENGTH             : 10000, // mS
-    SPEECH_DETECTION_MIN_LENGTH             : 500, // mS
+    SPEECH_DETECTION_MIN_LENGTH             : 512, // mS
     SPEECH_DETECTION_COMPRESS_PAUSES        : false,
-    SPEECH_DETECTION_ANALYSIS_CHUNK_LENGTH  : 100, // mS
+    SPEECH_DETECTION_ANALYSIS_CHUNK_LENGTH  : 64, // mS
     AUDIO_RESULT_TYPE                       : 1,
     DETECT_ONLY                             : false
 };
@@ -253,6 +261,7 @@ speechrecognition.checkMfccParams = function(mfcc_params)
     speechrecognition.mfcc.params.nDataDest                    = mfcc_params.nDataDest                 || speechrecognition.ENUM.mfcc.DEFAULT.nDataDest;          
     speechrecognition.mfcc.params.nDataOrig                    = mfcc_params.nDataOrig                 || speechrecognition.ENUM.mfcc.DEFAULT.nDataOrig;          
     speechrecognition.mfcc.params.sOutputPath                  = mfcc_params.sOutputPath               || speechrecognition.ENUM.mfcc.DEFAULT.sOutputPath;          
+    speechrecognition.mfcc.params.nContextFrames               = mfcc_params.nContextFrames            || speechrecognition.ENUM.mfcc.DEFAULT.nContextFrames;          
     
     return JSON.stringify(speechrecognition.mfcc.params); 
 };
@@ -267,10 +276,6 @@ speechrecognition.checkCaptureParams = function(capture_params)
     speechrecognition.capture.params.nNormalize                 = typeof capture_params.nNormalize == 'boolean' ? speechrecognition.ENUM.capture.nNormalize : speechrecognition.ENUM.capture.DEFAULT.NORMALIZE;
     speechrecognition.capture.params.fNormalizationFactor       = capture_params.fNormalizationFactor   || speechrecognition.ENUM.capture.DEFAULT.NORMALIZATION_FACTOR;
     speechrecognition.capture.params.nConcatenateMaxChunks      = capture_params.nConcatenateMaxChunks  || speechrecognition.ENUM.capture.DEFAULT.CONCATENATE_MAX_CHUNKS;
-//    speechrecognition.capture.params.AudioContext               = null;
-//    speechrecognition.capture.params.bStreamToWebAudio          = capture_params.bStreamToWebAudio      || speechrecognition.ENUM.capture.DEFAULT.STREAM_TO_WEBAUDIO;
-//    speechrecognition.capture.params.bStartMFCC                 = capture_params.bStartMFCC             || speechrecognition.ENUM.capture.DEFAULT.START_MFCC;
-//    speechrecognition.capture.params.bStartVAD                  = capture_params.bStartVAD              || speechrecognition.ENUM.capture.DEFAULT.START_VAD;
     speechrecognition.capture.params.nDataDest                  = capture_params.nDataDest              || speechrecognition.ENUM.capture.DEFAULT.DATA_DEST;
     
     if (speechrecognition.capture.params.nChannels < 1 && speechrecognition.capture.params.nChannels > 2) {
@@ -486,8 +491,8 @@ speechrecognition._pluginEvent = function (data) {
     try {
         switch(data.type)
         {
-            case speechrecognition.ENUM.RETURN.CAPTURE_RESULT:
-                if(data.data_type == speechrecognition.ENUM.RETURN.CAPTURE_DATADEST_JS_RAW)
+            case speechrecognition.ENUM.PLUGIN.CAPTURE_RESULT:
+                if(data.data_type == speechrecognition.ENUM.PLUGIN.CAPTURE_DATADEST_JS_RAW)
                 {
                     if (data && data.data && data.data.length > 0) 
                     {
@@ -505,35 +510,35 @@ speechrecognition._pluginEvent = function (data) {
                 }
                 break;
             
-            case speechrecognition.ENUM.RETURN.CAPTURE_STATUS_STARTED:
+            case speechrecognition.ENUM.PLUGIN.CAPTURE_STATUS_STARTED:
                 console.log("audioInputMfcc._startaudioInputEvent");
                 cordova.fireWindowEvent("capturestarted", {});
                 speechrecognition._capturing = true;                   
                 break;
                 
-            case speechrecognition.ENUM.RETURN.CAPTURE_STATUS_STOPPED:
+            case speechrecognition.ENUM.PLUGIN.CAPTURE_STATUS_STOPPED:
                 console.log("audioInputMfcc._stopaudioInputEvent: captured " + parseInt(data.bytesread) + "bytes, " + parseInt(data.datacaptured)*12 + " time windows, dataprocessed: " + parseInt(data.dataprocessed)*12);
                 cordova.fireWindowEvent("capturestopped", {data: data});
                 speechrecognition._capturing = false;                   
                 break;
                 
-            case speechrecognition.ENUM.RETURN.MFCC_RESULT:
+            case speechrecognition.ENUM.PLUGIN.MFCC_RESULT:
                 cordova.fireWindowEvent("mfccdata", {data: data});
                 break;
                 
-            case speechrecognition.ENUM.RETURN.MFCC_STATUS_PROGRESS_DATA:
+            case speechrecognition.ENUM.PLUGIN.MFCC_STATUS_PROGRESS_DATA:
                 cordova.fireWindowEvent("mfccprogressdata", {data: data});
                 break;
                 
-            case speechrecognition.ENUM.RETURN.MFCC_STATUS_PROGRESS_FILE:
+            case speechrecognition.ENUM.PLUGIN.MFCC_STATUS_PROGRESS_FILE:
                 cordova.fireWindowEvent("mfccprogressfile", {data: data});
                 break;
                 
-            case speechrecognition.ENUM.RETURN.SPEECH_STATUS_STARTED:
-            case speechrecognition.ENUM.RETURN.SPEECH_STATUS_STOPPED:
-            case speechrecognition.ENUM.RETURN.SPEECH_STATUS_SENTENCE:
-            case speechrecognition.ENUM.RETURN.SPEECH_STATUS_MAX_LENGTH:
-            case speechrecognition.ENUM.RETURN.SPEECH_STATUS_MIN_LENGTH:
+            case speechrecognition.ENUM.PLUGIN.SPEECH_STATUS_STARTED:
+            case speechrecognition.ENUM.PLUGIN.SPEECH_STATUS_STOPPED:
+            case speechrecognition.ENUM.PLUGIN.SPEECH_STATUS_SENTENCE:
+            case speechrecognition.ENUM.PLUGIN.SPEECH_STATUS_MAX_LENGTH:
+            case speechrecognition.ENUM.PLUGIN.SPEECH_STATUS_MIN_LENGTH:
                 cordova.fireWindowEvent("speechstatus", {data: data.type});
                 break;
         }

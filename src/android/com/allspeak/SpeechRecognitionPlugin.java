@@ -71,14 +71,20 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
         cordovaInterface        = cordova;
         mContext                = cordovaInterface.getActivity();
         
-        // bind service
-        Intent bindIntent       = new Intent(mContext, SpeechRecognitionService.class);  // Binding.this instead of mContext in the official sample.
-        mContext.bindService(bindIntent, mConnection, Context.BIND_AUTO_CREATE);        
+        bindService();
         
         promptForRecordPermissions();
     }
     //======================================================================================================================
-    //get Service interface
+    //get Service interface    
+    
+    private void bindService()
+    {
+        // bind service
+        Intent bindIntent = new Intent(mContext, SpeechRecognitionPlugin.class);  // Binding.this instead of mContext in the official sample.
+        mContext.bindService(bindIntent, mConnection, Context.BIND_AUTO_CREATE);        
+    }
+    
     private ServiceConnection mConnection = new ServiceConnection() 
     {
         @Override
@@ -88,8 +94,8 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
             LocalBinder binder  = (LocalBinder) service;
             mService            = binder.getService();
             String res          = mService.initService();  // if(res != "ok") dont' know how to inform web layer
-                
             mBound              = true;
+            Log.d(LOG_TAG, "========> Service Bounded <=========");
         }
 
         @Override
