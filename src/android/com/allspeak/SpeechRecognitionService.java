@@ -247,10 +247,18 @@ public class SpeechRecognitionService extends Service
             Handler mMfccHandlerThread  = mfcc.getHandlerLooper();          // get the mfcc looper   
             
             // MFCCParams params, Handler statuscb, Handler commandcb, Handler resultcb
-            mfcc.init(mMfccParams, mMfccHandler, mTfHandlerThread, mTfHandlerThread);       // MFCC send commands & data to TF , status here
             vad.init(mVadParams, mCfgParams, mVadHandler, mMfccHandlerThread, mVadHandler, callbackContext);        // VAD send commands to MFCC, status here 
-            tf.init(mTfParams, mTfHandler, null, mTfHandler); 
-            
+
+            // I get the length (first in samples, then in frames) of the max allowed speech chunk. 
+            int nMaxSpeechLengthSample  = vad.getMaxSpeechLengthSamples();  
+            int nMaxSpeechLengthFrames  = MFCCCalcJAudio.getFrames(nMaxSpeechLengthSample, mMfccParams.nWindowLength, mMfccParams.nWindowDistance);
+            int nParams                 = (mMfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? 3*mMfccParams.nNumberOfMFCCParameters : 3*mMfccParams.nNumberofFilters);
+
+            // I pass to MFCC to let him allocate the proper cepstra buffer
+            mfcc.init(mMfccParams, mMfccHandler, mTfHandlerThread, mTfHandlerThread, nMaxSpeechLengthSample);       // MFCC send commands & results to TF, status here
+            // I pass to TF to let him allocate the proper cepstra buffer
+            tf.init(mTfParams, mTfHandler, null, mTfHandler, nMaxSpeechLengthFrames, nParams); 
+
             aicCapture                  = new AudioInputCapture(mCfgParams, aicHandler, null, mVadHandlerThread); // CAPTURE send data to VAD, status here
             aicCapture.start();
             return true;
@@ -386,11 +394,11 @@ public class SpeechRecognitionService extends Service
     // called by MFCC class when sending frames to be processed
     public void onMFCCStartProcessing(int nframes)
     {
-        Log.d(LOG_TAG, "start to process: " + Integer.toString(nframes));
+//        Log.d(LOG_TAG, "start to process: " + Integer.toString(nframes));
         nMFCCFrames2beProcessed += nframes;
     }
     
-    public void onMFCCData(float[][] params, float[][] params_1st, float[][] params_2nd, String source)
+    public void onMFCCData(float[][] params, String source)
     {
         onMFCCProgress(params.length);        
         
@@ -556,10 +564,9 @@ public class SpeechRecognitionService extends Service
                             String source       = b.getString("source");
                             int nframes         = b.getInt("nframes");
                             int nparams         = b.getInt("nparams");
-                            float[][] res       = Messaging.deFlattenArray(b.getFloatArray("data"), nframes, nparams);
-                            float[][] res_1st   = Messaging.deFlattenArray(b.getFloatArray("data_1st"), nframes, nparams);
-                            float[][] res_2nd   = Messaging.deFlattenArray(b.getFloatArray("data_2nd"), nframes, nparams);
-                            service.onMFCCData(res, res_1st, res_2nd, source);                            
+                            float[][] cepstra   = Messaging.deFlattenArray(b.getFloatArray("data"), nframes, nparams);
+
+                            service.onMFCCData(cepstra, source);                            
                             break;
                             
                         case ENUMS.MFCC_STATUS_PROGRESS_FILE:
@@ -583,7 +590,7 @@ public class SpeechRecognitionService extends Service
                             
                         case ENUMS.MFCC_STATUS_PROCESS_STARTED:
                             
-                            service.onMFCCStartProcessing((int)msg.obj);                            
+                            service.onMFCCStartProcessing(b.getInt("nframes"));
                             break;
                     }
                 }
@@ -640,11 +647,13 @@ public class SpeechRecognitionService extends Service
                 try 
                 {
                     //get message type
-                    Bundle b = msg.getData();
+                    JSONObject info = new JSONObject();
+                    Bundle b        = msg.getData();
                     switch((int)msg.what) //get message type
                     {
-                    }                    
-
+                        case ENUMS.TF_STATUS_PROCESS_STARTED:
+                            break;                  
+                    }
                 }
                 catch (Exception e) {
 

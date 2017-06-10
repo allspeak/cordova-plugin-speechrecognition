@@ -127,6 +127,11 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
         init(vadParams, cfgParams, scb, ccb, rcb);
         mWlCb = wlcb;
     }
+    
+    public int getMaxSpeechLengthSamples()
+    {
+        return vad.getMaxSpeechLengthSamples();
+    }
     //================================================================================================================    
     public void stopSpeechRecognition(CallbackContext wlcb)
     {
@@ -225,25 +230,3 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
     }    
     //================================================================================================================
 }
-
-
-
-
-//    public VADHandlerThread(VADParams vadParams, CFGParams cfgParams, MFCCParams mfccParams, Handler cb, Handler mfccHandler, CallbackContext wlcb, String name, int priority)
-//    {
-//        super(name, priority);
-//        mCallback       = cb;
-//        mMfccHandler    = mfccHandler;
-//        mVadParams      = vadParams;
-//        mCfgParams      = cfgParams;
-//        mMfccParams     = mfccParams;
-//        mWlCb           = wlcb;
-//    }    
-//    public VADHandlerThread(VADParams vadParams, CFGParams cfgParams, MFCCParams mfccParams, Handler cb, Handler mfccHandler, String name)
-//    {
-//        this(vadParams, cfgParams, mfccParams, cb, mfccHandler, null, name, 0);
-//    }
-//    public VADHandlerThread(VADParams vadParams, CFGParams cfgParams, MFCCParams mfccParams, Handler cb, Handler mfccHandler, String name, int priority)
-//    {
-//        this(vadParams, cfgParams, mfccParams, cb, mfccHandler, null, name, priority);   
-//    }

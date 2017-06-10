@@ -11,6 +11,8 @@ import android.util.Log;
 import com.allspeak.ENUMS;
 import com.allspeak.ERRORS;
 
+import com.allspeak.utility.Messaging;
+
 // not necessary
 import com.allspeak.tensorflow.TFParams;
 //import com.allspeak.tensorflow.TF;
@@ -27,16 +29,23 @@ sends the following messages to Plugin Activity:
 
 public class TFHandlerThread extends HandlerThread implements Handler.Callback
 {
-    private static final String LOG_TAG = "TFHandlerThread";
+    private static final String LOG_TAG     = "TFHandlerThread";
     
-    private Handler mInternalHandler    = null;   // manage internal messages
-    private Handler mStatusCallback     = null;   // destination handler of status messages
-    private Handler mResultCallback     = null;   // destination handler of data result
-    private Handler mCommandCallback    = null;   // destination handler of output command
-    private CallbackContext mWlCb       = null;   // access to web layer 
+    private Handler mInternalHandler        = null;   // manage internal messages
+    private Handler mStatusCallback         = null;   // destination handler of status messages
+    private Handler mResultCallback         = null;   // destination handler of data result
+    private Handler mCommandCallback        = null;   // destination handler of output command
+    private CallbackContext mWlCb           = null;   // access to web layer 
     
-    private TFParams tfParams           = null;
+    private TFParams tfParams               = null;
     
+    // data to store calculated CEPSTRA: float[nMaxSpeechLengthFrames][nScores*3]
+    private int nColumns                    = 0;    // indicates the number of received params (22*3 for filters)...]
+    private int nMaxSpeechLengthFrames      = 0;    // max speech length in frames
+    private float[][] faCalculatedCepstra   = null;   // contains (MAXnframes, numparams) calculated FilterBanks...array storing the calculated cepstra
+    
+    private int nProcessedFrames            = 0;      
+
     //================================================================================================================
     public TFHandlerThread(String name)
     {
@@ -90,10 +99,24 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
         mCommandCallback    = ccb;        
         mResultCallback     = rcb;   
     }
+    public void init(TFParams params, Handler scb, Handler ccb, Handler rcb, int maxspeechframes, int ncolumns)
+    {
+        init(params, scb, ccb, rcb);
+        nMaxSpeechLengthFrames  = maxspeechframes;
+        nColumns                = ncolumns;
+        Messaging.sendDataToHandler(mInternalHandler, ENUMS.TF_CMD_CLEAR, nMaxSpeechLengthFrames, nColumns);
+    }
     public void init(TFParams params, Handler scb, Handler ccb, Handler rcb, CallbackContext wlcb)
     {
         mWlCb       = wlcb;
         init(params, scb, ccb, rcb);
+    }        
+    public void init(TFParams params, Handler scb, Handler ccb, Handler rcb, CallbackContext wlcb, int maxspeechframes, int ncolumns)
+    {
+        init(params, scb, ccb, rcb, wlcb);
+        nMaxSpeechLengthFrames  = maxspeechframes;
+        nColumns                = ncolumns;
+        Messaging.sendDataToHandler(mInternalHandler, ENUMS.TF_CMD_CLEAR, nMaxSpeechLengthFrames, nColumns);
     }        
     //===============================================================================================
     // wrapper to thread execution 
@@ -110,26 +133,85 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
         message.what    = ENUMS.TF_CMD_RECOGNIZE;
         mInternalHandler.sendMessage(message);
     }    
+  
     //===============================================================================================
     // INTERNAL PROCESSING
     //===============================================================================================
-    private void doRecognize(float[] data)
+    private void doRecognize(float[][] cepstra)
     {
-
+        // pack cepstra (from 0 to nProcessedFrames) & send it to TF
+        for (int f=0; f<nProcessedFrames; f++)
+        {
+            
+        }
+        // inform service that a TF call has been submitted
+        Messaging.sendMessageToHandler(mStatusCallback, ENUMS.TF_STATUS_PROCESS_STARTED);
     }
+    
+    private void clearData(int row, int col)
+    {
+        nProcessedFrames    = 0;
+        faCalculatedCepstra = new float[row][col];
+    }    
+
+    // check if the number of the here stored frames coincides with the number of frames passed from MFCCHT
+    private boolean checkData(int expectedFrames)
+    {
+        boolean res;
+        String strmsg;
+        if(expectedFrames == nProcessedFrames)
+        {
+            strmsg  = "TF_CMD_RECOGNIZE: sample OK !! => processed frames: " + String.valueOf(nProcessedFrames) + ", expected frames: " + String.valueOf(expectedFrames);
+            res     = true;
+        }
+        else
+        {
+            strmsg  = "TF_CMD_RECOGNIZE: sample ERROR, frames: " + String.valueOf(nProcessedFrames) + " expected frames: " + String.valueOf(expectedFrames);
+            res     = false;
+        }
+        Log.d(LOG_TAG, strmsg);         
+        return res;
+    }    
     //================================================================================================================
     @Override
     public boolean handleMessage(Message msg) 
     {
         Bundle bundle = msg.getData();
+        int nframes;
         float[] data;
         switch((int)msg.what)
         {
+            case ENUMS.TF_CMD_CLEAR:  
+                int row,col;
+                if(msg.arg1 != 0 && msg.arg2 != 0)
+                {
+                    row = msg.arg1;
+                    col = msg.arg2;
+                }
+                else
+                {
+                    row = nMaxSpeechLengthFrames;
+                    col = nColumns;                    
+                }    
+                clearData(row, col);
+                break;
+                
             case ENUMS.TF_CMD_RECOGNIZE:  
+                nframes             = bundle.getInt("nframes");
+                checkData(nframes);
+                doRecognize(faCalculatedCepstra);
+                break;
+                
+            case ENUMS.TF_CMD_NEWCEPSTRA:  
                     
-                data            = bundle.getFloatArray("data");
-                mStatusCallback.sendMessage(Message.obtain(null, ENUMS.TF_STATUS_PROCESS_STARTED));
-                doRecognize(data);
+                data                = bundle.getFloatArray("data");
+                nframes             = bundle.getInt("nframes");
+                int nparams         = bundle.getInt("nparams");
+                float[][] cepstra   = Messaging.deFlattenArray(data, nframes, nparams);
+                
+                // store calculated cepstra in its buffer
+                for(int f=0; f<nframes; f++) System.arraycopy(cepstra[f], 0, faCalculatedCepstra[nProcessedFrames+f], 0, nparams);   
+                nProcessedFrames += nframes;
                 break;
         }
         return true;

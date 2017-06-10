@@ -25,6 +25,7 @@ public class ERRORS
     
     public static final int TF_ERROR                    = 150;  
 
+    public static final int HEADSET_ERROR               = 160; // 
     
     public static final int UNSPECIFIED                 = 999;    
 }

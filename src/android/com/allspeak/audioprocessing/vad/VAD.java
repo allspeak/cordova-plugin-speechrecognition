@@ -59,8 +59,10 @@ public class VAD
 
     private boolean     bCaptureRunning = false;
 
+    private int         nMaxSpeechLengthSamples = 0; // determines faCurrentSpeechHistory length
     private float[]     faCurrentSpeechHistory;
     private int         nCurrentSpeechLength = 0;  // incremented by appendSpeechToHistory, used as: if(nCurrentSpeechLength + 1 > nSpeechMaximumLengthChunks) maximumLengthSpeechEvent();
+    private int         nCurrentSpeechSamples = 0;  // incremented by appendSpeechToHistory, used as: if(nCurrentSpeechLength + 1 > nSpeechMaximumLengthChunks) maximumLengthSpeechEvent();
 
     private int         nAfterSpeechPeriod = 0;  // used as following: if (nAfterSpeechPeriod > nSpeechAllowedDelayChunks) stopSpeechEvent(); 
 
@@ -71,8 +73,6 @@ public class VAD
 
     private int         nAnalysisBufferSize = 0;
     private int         nOfAnalysisBuffersPerIteration = 0;
-    private float       fAudioInputFrequency = 0;
-    private float       fBufferLengthInSeconds = 0;
     private float       fAnalysisBufferLengthInS = 0;
     private float       fAnalysisBufferLengthInMs = 0;
     
@@ -175,6 +175,10 @@ public class VAD
         return bSpeakingRightNow;
     }    
 
+    public int getMaxSpeechLengthSamples()
+    {
+        return nMaxSpeechLengthSamples;
+    }
     //====================================================================================================================
     // SPEECH DETECTION
     //====================================================================================================================
@@ -216,7 +220,7 @@ public class VAD
         if (nCurrentSpeechLength + 1 > nSpeechMaximumLengthChunks) 
         {
             maximumLengthSpeechEvent();                                             // send event to WL, then call stopSpeechEvent => newSentenceEvent();
-            return false;
+            return false;                                                           // don't consider new data
         }
         // Is somebody speaking?
         if (identifySpeech(analysisBuffer)) 
@@ -349,12 +353,12 @@ public class VAD
     /**
      * @private
      */
-    private void stopSpeechEvent() {
+    private void stopSpeechEvent() 
+    {
+        sendStopSpeech();
         // Was the speech long enough to be considered a new sentence?
         if (nCurrentSpeechLength > nSpeechMinimumLengthChunks)  newSentenceEvent();
         else                                                    sendMinimumLengthSpeechEvent();
-        
-        sendStopSpeech();
         resetSpeechDetection();
     }   
     
@@ -362,7 +366,8 @@ public class VAD
      * @param speechData
      * @private
      */
-    private void maximumLengthSpeechEvent()  {
+    private void maximumLengthSpeechEvent()  
+    {
         sendMaximumLengthSpeechEvent();
         stopSpeechEvent();
     }    
@@ -388,6 +393,7 @@ public class VAD
             }
             System.arraycopy(analysisBuffer,0, faCurrentSpeechHistory, nCurrentSpeechLength*mCfgParams.nBufferSize, data2write);
             Messaging.sendDataToHandler(mCommandCallback, ENUMS.MFCC_CMD_GETQDATA, "data", analysisBuffer);
+            nCurrentSpeechSamples += data2write;
         }
         nCurrentSpeechLength++;
     }
@@ -396,15 +402,14 @@ public class VAD
      * @param speechData
      * @private
      */
-    private void newSentenceEvent()  {
-        
-        int data2write  = nCurrentSpeechLength*mCfgParams.nBufferSize;
-        float[] data    = new float[data2write];
-        System.arraycopy(faCurrentSpeechHistory, 0, data, 0, data2write);
+    private void newSentenceEvent()  
+    {
+        float[] data    = new float[nCurrentSpeechSamples];
+        System.arraycopy(faCurrentSpeechHistory, 0, data, 0, nCurrentSpeechSamples);
 
 //        WavFile.createWavFile( file, mCfgParams.nChannels, data, 16, (long)mCfgParams.nSampleRate);
         callSpeechStatusCB(ENUMS.SPEECH_STATUS_SENTENCE);   
-        Messaging.sendDataToHandler(mCommandCallback, ENUMS.MFCC_CMD_SENDDATA, "info", ENUMS.SPEECH_STATUS_MAX_LENGTH);
+        Messaging.sendDataToHandler(mCommandCallback, ENUMS.MFCC_CMD_SENDDATA, "info", nCurrentSpeechSamples);
     }    
     //===================================================================
     // RESET PARAMS
@@ -442,8 +447,10 @@ public class VAD
      */
     private void resetSpeechDetection() {
 //        faCurrentSpeechHistory = null;
-        nCurrentSpeechLength = 0;
-        nAfterSpeechPeriod = 0;
+        nCurrentSpeechLength    = 0;
+        nCurrentSpeechSamples   = 0;
+        nAfterSpeechPeriod      = 0;
+        Messaging.sendDataToHandler(mCommandCallback, ENUMS.MFCC_CMD_CLEAR);
     }
 
     //===================================================================
@@ -473,26 +480,33 @@ public class VAD
     {
         try 
         {
-            fAudioInputFrequency            = sampleRate / bufferSize;                                                                  // 7.8125
-            fBufferLengthInSeconds          = 1 / fAudioInputFrequency;                                                                 // 0.128 sec
+            float fInputBufferSizeInMs      = (bufferSize*1000)/sampleRate;  
+            float fInputBufferSizeInS       = fInputBufferSizeInMs/1000;  
 
-            float fInputBufferSizeInMs      = fBufferLengthInSeconds * 1000;                                                            // 128 ms
-            nOfAnalysisBuffersPerIteration  = (int)Math.ceil(fInputBufferSizeInMs / mVadParams.nAnalysisChunkLength);                   // ceil(128/64) = 2
-            nAnalysisBufferSize             = (int)Math.ceil(bufferSize / nOfAnalysisBuffersPerIteration);                              // 512
-            fAnalysisBufferLengthInS        = fBufferLengthInSeconds / nOfAnalysisBuffersPerIteration;                                  // 0.064
-            fAnalysisBufferLengthInMs       = fAnalysisBufferLengthInS*1000;                                                            // 64 ms
-
-            nSpeechAllowedDelayChunks       = Math.round(mVadParams.nSpeechDetectionAllowedDelay / fAnalysisBufferLengthInMs);          // 400/64     = 6.25   => 6
-            nSpeechMinimumLengthChunks      = Math.round(mVadParams.nSpeechDetectionMinimum      / fAnalysisBufferLengthInMs);               // 500/64     = 7.81   => 8
-            nSpeechMaximumLengthChunks      = Math.round(mVadParams.nSpeechDetectionMaximum      / fAnalysisBufferLengthInMs);               // 10000/64   = 156,25 => 156
+            nOfAnalysisBuffersPerIteration  = (int)Math.ceil(fInputBufferSizeInMs / mVadParams.nAnalysisChunkLength);                // ceil(128/64) = 2
+            nAnalysisBufferSize             = (int)Math.ceil(bufferSize / nOfAnalysisBuffersPerIteration);                           // 512
+            fAnalysisBufferLengthInS        = fInputBufferSizeInS / nOfAnalysisBuffersPerIteration;                                  // 0.064
+            fAnalysisBufferLengthInMs       = fAnalysisBufferLengthInS*1000; 
+            
+            nSpeechAllowedDelayChunks       = Math.round(mVadParams.nSpeechDetectionAllowedDelay / fAnalysisBufferLengthInMs);      // 400/64     = 6.25   => 6
+            nSpeechMinimumLengthChunks      = Math.round(mVadParams.nSpeechDetectionMinimum      / fAnalysisBufferLengthInMs);      // 500/64     = 7.81   => 8
+            nSpeechMaximumLengthChunks      = Math.round(mVadParams.nSpeechDetectionMaximum      / fAnalysisBufferLengthInMs);      // 10000/64   = 156,25 => 156
 
             // init of the array containing the longest allowed chunk data
-            int nLongestSentenceSamples     = (int)Math.ceil((double)(mVadParams.nSpeechDetectionMaximum*1.0)/1000);                    // 80000
-            faCurrentSpeechHistory          = new float[nLongestSentenceSamples*sampleRate];    
+            nMaxSpeechLengthSamples         = getMaxSpeechLengthSamples(mVadParams.nSpeechDetectionMaximum, sampleRate, bufferSize);                                                // 63*1024 = 64512
+            faCurrentSpeechHistory          = new float[nMaxSpeechLengthSamples];    
         }
         catch (Exception e) {
             Messaging.sendMessageToHandler(mStatusCallback, ERRORS.VAD_ERROR, "error", "calculateTimePeriodsAnalysisBuffers exception: " + e);
         }
+    }
+    
+    public static int getMaxSpeechLengthSamples(int maxlen_ms, int sampleRate, int bufferSize)
+    {
+        float maxLengthSecond           = (float)((maxlen_ms*1.0)/1000);                               // 8000 => 8.0
+        float maxLengthSamples          = maxLengthSecond*sampleRate;                                                           // 8.0 x 8000 = 64000
+        int max_segments                = (int) Math.ceil(maxLengthSamples/bufferSize);                                         // 64000/1024 = 62.25 => 63
+        return max_segments*sampleRate;          
     }
     //======================================================================================    
 }

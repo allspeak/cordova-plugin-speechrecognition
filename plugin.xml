@@ -31,6 +31,9 @@
         <config-file parent="/*" target="AndroidManifest.xml">
             <uses-permission android:name="android.permission.RECORD_AUDIO" />
             <uses-permission android:name="android.permission.WAKE_LOCK" />  
+            <uses-permission android:name="android.permission.BROADCAST_STICKY"/>
+            <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+            
         </config-file>
         <source-file src="src/android/com/allspeak/SpeechRecognitionPlugin.java" target-dir="src/com/allspeak" />
         <source-file src="src/android/com/allspeak/SpeechRecognitionService.java" target-dir="src/com/allspeak" />

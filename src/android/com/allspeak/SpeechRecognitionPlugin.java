@@ -7,6 +7,19 @@ import org.apache.cordova.CordovaWebView;
 import org.apache.cordova.PluginResult;
 import org.apache.cordova.PermissionHelper;
 
+
+import android.media.AudioDeviceInfo;
+import android.bluetooth.BluetoothAdapter;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.media.AudioManager;
+import android.os.CountDownTimer;
+import android.widget.Toast;
+
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -31,6 +44,7 @@ import com.allspeak.audioprocessing.mfcc.MFCCParams;
 import com.allspeak.audioprocessing.vad.VADParams;
 import com.allspeak.audiocapture.CFGParams;
 import com.allspeak.audiocapture.*;
+import java.util.Arrays;
 
 
 public class SpeechRecognitionPlugin extends CordovaPlugin
@@ -38,6 +52,7 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     private static final String LOG_TAG         = "SpeechRecognitionPlugin";
     
     private Context mContext                    = null;
+    private AudioManager mAudioManager          = null;
     
     //cordova stuffs
     private CallbackContext callbackContext     = null;
@@ -51,6 +66,7 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     
     
     boolean isCapturing                         = false;
+    boolean isHeadSetConnected                  = false;
     //-----------------------------------------------------------------------------------------------
     
     private SpeechRecognitionService mService   = null;
@@ -71,18 +87,31 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
         cordovaInterface        = cordova;
         mContext                = cordovaInterface.getActivity();
         
-        bindService();
+        mAudioManager           = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
+
+        try
+        {
+            boolean conn = bindService();
+            promptForRecordPermissions();
+
+        }
+        catch(SecurityException e)
+        {
+            e.printStackTrace();                    
+            Log.e(LOG_TAG, e.getMessage(), e);
+        }
         
-        promptForRecordPermissions();
     }
     //======================================================================================================================
     //get Service interface    
     
-    private void bindService()
+    private boolean bindService()
     {
         // bind service
-        Intent bindIntent = new Intent(mContext, SpeechRecognitionPlugin.class);  // Binding.this instead of mContext in the official sample.
-        mContext.bindService(bindIntent, mConnection, Context.BIND_AUTO_CREATE);        
+        Intent bindIntent   = new Intent(mContext, SpeechRecognitionService.class);  // Binding.this instead of mContext in the official sample.
+        boolean res         = mContext.bindService(bindIntent, mConnection, Context.BIND_AUTO_CREATE);        
+        if(!res)            mContext.unbindService(mConnection);
+        return res;
     }
     
     private ServiceConnection mConnection = new ServiceConnection() 
@@ -258,29 +287,110 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     @Override
     public void onReset() 
     {
-        if (mBound) 
-        {
-            if(mService.isCapturing())  mService.stopCapture(callbackContext);
-            mContext.unbindService(mConnection);
-            mBound = false;
-        }        
+//        if (mBound) 
+//        {
+//            if(mService.isCapturing())  mService.stopCapture(callbackContext);
+//            mContext.unbindService(mConnection);
+//            mBound = false;
+//        }        
     }
     
-//    @Override
-//    public void onPause() 
-//    {
-//        super.onPause();
-//    }
-//    
-//    @Override
-//    public void onResume() 
-//    {
-//        super.onResume();
-//    }
+    @Override
+    public void onPause(boolean multitasking)
+    {
+        mContext.unregisterReceiver(mBluetoothScoReceiver);
+        mAudioManager.stopBluetoothSco();        
+    }
+    
+    @Override
+    public void onResume(boolean multitasking)
+    {
+        initBTConnection();
+    }
         
 //    @Override
 //    public void onNewIntent(Intent intent) {
 //    }
+    //=================================================================================================
+    // BLUETOOTH HEADSET STATE CHANGES
+    //================================================================================================= 
+    private void initBTConnection()
+    {
+        IntentFilter intentFilter = new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED);
+        mContext.registerReceiver(mBluetoothScoReceiver, intentFilter);
+
+        
+        AudioDeviceInfo[] adIN  = new AudioDeviceInfo[10];
+        AudioDeviceInfo[] adOUT = new AudioDeviceInfo[10];
+        adIN                    = mAudioManager.getDevices(AudioManager.GET_DEVICES_INPUTS);
+        adOUT                   = mAudioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS);
+        
+        
+        mAudioManager.startBluetoothSco();          
+    }
+//    private class headsetIntentReceiver extends BroadcastReceiver 
+//    {
+//        @Override 
+//        public void onReceive(Context context, Intent intent) 
+//        {
+//            if (intent.getAction().equals(Intent.ACTION_HEADSET_PLUG)) {
+//                int state = intent.getIntExtra("state", -1);
+//                switch (state) {
+//                case 0:
+//                    Log.d(TAG, "Headset is unplugged");
+//                    break;
+//                case 1:
+//                    Log.d(TAG, "Headset is plugged");
+//                    break;
+//                default:
+//                    Log.d(TAG, "I have no idea what the headset state is");
+//                }
+//            }
+//        }
+//    }    
+    
+    private BroadcastReceiver mBluetoothScoReceiver = new BroadcastReceiver() 
+    {
+        @Override
+        public void onReceive(Context context, Intent intent) 
+        {
+            int state = intent.getIntExtra(AudioManager.EXTRA_SCO_AUDIO_STATE, -1);
+            
+            try
+            {
+                isHeadSetConnected  = false;
+                JSONObject info     = new JSONObject(); 
+                
+                if(state == AudioManager.SCO_AUDIO_STATE_ERROR)
+                    Messaging.sendErrorString2Web(callbackContext, "headset connection error", ERRORS.HEADSET_ERROR, true);
+                else
+                {
+                    switch (state)
+                    {
+                        case AudioManager.SCO_AUDIO_STATE_CONNECTED:
+                            info.put("type", ENUMS.HEADSET_CONNECTED);  
+                            isHeadSetConnected = true;
+                            break;
+
+                        case AudioManager.SCO_AUDIO_STATE_DISCONNECTED:
+                            info.put("type", ENUMS.HEADSET_DISCONNECTED);  
+                            isHeadSetConnected = false;
+                            break;
+
+                        case AudioManager.SCO_AUDIO_STATE_CONNECTING:
+                            info.put("type", ENUMS.HEADSET_CONNECTING);  
+                            isHeadSetConnected = false;
+                            break;
+                    }
+
+                    Messaging.sendUpdate2Web(callbackContext, info, true);
+                }
+            }
+            catch (JSONException e){e.printStackTrace();}              
+        }
+    };      
+    
+    
     //=================================================================================================
     // GET RECORDING PERMISSIONS
     //=================================================================================================        

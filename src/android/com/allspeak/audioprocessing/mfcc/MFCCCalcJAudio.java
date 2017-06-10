@@ -316,13 +316,22 @@ public class MFCCCalcJAudio {
         return (1 + (int) Math.ceil((inlen-windowLength)/windowDistance));
     }
 
-    //determines the maximum number of samples you can provide to MFCC analysis to get a clean number of frames
+    // determines the maximum number of samples you can provide to MFCC analysis to get a clean number of frames
     // assuming I have 1024 samples, I can process 11 frames, consuming 1000 samples => I return it
     public static int getOptimalVectorLength(int inlen, int wlength, int wdist)
     {
         int nframes = (1 + (int) Math.floor((inlen-wlength)/wdist));
         return  (wlength + wdist*(nframes-1));
     }    
+
+    // determines the speech length (in samples) given the number of processed samples
+    // since they include windowLength-windowDistance samples 
+//    public static int getSpeechLengthFromProcessedSamples(int processedSample, int analysisBuffer, int wlength, int wdist)
+//    {
+//        
+//        int nframes = (1 + (int) Math.floor((inlen-wlength)/wdist));
+//        return  (wlength + wdist*(nframes-1));
+//    }    
     
     //--------------------------------------------------------------------------------------------------------
     // calculate CEPSTRA PARAMETERS & first/second order derivatives of a speech chunk    

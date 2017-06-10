@@ -34,7 +34,29 @@ speechrecognition.ENUM.PLUGIN   =
     
     CAPTURE_DATADEST_NONE           : 200,
     CAPTURE_DATADEST_JS_RAW         : 201,
-    CAPTURE_DATADEST_JS_DB          : 202    
+    CAPTURE_DATADEST_JS_DB          : 202,    
+    CAPTURE_DATADEST_JS_RAWDB       : 203,    
+    
+    MFCC_DATADEST_NOCALC            : 230,    // DO NOT CALCULATE MFCC during capture
+    MFCC_DATADEST_NONE              : 231,    // data(float[][])=> PLUGIN
+    MFCC_DATADEST_JSPROGRESS        : 232,    // data=> PLUGIN + progress(filename)=> WEB
+    MFCC_DATADEST_JSDATA            : 233,    // data=> PLUGIN + progress(filename) + data(JSONArray)=> WEB
+    MFCC_DATADEST_JSDATAWEB         : 234,    // data(JSONArray)=> WEB
+    MFCC_DATADEST_FILE              : 235,    // progress(filename)=> PLUGIN + data(String)=> FILE
+    MFCC_DATADEST_FILEWEB           : 236,    // progress(filename)=> PLUGIN + data(String)=> FILE + data(JSONArray)=> WEB
+    MFCC_DATADEST_ALL               : 237,    // data=> PLUGIN + data(String)=> FILE + data(JSONArray)=> WEB
+    
+    MFCC_DATAORIGIN_JSONDATA        : 240,
+    MFCC_DATAORIGIN_FILE            : 241,
+    MFCC_DATAORIGIN_FOLDER          : 242,
+    MFCC_DATAORIGIN_RAWDATA         : 243,   
+    
+    MFCC_DATATYPE_MFPARAMETERS      : 250,
+    MFCC_DATATYPE_MFFILTERS         : 251,
+    
+    HEADSET_CONNECTED               : 260,
+    HEADSET_DISCONNECTED            : 261, 
+    HEADSET_CONNECTING              : 262     
 }; 
 
 // MUST MAP plugin's ERRORS.java
@@ -62,6 +84,8 @@ speechrecognition.ENUM.ERRORS   =
     SERVICE_INIT_MFCC               : 132,
     
     TF_ERROR                        : 150, 
+    
+    HEADSET_ERROR                   : 160, 
    
     UNSPECIFIED                     : 999
 }; 

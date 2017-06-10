@@ -13,7 +13,7 @@ public class ENUMS
     public static final int SPEECH_STATUS_MAX_LENGTH    = 23;
     public static final int SPEECH_STATUS_MIN_LENGTH    = 24;
     
-    public static final int MFCC_STATUS_PROCESS_STARTED = 30; //capture.DATADEST
+    public static final int MFCC_STATUS_PROCESS_STARTED = 30; //
     public static final int MFCC_STATUS_PROGRESS_DATA   = 31; //
     public static final int MFCC_STATUS_PROGRESS_FILE   = 32; //
     public static final int MFCC_STATUS_PROGRESS_FOLDER = 33; //
@@ -25,9 +25,11 @@ public class ENUMS
     public static final int MFCC_CMD_SENDDATA           = 39; //
     public static final int MFCC_RESULT                 = 40; //
     
-    public static final int TF_STATUS_PROCESS_STARTED   = 50; //
-    public static final int TF_CMD_RECOGNIZE            = 51; //
-    public static final int TF_RESULT                   = 52; //      
+    public static final int TF_STATUS_PROCESS_STARTED   = 50; // recognizing process started
+    public static final int TF_CMD_CLEAR                = 51; // clear coincides with init....it creates the cepstra array in the thread space
+    public static final int TF_CMD_RECOGNIZE            = 52; // recognize the sentence
+    public static final int TF_CMD_NEWCEPSTRA           = 53; // new cepstra arrived      
+    public static final int TF_RESULT                   = 54; //      
     
     public static final int CAPTURE_DATADEST_NONE       = 200;
     public static final int CAPTURE_DATADEST_JS_RAW     = 201;
@@ -54,4 +56,9 @@ public class ENUMS
     public static final int MFCC_DATATYPE_MFPARAMETERS  = 250;
     public static final int MFCC_DATATYPE_MFFILTERS     = 251;    
   
+    
+    public static final int HEADSET_CONNECTED           = 260;
+    public static final int HEADSET_DISCONNECTED        = 261; // 
+    public static final int HEADSET_CONNECTING          = 262; // 
+    
 }   

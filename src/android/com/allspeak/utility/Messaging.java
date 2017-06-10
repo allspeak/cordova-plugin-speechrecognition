@@ -32,6 +32,15 @@ public class Messaging
         return b;
     }
     
+    public static void sendMessageToHandler(Handler handl, int action_code)
+    {
+        if(handl == null) return;
+        
+        Message message         = handl.obtainMessage();
+        message.what            = action_code;
+        handl.sendMessage(message);  
+    }
+    
     public static Bundle sendDataToHandler(Handler handl, int action_code, String field, int num)
     {
         if(handl == null) return null;
@@ -44,6 +53,26 @@ public class Messaging
         message.setData(b);
         handl.sendMessage(message);             
         return b;
+    }   
+    
+    public static void sendDataToHandler(Handler handl, int action_code, int arg1, int arg2)
+    {
+        if(handl == null) return;
+        
+        Message message         = handl.obtainMessage();
+        message.what            = action_code;
+        message.arg1            = arg1;
+        message.arg2            = arg2;
+        handl.sendMessage(message);             
+    }   
+    
+    public static void sendDataToHandler(Handler handl, int action_code)
+    {
+        if(handl == null) return;
+        
+        Message message         = handl.obtainMessage();
+        message.what            = action_code;
+        handl.sendMessage(message);             
     }   
     
     public static Bundle sendDataToHandler(Handler handl, int action_code, String field, float[] data)
@@ -60,30 +89,6 @@ public class Messaging
         return b;
     }  
     
-    public static Bundle sendDataToHandler(Handler handl, int action_code, float[][] data, float[][][] derivatives, int nDim1, int nDim2, String source)
-    {
-        if(handl == null) return null;
-        
-        Bundle b        = new Bundle();
-        
-        float[] mfcc        = flatten2DimArray(data);
-        float[] mfcc_1st    = flatten2DimArray(derivatives[0]);
-        float[] mfcc_2nd    = flatten2DimArray(derivatives[1]);
-        
-        b.putFloatArray("data",     mfcc);
-        b.putFloatArray("data_1st", mfcc_1st);
-        b.putFloatArray("data_2nd", mfcc_2nd);
-        b.putInt("nframes", nDim1);
-        b.putInt("nparams", nDim2);
-        b.putString("source", source);
-        
-        Message message     = handl.obtainMessage();
-        message.what        = action_code;
-        message.setData(b);
-        handl.sendMessage(message);   
-        return b;
-    }  
-    
     public static Bundle sendDataToHandler(Handler handl, int action_code, float[][] data, int nDim1, int nDim2, String source)
     {
         if(handl == null) return null;
@@ -95,6 +100,24 @@ public class Messaging
         b.putInt("nframes", nDim1);
         b.putInt("nparams", nDim2);
         b.putString("source", source);
+        
+        Message message     = handl.obtainMessage();
+        message.what        = action_code;
+        message.setData(b);
+        handl.sendMessage(message);   
+        return b;
+    }  
+    
+    public static Bundle sendDataToHandler(Handler handl, int action_code, float[][] data, int nDim1, int nDim2)
+    {
+        if(handl == null) return null;
+        
+        Bundle b            = new Bundle();
+        float[] mfcc        = flatten2DimArray(data);
+        
+        b.putFloatArray("data",     mfcc);
+        b.putInt("nframes", nDim1);
+        b.putInt("nparams", nDim2);
         
         Message message     = handl.obtainMessage();
         message.what        = action_code;
@@ -237,3 +260,29 @@ public class Messaging
     }     
     //======================================================================================================================
 }
+
+
+
+//    public static Bundle sendDataToHandler(Handler handl, int action_code, float[][] data, float[][][] derivatives, int nDim1, int nDim2, String source)
+//    {
+//        if(handl == null) return null;
+//        
+//        Bundle b        = new Bundle();
+//        
+//        float[] mfcc        = flatten2DimArray(data);
+//        float[] mfcc_1st    = flatten2DimArray(derivatives[0]);
+//        float[] mfcc_2nd    = flatten2DimArray(derivatives[1]);
+//        
+//        b.putFloatArray("data",     mfcc);
+//        b.putFloatArray("data_1st", mfcc_1st);
+//        b.putFloatArray("data_2nd", mfcc_2nd);
+//        b.putInt("nframes", nDim1);
+//        b.putInt("nparams", nDim2);
+//        b.putString("source", source);
+//        
+//        Message message     = handl.obtainMessage();
+//        message.what        = action_code;
+//        message.setData(b);
+//        handl.sendMessage(message);   
+//        return b;
+//    }  
