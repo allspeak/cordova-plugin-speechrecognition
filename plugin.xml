@@ -17,6 +17,8 @@
     </js-module>
 
     <dependency id="cordova-plugin-compat" version="^1.0.0" />
+    <dependency id="cordova-plugin-file-transfer" />
+    <dependency id="cordova-plugin-zip" />    
 
     <!-- android -->
     <platform name="android">
@@ -55,6 +57,10 @@
         <source-file src="src/android/com/allspeak/tensorflow/TFHandlerThread.java" target-dir="src/com/allspeak/tensorflow" />
         <source-file src="src/android/com/allspeak/tensorflow/TF.java" target-dir="src/com/allspeak/tensorflow" />
         <source-file src="src/android/com/allspeak/tensorflow/TFParams.java" target-dir="src/com/allspeak/tensorflow" />
+        <source-file src="src/android/com/allspeak/tensorflow/Classifier.java" target-dir="src/com/allspeak/tensorflow" />
+        <source-file src="src/android/com/allspeak/tensorflow/TensorFlowSpeechClassifier.java" target-dir="src/com/allspeak/tensorflow" />
+        <source-file src="src/android/tf_libs/libandroid_tensorflow_inference_java.jar" target-dir="libs" />
+        <source-file src="src/android/tf_libs/armeabi-v7a/libtensorflow_inference.so" target-dir="libs/armeabi" />        
         <source-file src="src/android/com/allspeak/utility/Messaging.java" target-dir="src/com/allspeak/utility/" />   
         <source-file src="src/android/com/allspeak/utility/StringUtility.java" target-dir="src/com/allspeak/utility/" />   
         <source-file src="src/android/com/allspeak/utility/TrackPerformance.java" target-dir="src/com/allspeak/utility/" />  
