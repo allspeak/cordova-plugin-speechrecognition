@@ -73,7 +73,8 @@ speechrecognition.ENUM.ERRORS   =
     SERVICE_INIT_CAPTURE            : 112, 
     PLUGIN_INIT_PLAYBACK            : 113,    
     SERVICE_INIT_PLAYBACK           : 114,    
-    CAPTURE_ALREADY_STARTED         : 115, 
+    SERVICE_INIT_TF_MODEL           : 115,    
+    CAPTURE_ALREADY_STARTED         : 116, 
     
     VAD_ERROR                       : 120,
     PLUGIN_INIT_RECOGNITION         : 121,
@@ -236,7 +237,7 @@ speechrecognition.ENUM.mfcc.DEFAULT = {
     nDataDest               : speechrecognition.ENUM.mfcc.DATADEST.NONE,
     nDataOrig               : speechrecognition.ENUM.mfcc.DATAORIGIN.RAWDATA,
     sOutputPath             : "",
-    nContextFrames          : 11
+    nDeltaWindow            : 2
 };
 
 speechrecognition.ENUM.vad.DEFAULT = {
@@ -251,7 +252,9 @@ speechrecognition.ENUM.vad.DEFAULT = {
 };
 
 speechrecognition.ENUM.tf.DEFAULT = {
-    NET_LAYERS : 20
+    INPUT_PARAMS          : 792,        
+    CONTEXT_FRAMES        : 11,        
+    ITEMS_TO_RECOGNIZE    : 25
 };
 //=========================================================================================
 // CHECK INPUT PARAMS
@@ -268,27 +271,6 @@ speechrecognition.vad.params = {};
 
 speechrecognition.tf = {};
 speechrecognition.tf.params = {};
-
-
-speechrecognition.checkMfccParams = function(mfcc_params)
-{
-    speechrecognition.mfcc.params.nNumberOfMFCCParameters      = mfcc_params.nNumberOfMFCCParameters   || speechrecognition.ENUM.mfcc.DEFAULT.nNumberOfMFCCParameters; //without considering 0-th  
-    speechrecognition.mfcc.params.dSamplingFrequency           = mfcc_params.dSamplingFrequency        || speechrecognition.ENUM.mfcc.DEFAULT.dSamplingFrequency;    
-    speechrecognition.mfcc.params.nNumberofFilters             = mfcc_params.nNumberofFilters          || speechrecognition.ENUM.mfcc.DEFAULT.nNumberofFilters;    
-    speechrecognition.mfcc.params.nFftLength                   = mfcc_params.nFftLength                || speechrecognition.ENUM.mfcc.DEFAULT.nFftLength;      
-    speechrecognition.mfcc.params.bIsLifteringEnabled          = mfcc_params.bIsLifteringEnabled       || speechrecognition.ENUM.mfcc.DEFAULT.bIsLifteringEnabled ;    
-    speechrecognition.mfcc.params.nLifteringCoefficient        = mfcc_params.nLifteringCoefficient     || speechrecognition.ENUM.mfcc.DEFAULT.nLifteringCoefficient;
-    speechrecognition.mfcc.params.bCalculate0ThCoeff           = mfcc_params.bCalculate0ThCoeff        || speechrecognition.ENUM.mfcc.DEFAULT.bCalculate0ThCoeff;
-    speechrecognition.mfcc.params.nWindowDistance              = mfcc_params.nWindowDistance           || speechrecognition.ENUM.mfcc.DEFAULT.nWindowDistance;
-    speechrecognition.mfcc.params.nWindowLength                = mfcc_params.nWindowLength             || speechrecognition.ENUM.mfcc.DEFAULT.nWindowLength;          
-    speechrecognition.mfcc.params.nDataType                    = mfcc_params.nDataType                 || speechrecognition.ENUM.mfcc.DEFAULT.nDataType;          
-    speechrecognition.mfcc.params.nDataDest                    = mfcc_params.nDataDest                 || speechrecognition.ENUM.mfcc.DEFAULT.nDataDest;          
-    speechrecognition.mfcc.params.nDataOrig                    = mfcc_params.nDataOrig                 || speechrecognition.ENUM.mfcc.DEFAULT.nDataOrig;          
-    speechrecognition.mfcc.params.sOutputPath                  = mfcc_params.sOutputPath               || speechrecognition.ENUM.mfcc.DEFAULT.sOutputPath;          
-    speechrecognition.mfcc.params.nContextFrames               = mfcc_params.nContextFrames            || speechrecognition.ENUM.mfcc.DEFAULT.nContextFrames;          
-    
-    return JSON.stringify(speechrecognition.mfcc.params); 
-};
 
 speechrecognition.checkCaptureParams = function(capture_params)
 {
@@ -318,6 +300,26 @@ speechrecognition.checkCaptureParams = function(capture_params)
     return JSON.stringify(speechrecognition.capture.params); 
 };
 
+speechrecognition.checkMfccParams = function(mfcc_params)
+{
+    speechrecognition.mfcc.params.nNumberOfMFCCParameters      = mfcc_params.nNumberOfMFCCParameters   || speechrecognition.ENUM.mfcc.DEFAULT.nNumberOfMFCCParameters; //without considering 0-th  
+    speechrecognition.mfcc.params.dSamplingFrequency           = mfcc_params.dSamplingFrequency        || speechrecognition.ENUM.mfcc.DEFAULT.dSamplingFrequency;    
+    speechrecognition.mfcc.params.nNumberofFilters             = mfcc_params.nNumberofFilters          || speechrecognition.ENUM.mfcc.DEFAULT.nNumberofFilters;    
+    speechrecognition.mfcc.params.nFftLength                   = mfcc_params.nFftLength                || speechrecognition.ENUM.mfcc.DEFAULT.nFftLength;      
+    speechrecognition.mfcc.params.bIsLifteringEnabled          = mfcc_params.bIsLifteringEnabled       || speechrecognition.ENUM.mfcc.DEFAULT.bIsLifteringEnabled ;    
+    speechrecognition.mfcc.params.nLifteringCoefficient        = mfcc_params.nLifteringCoefficient     || speechrecognition.ENUM.mfcc.DEFAULT.nLifteringCoefficient;
+    speechrecognition.mfcc.params.bCalculate0ThCoeff           = mfcc_params.bCalculate0ThCoeff        || speechrecognition.ENUM.mfcc.DEFAULT.bCalculate0ThCoeff;
+    speechrecognition.mfcc.params.nWindowDistance              = mfcc_params.nWindowDistance           || speechrecognition.ENUM.mfcc.DEFAULT.nWindowDistance;
+    speechrecognition.mfcc.params.nWindowLength                = mfcc_params.nWindowLength             || speechrecognition.ENUM.mfcc.DEFAULT.nWindowLength;          
+    speechrecognition.mfcc.params.nDataType                    = mfcc_params.nDataType                 || speechrecognition.ENUM.mfcc.DEFAULT.nDataType;          
+    speechrecognition.mfcc.params.nDataDest                    = mfcc_params.nDataDest                 || speechrecognition.ENUM.mfcc.DEFAULT.nDataDest;          
+    speechrecognition.mfcc.params.nDataOrig                    = mfcc_params.nDataOrig                 || speechrecognition.ENUM.mfcc.DEFAULT.nDataOrig;          
+    speechrecognition.mfcc.params.sOutputPath                  = mfcc_params.sOutputPath               || speechrecognition.ENUM.mfcc.DEFAULT.sOutputPath;          
+    speechrecognition.mfcc.params.nDeltaWindow                 = mfcc_params.nDeltaWindow              || speechrecognition.ENUM.mfcc.DEFAULT.nDeltaWindow;          
+    
+    return JSON.stringify(speechrecognition.mfcc.params); 
+};
+
 speechrecognition.checkVadParams = function(vad_params)
 {
     speechrecognition.vad.params.nSpeechDetectionThreshold      = vad_params.nSpeechDetectionThreshold       || speechrecognition.ENUM.vad.DEFAULT.SPEECH_DETECTION_THRESHOLD;
@@ -337,8 +339,10 @@ speechrecognition.checkVadParams = function(vad_params)
 
 speechrecognition.checkTfParams = function(tf_params)
 {
-    speechrecognition.tf.params.nNetLayers                      = tf_params.nNetLayers                      || speechrecognition.ENUM.tf.DEFAULT.NET_LAYERS;
-   
+    speechrecognition.tf.params.nInputParams                    = tf_params.nInputParams                    || speechrecognition.ENUM.tf.DEFAULT.nInputParams;          
+    speechrecognition.tf.params.nContextFrames                  = tf_params.nContextFrames                  || speechrecognition.ENUM.tf.DEFAULT.nContextFrames;          
+    speechrecognition.tf.params.nItems2Recognize                = tf_params.nItems2Recognize                || speechrecognition.ENUM.tf.DEFAULT.nItems2Recognize;          
+       
     return JSON.stringify(speechrecognition.tf.params); 
 };
 

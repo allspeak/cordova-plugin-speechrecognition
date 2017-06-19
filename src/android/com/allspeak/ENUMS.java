@@ -26,10 +26,11 @@ public class ENUMS
     public static final int MFCC_RESULT                 = 40; //
     
     public static final int TF_STATUS_PROCESS_STARTED   = 50; // recognizing process started
-    public static final int TF_CMD_CLEAR                = 51; // clear coincides with init....it creates the cepstra array in the thread space
-    public static final int TF_CMD_RECOGNIZE            = 52; // recognize the sentence
-    public static final int TF_CMD_NEWCEPSTRA           = 53; // new cepstra arrived      
-    public static final int TF_RESULT                   = 54; //      
+    public static final int TF_CMD_LOADMODEL            = 51; // load a TensorFlow PB and labels file
+    public static final int TF_CMD_CLEAR                = 52; // clear coincides with init....it creates the cepstra array in the thread space
+    public static final int TF_CMD_RECOGNIZE            = 53; // recognize the sentence
+    public static final int TF_CMD_NEWCEPSTRA           = 54; // new cepstra arrived      
+    public static final int TF_RESULT                   = 55; //      
     
     public static final int CAPTURE_DATADEST_NONE       = 200;
     public static final int CAPTURE_DATADEST_JS_RAW     = 201;

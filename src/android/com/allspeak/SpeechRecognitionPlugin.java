@@ -137,13 +137,15 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     
     /**
      * @param action
-     *          startCapture:
-     *          stopCapture :
-     *          startVAD   :
-     *          stopVAD    :
-     *          startMFCC   :
-     *          stopMFCC    :
-     *          getMFCC     :
+     *          startCapture
+     *          startMicPlayback
+     *          setPlayBackPercVol
+     *          stopCapture
+     *          loadTFModel
+     *          startSpeechRecognition
+     *          stopSpeechRecognition
+     *          getMFCC
+     * 
      * @param args
      * @param _callbackContext
      * @return
@@ -218,7 +220,24 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
             Messaging.sendNoResult2Web(callbackContext);
             return true;
         }        
-        if (action.equals("startSpeechRecognition")) 
+        else if (action.equals("loadTFModel")) 
+        {
+            try 
+            {
+                mTfParams                       = new TFParams(new JSONObject((String)args.get(0))); 
+                
+                mService.loadTFModel(mTfParams, callbackContext);
+                Messaging.sendNoResult2Web(callbackContext);
+                return true;
+            }
+            catch (Exception e) 
+            {
+                Messaging.sendErrorString2Web(callbackContext, e.toString(), ERRORS.PLUGIN_INIT_RECOGNITION, true);
+                callbackContext = null;
+                return true;
+            }
+        }
+        else if (action.equals("startSpeechRecognition")) 
         {
             if(mService.isCapturing())
             {

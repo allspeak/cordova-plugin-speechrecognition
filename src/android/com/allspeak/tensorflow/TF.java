@@ -24,6 +24,9 @@ import java.io.FilenameFilter;
 
 import android.os.ResultReceiver;
 
+import com.allspeak.utility.Messaging;
+
+
 import com.allspeak.ENUMS;
 import com.allspeak.ERRORS;
 import com.allspeak.audioprocessing.WavFile;
@@ -91,6 +94,7 @@ public class TF
     
     public void setParams(TFParams params)
     {
+        mTfParams = params;
     }   
     
     public void setWlCb(CallbackContext wlcb)
@@ -112,9 +116,75 @@ public class TF
         mResultCallback     = rcb;
     }    
     //=================================================================================================================
+    // PUBLIC
+    //=================================================================================================================
+    public void doRecognize(float[][] cepstra, int frames2recognize)    // cepstra = [?][72]
+    {
+        float[][] contextedCepstra = getContextedFrames(cepstra, frames2recognize);
+        
+        // inform service that a TF call has been submitted
+        Messaging.sendMessageToHandler(mStatusCallback, ENUMS.TF_STATUS_PROCESS_STARTED);
+    }
+    //=================================================================================================================
     // PRIVATE
     //=================================================================================================================
- 
+    public float[][] getContextedFrames(float[][] cepstra, int frames2recognize)    // cepstra = [?][72]
+    {
+        int ncepstra                    = cepstra[0].length;
+        float[][] contextedCepstra      = new float[frames2recognize][mTfParams.nInputParams];
+        int startId, endId, cnt,corr_pf = 0;
+        
+        int preFrames  = (int)Math.floor((double)(mTfParams.nContextFrames*1.0)/2);
+        // append Context frames (from 72 => 792 = tfParams.nInputParam)
+        for (int f=0; f<frames2recognize; f++)
+        {
+            if(f<preFrames)
+            {
+                startId = f - preFrames;
+                endId   = f + preFrames;  
+                cnt     = 0;
+                for(int pf=startId; pf<endId; pf++)
+                {
+                    if(pf < 0) corr_pf = 0;
+                    for(int ff=0; ff<ncepstra; ff++)
+                    {
+                        contextedCepstra[f][cnt] = cepstra[corr_pf][ff];                
+                        cnt++;
+                    }
+                }
+            }
+            else if(f > (frames2recognize-preFrames-1))
+            {
+                startId = f - preFrames;
+                endId   = f + preFrames;  
+                cnt     = 0;
+                for(int pf=startId; pf<endId; pf++)
+                {
+                    if(pf > (frames2recognize-1)) corr_pf = frames2recognize-1;
+                    for(int ff=0; ff<ncepstra; ff++)
+                    {
+                        contextedCepstra[f][cnt] = cepstra[corr_pf][ff];                
+                        cnt++;
+                    }
+                }                
+            }
+            else
+            {
+                startId = f - preFrames;
+                endId   = f + preFrames;  
+                cnt     = 0;
+                for(int pf=startId; pf<endId; pf++)
+                {
+                    for(int ff=0; ff<ncepstra; ff++)
+                    {
+                        contextedCepstra[f][cnt] = cepstra[pf][ff];                
+                        cnt++;
+                    }
+                }
+            }
+        }
+        return contextedCepstra;
+    } 
     //======================================================================================    
 }
 

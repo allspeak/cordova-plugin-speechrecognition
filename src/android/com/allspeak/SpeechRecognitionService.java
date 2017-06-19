@@ -231,6 +231,22 @@ public class SpeechRecognitionService extends Service
         aicCapture.setPlayBackPercVol(percvol);
     }    
         
+    public boolean LoadTFModel(TFParams tfParams, CallbackContext wlcb)
+    {
+        try 
+        {        
+            callbackContext             = wlcb;
+            
+            mTfParams                   = tfParams;     
+            return true;
+        }
+        catch (Exception e) 
+        {
+            onCaptureError(e.toString());
+            return false;
+        }            
+    }
+        
     public boolean startSpeechRecognition(CFGParams cfgParams, VADParams vadParams, MFCCParams mfccParams, TFParams tfParams, CallbackContext wlcb)
     {
         try 

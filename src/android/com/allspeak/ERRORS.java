@@ -13,7 +13,8 @@ public class ERRORS
     public static final int SERVICE_INIT_CAPTURE        = 112; // triggered (in SpeechRecognitionPlugin) while starting a service function
     public static final int PLUGIN_INIT_PLAYBACK        = 113; // triggered (in SpeechRecognitionPlugin) while starting a service function   
     public static final int SERVICE_INIT_PLAYBACK       = 114; // triggered (in SpeechRecognitionPlugin) while starting a service function   
-    public static final int CAPTURE_ALREADY_STARTED     = 115;    
+    public static final int SERVICE_INIT_TF_MODEL       = 115; // triggered (in SpeechRecognitionPlugin) while starting a service function   
+    public static final int CAPTURE_ALREADY_STARTED     = 116;    
     
     public static final int VAD_ERROR                   = 120;
     public static final int PLUGIN_INIT_RECOGNITION     = 121; // triggered (in SpeechRecognitionPlugin) while starting a service function

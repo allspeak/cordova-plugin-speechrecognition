@@ -15,7 +15,7 @@ import com.allspeak.utility.Messaging;
 
 // not necessary
 import com.allspeak.tensorflow.TFParams;
-//import com.allspeak.tensorflow.TF;
+import com.allspeak.tensorflow.TF;
 
 
 /*
@@ -38,9 +38,10 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
     private CallbackContext mWlCb           = null;   // access to web layer 
     
     private TFParams tfParams               = null;
+    private TF tf                           = null;
     
     // data to store calculated CEPSTRA: float[nMaxSpeechLengthFrames][nScores*3]
-    private int nColumns                    = 0;    // indicates the number of received params (22*3 for filters)...]
+    private int nColumns                    = 0;    // indicates the number of received params (24*3 for filters)...]
     private int nMaxSpeechLengthFrames      = 0;    // max speech length in frames
     private float[][] faCalculatedCepstra   = null;   // contains (MAXnframes, numparams) calculated FilterBanks...array storing the calculated cepstra
     
@@ -61,22 +62,26 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
     public void setParams(TFParams params)
     {
         tfParams  = params;
+        tf.setParams(params);
     }
     public void setWlCb(CallbackContext wlcb)
     {
-        mWlCb = wlcb;        
+        mWlCb = wlcb;   
+        tf.setWlCb(wlcb);
     }
     public void setCallbacks(Handler cb)
     {
         mStatusCallback     = cb;        
         mCommandCallback    = cb;        
-        mResultCallback     = cb;       
+        mResultCallback     = cb;  
+        tf.setCallbacks(cb);
     }
     public void setCallbacks(Handler scb, Handler ccb, Handler rcb)
     {
         mStatusCallback     = scb;        
         mCommandCallback    = ccb;        
-        mResultCallback     = rcb;      
+        mResultCallback     = rcb;  
+        tf.setCallbacks(scb, ccb, rcb);
     }
 //--------------------------------------------------------------------------------------------------    
     public void init(TFParams params, Handler cb)
@@ -85,7 +90,7 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
         mStatusCallback     = cb;        
         mCommandCallback    = cb;        
         mResultCallback     = cb;  
-        init(params, cb);
+        init(params, cb, cb, cb);
     }    
     public void init(TFParams params, Handler cb, CallbackContext wlcb)
     {
@@ -98,6 +103,7 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
         mStatusCallback     = scb;        
         mCommandCallback    = ccb;        
         mResultCallback     = rcb;   
+        tf                  = new TF(tfParams, scb, ccb, rcb);
     }
     public void init(TFParams params, Handler scb, Handler ccb, Handler rcb, int maxspeechframes, int ncolumns)
     {
@@ -137,16 +143,7 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
     //===============================================================================================
     // INTERNAL PROCESSING
     //===============================================================================================
-    private void doRecognize(float[][] cepstra)
-    {
-        // pack cepstra (from 0 to nProcessedFrames) & send it to TF
-        for (int f=0; f<nProcessedFrames; f++)
-        {
-            
-        }
-        // inform service that a TF call has been submitted
-        Messaging.sendMessageToHandler(mStatusCallback, ENUMS.TF_STATUS_PROCESS_STARTED);
-    }
+
     
     private void clearData(int row, int col)
     {
@@ -198,8 +195,9 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
                 
             case ENUMS.TF_CMD_RECOGNIZE:  
                 nframes             = bundle.getInt("nframes");
-                checkData(nframes);
-                doRecognize(faCalculatedCepstra);
+                boolean res         = checkData(nframes);
+                if(true)            tf.doRecognize(faCalculatedCepstra, nProcessedFrames);// TODO: decide what to do whether the frames do not correspond
+
                 break;
                 
             case ENUMS.TF_CMD_NEWCEPSTRA:  
@@ -230,31 +228,3 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
     //================================================================================================================
     
 }
-
-//
-//
-//    public TFHandlerThread(TFParams params, Handler cb, String name)
-//    {
-//        super(name);
-//        mStatusCallback     = cb;        
-//        mCommandCallback    = cb;        
-//        mResultCallback     = cb;
-//        tfParams            = params;
-//    }
-//    public TFHandlerThread(TFParams params, Handler cb, String name, int priority)
-//    {
-//        super(name, priority);
-//        mStatusCallback     = cb;        
-//        mCommandCallback    = cb;        
-//        mResultCallback     = cb;
-//        tfParams            = params;
-//    }
-//    public TFHandlerThread(TFParams params, Handler cb, CallbackContext wlcb, String name, int priority)
-//    {
-//        super(name, priority);
-//        mStatusCallback     = cb;        
-//        mCommandCallback    = cb;        
-//        mResultCallback     = cb;
-//        tfParams            = params;
-//        mWlCb               = wlcb;
-//    }
