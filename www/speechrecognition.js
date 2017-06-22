@@ -56,7 +56,8 @@ speechrecognition.ENUM.PLUGIN   =
     
     HEADSET_CONNECTED               : 260,
     HEADSET_DISCONNECTED            : 261, 
-    HEADSET_CONNECTING              : 262     
+    HEADSET_CONNECTING              : 262,     
+    HEADSET_DISCONNECTING           : 263     
 }; 
 
 // MUST MAP plugin's ERRORS.java
@@ -209,18 +210,15 @@ speechrecognition.ENUM.tf = {};
 //=========================================================================================
 // Default values
 speechrecognition.ENUM.capture.DEFAULT = {
-    SAMPLERATE              : speechrecognition.ENUM.capture.SAMPLERATE.TELEPHONE_8000Hz,
-    BUFFER_SIZE             : 1024,
-    CHANNELS                : speechrecognition.ENUM.capture.CHANNELS.MONO,
-    FORMAT                  : speechrecognition.ENUM.capture.FORMAT.PCM_16BIT,
-    NORMALIZE               : true,
-    NORMALIZATION_FACTOR    : 32767.0,
-    STREAM_TO_WEBAUDIO      : false,
-    CONCATENATE_MAX_CHUNKS  : 10,
-    AUDIOSOURCE_TYPE        : speechrecognition.ENUM.capture.AUDIOSOURCE_TYPE.DEFAULT,
-    START_MFCC              : false,
-    START_VAD               : false,
-    DATA_DEST               : speechrecognition.ENUM.capture.DATADEST.JSDATA
+    nSampleRate             : speechrecognition.ENUM.capture.SAMPLERATE.TELEPHONE_8000Hz,
+    nBufferSize             : 1024,
+    nChannels               : speechrecognition.ENUM.capture.CHANNELS.MONO,
+    sFormat                 : speechrecognition.ENUM.capture.FORMAT.PCM_16BIT,
+    nNormalize              : true,
+    fNormalizationFactor    : 32767.0,
+    nConcatenateMaxChunks   : 10,
+    nAudioSourceType        : speechrecognition.ENUM.capture.AUDIOSOURCE_TYPE.DEFAULT,
+    nDataDest               : speechrecognition.ENUM.capture.DATADEST.JSDATA
 };
 
 speechrecognition.ENUM.mfcc.DEFAULT = {
@@ -241,20 +239,20 @@ speechrecognition.ENUM.mfcc.DEFAULT = {
 };
 
 speechrecognition.ENUM.vad.DEFAULT = {
-    SPEECH_DETECTION_THRESHOLD              : 15, // dB
-    SPEECH_DETECTION_ALLOWED_DELAY          : 384, // mS
-    SPEECH_DETECTION_MAX_LENGTH             : 10000, // mS
-    SPEECH_DETECTION_MIN_LENGTH             : 512, // mS
-    SPEECH_DETECTION_COMPRESS_PAUSES        : false,
-    SPEECH_DETECTION_ANALYSIS_CHUNK_LENGTH  : 64, // mS
-    AUDIO_RESULT_TYPE                       : 1,
-    DETECT_ONLY                             : false
+    nSpeechDetectionThreshold       : 15, // dB
+    nSpeechDetectionAllowedDelay    : 384, // mS
+    nSpeechDetectionMaximum         : 10000, // mS
+    nSpeechDetectionMinimum         : 512, // mS
+    bCompressPauses                 : false,
+    nAnalysisChunkLength            : 64, // mS
+    audioResultType                 : 1,
+    bDetectOnly                     : false
 };
 
 speechrecognition.ENUM.tf.DEFAULT = {
-    INPUT_PARAMS          : 792,        
-    CONTEXT_FRAMES        : 11,        
-    ITEMS_TO_RECOGNIZE    : 25
+    nInputParams        : 792,        
+    nContextFrames      : 11,        
+    nItems2Recognize    : 25
 };
 //=========================================================================================
 // CHECK INPUT PARAMS
@@ -274,15 +272,15 @@ speechrecognition.tf.params = {};
 
 speechrecognition.checkCaptureParams = function(capture_params)
 {
-    speechrecognition.capture.params.nSampleRate                = capture_params.nSampleRate            || speechrecognition.ENUM.capture.DEFAULT.SAMPLERATE;
-    speechrecognition.capture.params.nBufferSize                = capture_params.nBufferSize            || speechrecognition.ENUM.capture.DEFAULT.BUFFER_SIZE;
-    speechrecognition.capture.params.nChannels                  = capture_params.nChannels              || speechrecognition.ENUM.capture.DEFAULT.CHANNELS;
-    speechrecognition.capture.params.sFormat                    = capture_params.sFormat                || speechrecognition.ENUM.capture.DEFAULT.FORMAT;
+    speechrecognition.capture.params.nSampleRate                = capture_params.nSampleRate            || speechrecognition.ENUM.capture.DEFAULT.nSampleRate;
+    speechrecognition.capture.params.nBufferSize                = capture_params.nBufferSize            || speechrecognition.ENUM.capture.DEFAULT.nBufferSize;
+    speechrecognition.capture.params.nChannels                  = capture_params.nChannels              || speechrecognition.ENUM.capture.DEFAULT.nChannels;
+    speechrecognition.capture.params.sFormat                    = capture_params.sFormat                || speechrecognition.ENUM.capture.DEFAULT.sFormat;
     speechrecognition.capture.params.nAudioSourceType           = capture_params.nAudioSourceType       || 0;
-    speechrecognition.capture.params.nNormalize                 = typeof capture_params.nNormalize == 'boolean' ? speechrecognition.ENUM.capture.nNormalize : speechrecognition.ENUM.capture.DEFAULT.NORMALIZE;
-    speechrecognition.capture.params.fNormalizationFactor       = capture_params.fNormalizationFactor   || speechrecognition.ENUM.capture.DEFAULT.NORMALIZATION_FACTOR;
-    speechrecognition.capture.params.nConcatenateMaxChunks      = capture_params.nConcatenateMaxChunks  || speechrecognition.ENUM.capture.DEFAULT.CONCATENATE_MAX_CHUNKS;
-    speechrecognition.capture.params.nDataDest                  = capture_params.nDataDest              || speechrecognition.ENUM.capture.DEFAULT.DATA_DEST;
+    speechrecognition.capture.params.nNormalize                 = capture_params.nNormalize             || speechrecognition.ENUM.capture.DEFAULT.nNormalize;
+    speechrecognition.capture.params.fNormalizationFactor       = capture_params.fNormalizationFactor   || speechrecognition.ENUM.capture.DEFAULT.fNormalizationFactor;
+    speechrecognition.capture.params.nConcatenateMaxChunks      = capture_params.nConcatenateMaxChunks  || speechrecognition.ENUM.capture.DEFAULT.nConcatenateMaxChunks;
+    speechrecognition.capture.params.nDataDest                  = capture_params.nDataDest              || speechrecognition.ENUM.capture.DEFAULT.nDataDest;
     
     if (speechrecognition.capture.params.nChannels < 1 && speechrecognition.capture.params.nChannels > 2) {
         throw "Invalid number of channels (" + speechrecognition.capture.params.nChannels + "). Only mono (1) and stereo (2) is" +" supported.";
@@ -322,14 +320,14 @@ speechrecognition.checkMfccParams = function(mfcc_params)
 
 speechrecognition.checkVadParams = function(vad_params)
 {
-    speechrecognition.vad.params.nSpeechDetectionThreshold      = vad_params.nSpeechDetectionThreshold       || speechrecognition.ENUM.vad.DEFAULT.SPEECH_DETECTION_THRESHOLD;
-    speechrecognition.vad.params.nSpeechDetectionMinimum        = vad_params.nSpeechDetectionMinimum         || speechrecognition.ENUM.vad.DEFAULT.SPEECH_DETECTION_MIN_LENGTH;
-    speechrecognition.vad.params.nSpeechDetectionMaximum        = vad_params.nSpeechDetectionMaximum         || speechrecognition.ENUM.vad.DEFAULT.SPEECH_DETECTION_MAX_LENGTH;
-    speechrecognition.vad.params.nSpeechDetectionAllowedDelay   = vad_params.nSpeechDetectionAllowedDelay    || speechrecognition.ENUM.vad.DEFAULT.SPEECH_DETECTION_ALLOWED_DELAY;
-    speechrecognition.vad.params.audioResultType                = vad_params.audioResultType                 || speechrecognition.ENUM.vad.DEFAULT.AUDIO_RESULT_TYPE;
-    speechrecognition.vad.params.bCompressPauses                = vad_params.bCompressPauses                 || speechrecognition.ENUM.vad.DEFAULT.SPEECH_DETECTION_COMPRESS_PAUSES;
-    speechrecognition.vad.params.nAnalysisChunkLength           = vad_params.nAnalysisChunkLength            || speechrecognition.ENUM.vad.DEFAULT.SPEECH_DETECTION_ANALYSIS_CHUNK_LENGTH;
-    speechrecognition.vad.params.bDetectOnly                    = vad_params.bDetectOnly                     || speechrecognition.ENUM.vad.DEFAULT.DETECT_ONLY;
+    speechrecognition.vad.params.nSpeechDetectionThreshold      = vad_params.nSpeechDetectionThreshold       || speechrecognition.ENUM.vad.DEFAULT.nSpeechDetectionThreshold;
+    speechrecognition.vad.params.nSpeechDetectionMinimum        = vad_params.nSpeechDetectionMinimum         || speechrecognition.ENUM.vad.DEFAULT.nSpeechDetectionMinimum;
+    speechrecognition.vad.params.nSpeechDetectionMaximum        = vad_params.nSpeechDetectionMaximum         || speechrecognition.ENUM.vad.DEFAULT.nSpeechDetectionMaximum;
+    speechrecognition.vad.params.nSpeechDetectionAllowedDelay   = vad_params.nSpeechDetectionAllowedDelay    || speechrecognition.ENUM.vad.DEFAULT.nSpeechDetectionAllowedDelay;
+    speechrecognition.vad.params.audioResultType                = vad_params.audioResultType                 || speechrecognition.ENUM.vad.DEFAULT.audioResultType;
+    speechrecognition.vad.params.bCompressPauses                = vad_params.bCompressPauses                 || speechrecognition.ENUM.vad.DEFAULT.bCompressPauses;
+    speechrecognition.vad.params.nAnalysisChunkLength           = vad_params.nAnalysisChunkLength            || speechrecognition.ENUM.vad.DEFAULT.nAnalysisChunkLength;
+    speechrecognition.vad.params.bDetectOnly                    = vad_params.bDetectOnly                     || speechrecognition.ENUM.vad.DEFAULT.bDetectOnly;
 
     if (speechrecognition.vad.params.detectOnly) {
         speechrecognition.vad.params.audioResultType = AUDIO_RESULT_TYPE.DETECTION_ONLY;
@@ -372,6 +370,10 @@ speechrecognition.isCapturing = function () {
 // PLUGIN CALLS (from JS => JAVA)
 //=========================================================================================
 //=========================================================================================
+speechrecognition.init = function () {
+    exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, "init", []);
+};
+
 /**
  * Start capture of Audio input
  *
@@ -568,6 +570,11 @@ speechrecognition._pluginEvent = function (data) {
             case speechrecognition.ENUM.PLUGIN.SPEECH_STATUS_MAX_LENGTH:
             case speechrecognition.ENUM.PLUGIN.SPEECH_STATUS_MIN_LENGTH:
                 cordova.fireWindowEvent("speechstatus", {data: data.type});
+                break;
+                
+            case speechrecognition.ENUM.PLUGIN.HEADSET_CONNECTED:
+            case speechrecognition.ENUM.PLUGIN.HEADSET_DISCONNECTED:
+                cordova.fireWindowEvent("headsetstatus", {data: data.type});
                 break;
         }
     }

@@ -61,5 +61,6 @@ public class ENUMS
     public static final int HEADSET_CONNECTED           = 260;
     public static final int HEADSET_DISCONNECTED        = 261; // 
     public static final int HEADSET_CONNECTING          = 262; // 
+    public static final int HEADSET_DISCONNECTING       = 263; // 
     
 }   

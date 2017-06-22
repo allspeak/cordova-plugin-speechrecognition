@@ -10,6 +10,9 @@ import org.apache.cordova.PermissionHelper;
 
 import android.media.AudioDeviceInfo;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothHeadset;
+import android.bluetooth.BluetoothProfile;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -44,6 +47,7 @@ import com.allspeak.audioprocessing.mfcc.MFCCParams;
 import com.allspeak.audioprocessing.vad.VADParams;
 import com.allspeak.audiocapture.CFGParams;
 import com.allspeak.audiocapture.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 
@@ -59,7 +63,7 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     private CordovaInterface cordovaInterface   = null;
     
     //record permissions
-    public static String[]  permissions         = { Manifest.permission.RECORD_AUDIO };
+    public static String[]  permissions         = { Manifest.permission.RECORD_AUDIO, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE };
     public static int       RECORD_AUDIO        = 0;
     public static final int PERMISSION_DENIED_ERROR = 20;    
     boolean isCapturingAllowed                  = false;
@@ -91,11 +95,12 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
 
         try
         {
+            initBTConnection();
             boolean conn = bindService();
-            promptForRecordPermissions();
+//            promptForDangerousPermissions();
 
         }
-        catch(SecurityException e)
+        catch(Exception e)
         {
             e.printStackTrace();                    
             Log.e(LOG_TAG, e.getMessage(), e);
@@ -155,7 +160,13 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     public boolean execute(String action, JSONArray args, CallbackContext _callbackContext) throws JSONException 
     {
         callbackContext = _callbackContext;
-        if (action.equals("startCapture")) 
+        if (action.equals("init")) 
+        {
+            // used to just set the callback;
+            Messaging.sendNoResult2Web(callbackContext);
+            return true;
+        }
+        else if (action.equals("startCapture")) 
         {
             if(mService.isCapturing())
             {
@@ -335,39 +346,69 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     //================================================================================================= 
     private void initBTConnection()
     {
-        IntentFilter intentFilter = new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED);
-        mContext.registerReceiver(mBluetoothScoReceiver, intentFilter);
+        IntentFilter intentFilterSCO = new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED);
+        IntentFilter intentFilterBTHSCONN = new IntentFilter(BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED);
+        mContext.registerReceiver(mBluetoothScoReceiver, intentFilterSCO);
+        mContext.registerReceiver(mBTHSConnReceiver, intentFilterBTHSCONN);
 
         
         AudioDeviceInfo[] adIN  = new AudioDeviceInfo[10];
         AudioDeviceInfo[] adOUT = new AudioDeviceInfo[10];
         adIN                    = mAudioManager.getDevices(AudioManager.GET_DEVICES_INPUTS);
         adOUT                   = mAudioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS);
+      
         
-        
-        mAudioManager.startBluetoothSco();          
+//        mAudioManager.startBluetoothSco();          
     }
-//    private class headsetIntentReceiver extends BroadcastReceiver 
-//    {
-//        @Override 
-//        public void onReceive(Context context, Intent intent) 
-//        {
-//            if (intent.getAction().equals(Intent.ACTION_HEADSET_PLUG)) {
-//                int state = intent.getIntExtra("state", -1);
-//                switch (state) {
-//                case 0:
-//                    Log.d(TAG, "Headset is unplugged");
-//                    break;
-//                case 1:
-//                    Log.d(TAG, "Headset is plugged");
-//                    break;
-//                default:
-//                    Log.d(TAG, "I have no idea what the headset state is");
-//                }
-//            }
-//        }
-//    }    
-    
+
+    //called when headset is connected/disconnected
+    private BroadcastReceiver mBTHSConnReceiver = new BroadcastReceiver() 
+    {
+        @Override
+        public void onReceive(Context context, Intent intent) 
+        {
+            int state               = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, -1);
+            BluetoothDevice device  = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+            String deviceName       = device.getName();
+            
+            try
+            {
+                isHeadSetConnected  = false;
+                JSONObject info     = new JSONObject(); 
+                
+                switch (state)
+                {
+                    case BluetoothProfile.STATE_CONNECTED:
+                        info.put("type", ENUMS.HEADSET_CONNECTED);  
+                        isHeadSetConnected = true;
+                        Log.d(LOG_TAG, "BT headset " + deviceName + " connected");
+                        break;
+
+                    case BluetoothProfile.STATE_DISCONNECTED:
+                        info.put("type", ENUMS.HEADSET_DISCONNECTED);  
+                        isHeadSetConnected = false;
+                        Log.d(LOG_TAG, "BT headset " + deviceName + " disconnected");
+                        break;
+
+                    case BluetoothProfile.STATE_CONNECTING:
+                        info.put("type", ENUMS.HEADSET_CONNECTING);  
+                        isHeadSetConnected = false;
+                        Log.d(LOG_TAG, "BT headset " + deviceName + " connecting");
+                        break;
+
+                    case BluetoothProfile.STATE_DISCONNECTING:
+                        info.put("type", ENUMS.HEADSET_DISCONNECTING);  
+                        isHeadSetConnected = false;
+                        Log.d(LOG_TAG, "BT headset " + deviceName + " disconnecting");
+                        break;
+                }
+
+                Messaging.sendUpdate2Web(callbackContext, info, true);
+            }
+            catch (JSONException e){e.printStackTrace();}              
+        }        
+    };
+
     private BroadcastReceiver mBluetoothScoReceiver = new BroadcastReceiver() 
     {
         @Override
@@ -414,13 +455,19 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     // GET RECORDING PERMISSIONS
     //=================================================================================================        
      //Ensure that we have gotten record audio permission
-    private void promptForRecordPermissions() 
+    private void promptForDangerousPermissions() 
     {
-        if(PermissionHelper.hasPermission(this, permissions[RECORD_AUDIO])) 
-            isCapturingAllowed = true;
-        else
-            //Prompt user for record audio permission
-            PermissionHelper.requestPermission(this, RECORD_AUDIO, permissions[RECORD_AUDIO]);
+        ArrayList<String> permissions2Ask = new ArrayList<String>();
+    
+        for(int p=0; p < permissions.length; p++)
+            if(!PermissionHelper.hasPermission(this, permissions[p])) permissions2Ask.add(permissions[p]);
+        
+        if(!permissions2Ask.isEmpty())
+        {
+            Object[] objPerms = permissions2Ask.toArray();
+            String[] strPerms = Arrays.copyOf(objPerms, objPerms.length, String[].class);            
+            PermissionHelper.requestPermissions(this, RECORD_AUDIO, strPerms);
+        }
     }
 
     // Handle request permission result
@@ -441,33 +488,3 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     //=================================================================================================
 }
 
-
-
-
-//        else if (action.equals("startMFCC")) 
-//        {
-//            try 
-//            {        
-//                if(!args.isNull(0))
-//                {
-//                    MFCCParams mfccParams   = new MFCCParams(new JSONObject((String)args.get(0))); 
-//                    mfcc.setParams(mfccParams);
-//                    mfcc.setWlCb(callbackContext);
-//                    nMFCCDataDest           = mfccParams.nDataDest;
-//                }
-//                bIsCalculatingMFCC = true;
-//                sendNoResult2Web();
-//            }
-//            catch (Exception e) // !!!! I decide to stop capturing....
-//            {
-//                aicCapture.stop();
-//                callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, e.toString()));
-//                callbackContext = null;                
-//                return false;
-//            }                
-//        }
-//        else if (action.equals("stopMFCC")) 
-//        {
-//            bIsCalculatingMFCC = false;
-//            sendNoResult2Web();
-//        }

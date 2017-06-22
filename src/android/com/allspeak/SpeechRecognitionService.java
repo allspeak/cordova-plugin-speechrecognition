@@ -231,7 +231,7 @@ public class SpeechRecognitionService extends Service
         aicCapture.setPlayBackPercVol(percvol);
     }    
         
-    public boolean LoadTFModel(TFParams tfParams, CallbackContext wlcb)
+    public boolean loadTFModel(TFParams tfParams, CallbackContext wlcb)
     {
         try 
         {        
