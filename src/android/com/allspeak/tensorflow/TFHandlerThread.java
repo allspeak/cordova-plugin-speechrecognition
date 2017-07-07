@@ -83,6 +83,12 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
         mResultCallback     = rcb;  
         tf.setCallbacks(scb, ccb, rcb);
     }
+    public void setExtraParams(int maxspeechframes, int ncolumns)
+    {
+        nMaxSpeechLengthFrames  = maxspeechframes;
+        nColumns                = ncolumns;
+        Messaging.sendDataToHandler(mInternalHandler, ENUMS.TF_CMD_CLEAR, nMaxSpeechLengthFrames, nColumns);
+    }
 //--------------------------------------------------------------------------------------------------    
     public void init(TFParams params, Handler cb)
     {
@@ -95,7 +101,7 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
     public void init(TFParams params, Handler cb, CallbackContext wlcb)
     {
         mWlCb       = wlcb; 
-        init(params, cb);
+        init(params, cb, wlcb);
     }    
     public void init(TFParams params, Handler scb, Handler ccb, Handler rcb)
     {
@@ -114,8 +120,12 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
     }
     public void init(TFParams params, Handler scb, Handler ccb, Handler rcb, CallbackContext wlcb)
     {
-        mWlCb       = wlcb;
-        init(params, scb, ccb, rcb);
+        mWlCb               = wlcb;
+        tfParams            = params;
+        mStatusCallback     = scb;        
+        mCommandCallback    = ccb;        
+        mResultCallback     = rcb;   
+        tf                  = new TF(tfParams, scb, ccb, rcb, wlcb);
     }        
     public void init(TFParams params, Handler scb, Handler ccb, Handler rcb, CallbackContext wlcb, int maxspeechframes, int ncolumns)
     {
@@ -138,6 +148,16 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
         message.setData(bundle);
         message.what    = ENUMS.TF_CMD_RECOGNIZE;
         mInternalHandler.sendMessage(message);
+    }    
+  
+    // load model
+    public boolean loadModel()
+    {
+//        return tf.loadModel();
+        Message message = mInternalHandler.obtainMessage();
+        message.what    = ENUMS.TF_CMD_LOADMODEL;
+        mInternalHandler.sendMessage(message);
+        return true;
     }    
   
     //===============================================================================================
@@ -197,6 +217,11 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
                 nframes             = bundle.getInt("nframes");
                 boolean res         = checkData(nframes);
                 if(true)            tf.doRecognize(faCalculatedCepstra, nProcessedFrames);// TODO: decide what to do whether the frames do not correspond
+
+                break;
+                
+            case ENUMS.TF_CMD_LOADMODEL:  
+                tf.loadModel();
 
                 break;
                 

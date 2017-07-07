@@ -180,10 +180,7 @@ public class Messaging
                 result.setKeepCallback(keepCallback);
                 callbackContext.sendPluginResult(result);
             }
-            catch(JSONException e)
-            {
-                e.printStackTrace();                  
-            }
+            catch(JSONException e) { e.printStackTrace(); }
         }
     }  
     
@@ -216,10 +213,7 @@ public class Messaging
                 result.setKeepCallback(keepCallback);
                 callbackContext.sendPluginResult(result);
             }
-            catch(JSONException e)
-            {
-                e.printStackTrace();                  
-            }
+            catch(JSONException e) { e.printStackTrace(); }
         }
     }      
     
@@ -239,10 +233,7 @@ public class Messaging
                 result.setKeepCallback(keepCallback);
                 callbackContext.sendPluginResult(result);
             }
-            catch(JSONException e)
-            {
-                e.printStackTrace();                  
-            }
+            catch(JSONException e) { e.printStackTrace(); }
         }
     }      
     
@@ -260,29 +251,3 @@ public class Messaging
     }     
     //======================================================================================================================
 }
-
-
-
-//    public static Bundle sendDataToHandler(Handler handl, int action_code, float[][] data, float[][][] derivatives, int nDim1, int nDim2, String source)
-//    {
-//        if(handl == null) return null;
-//        
-//        Bundle b        = new Bundle();
-//        
-//        float[] mfcc        = flatten2DimArray(data);
-//        float[] mfcc_1st    = flatten2DimArray(derivatives[0]);
-//        float[] mfcc_2nd    = flatten2DimArray(derivatives[1]);
-//        
-//        b.putFloatArray("data",     mfcc);
-//        b.putFloatArray("data_1st", mfcc_1st);
-//        b.putFloatArray("data_2nd", mfcc_2nd);
-//        b.putInt("nframes", nDim1);
-//        b.putInt("nparams", nDim2);
-//        b.putString("source", source);
-//        
-//        Message message     = handl.obtainMessage();
-//        message.what        = action_code;
-//        message.setData(b);
-//        handl.sendMessage(message);   
-//        return b;
-//    }  

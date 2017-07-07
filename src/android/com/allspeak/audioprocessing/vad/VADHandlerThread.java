@@ -173,20 +173,29 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
                             JSONObject info = new JSONObject(); 
                             info.put("data_type", mCfgParams.nDataDest); 
                             info.put("type", ENUMS.CAPTURE_RESULT);  
-
+                            
+                            String decoded;
+                            float rms, decibels;
                             switch(mCfgParams.nDataDest)
                             {
                                 case ENUMS.CAPTURE_DATADEST_JS_RAW:
-                                    String decoded  = Arrays.toString(data);
+                                    decoded  = Arrays.toString(data);
                                     info.put("data", decoded);
                                     break;
                                     
                                 case ENUMS.CAPTURE_DATADEST_JS_DB:
-                                    
-                                    float rms       = AudioInputCapture.getAudioLevels(data);
-                                    float decibels  = AudioInputCapture.getDecibelFromAmplitude(rms);
-                                    info.put("data", Float.toString(decibels));
+                                    rms       = AudioInputCapture.getAudioLevels(data);
+                                    decibels  = AudioInputCapture.getDecibelFromAmplitude(rms);
+                                    info.put("decibels", Float.toString(decibels));
                                     break;
+
+                                case ENUMS.CAPTURE_DATADEST_JS_RAWDB:
+                                    decoded  = Arrays.toString(data);
+                                    info.put("data", decoded);
+                                    rms       = AudioInputCapture.getAudioLevels(data);
+                                    decibels  = AudioInputCapture.getDecibelFromAmplitude(rms);
+                                    info.put("decibels", decibels);
+                                    break;                                    
                             }
                             Messaging.sendUpdate2Web(mWlCb, info, true);
                         }

@@ -88,7 +88,7 @@ public class SpeechRecognitionService extends Service
     
     //-----------------------------------------------------------------------------------------------
     // TF
-    private TFParams mTfParams                  = null;
+//    private TFParams mTfParams                  = null;
     private final TFHandler mTfHandler          = new TFHandler(this);
     private TFHandlerThread tf                  = null;        
     //-----------------------------------------------------------------------------------------------
@@ -237,12 +237,13 @@ public class SpeechRecognitionService extends Service
         {        
             callbackContext             = wlcb;
             
-            mTfParams                   = tfParams;     
-            return true;
+//            mTfParams                   = tfParams;     
+            tf.init(tfParams, mTfHandler, null, mTfHandler, callbackContext); 
+            return tf.loadModel();
         }
         catch (Exception e) 
         {
-            onCaptureError(e.toString());
+            onTFError(e.toString());
             return false;
         }            
     }
@@ -256,7 +257,7 @@ public class SpeechRecognitionService extends Service
             mCfgParams                  = cfgParams;
             mVadParams                  = vadParams;
             mMfccParams                 = mfccParams;
-            mTfParams                   = tfParams;
+//            mTfParams                   = tfParams;
             
             Handler mTfHandlerThread    = tf.getHandlerLooper();            // get the tf looper
             Handler mVadHandlerThread   = vad.getHandlerLooper();           // get the vad looper
@@ -272,8 +273,14 @@ public class SpeechRecognitionService extends Service
 
             // I pass to MFCC to let him allocate the proper cepstra buffer
             mfcc.init(mMfccParams, mMfccHandler, mTfHandlerThread, mTfHandlerThread, nMaxSpeechLengthSample);       // MFCC send commands & results to TF, status here
-            // I pass to TF to let him allocate the proper cepstra buffer
-            tf.init(mTfParams, mTfHandler, null, mTfHandler, nMaxSpeechLengthFrames, nParams); 
+            
+            // A TF instance has been already created during the loadModel call. This, I only update the params in case something changed
+            // pass to TF to let him allocate the proper cepstra buffer
+            // TODO: I should check if the model file is the same
+            tf.setParams(tfParams);
+            tf.setWlCb(callbackContext);
+            tf.setCallbacks(mTfHandler, null, mTfHandler);
+            tf.setExtraParams(nMaxSpeechLengthFrames, nParams);
 
             aicCapture                  = new AudioInputCapture(mCfgParams, aicHandler, null, mVadHandlerThread); // CAPTURE send data to VAD, status here
             aicCapture.start();
@@ -343,6 +350,8 @@ public class SpeechRecognitionService extends Service
         {
             try
             {
+                float decibels, rms;
+                String decoded;
                 JSONObject info = new JSONObject(); 
                 info.put("data_type", mCfgParams.nDataDest); 
                 info.put("type", ENUMS.CAPTURE_RESULT);  
@@ -350,15 +359,23 @@ public class SpeechRecognitionService extends Service
                 switch((int)mCfgParams.nDataDest)
                 {
                     case ENUMS.CAPTURE_DATADEST_JS_RAW:
-                        String decoded  = Arrays.toString(data);
+                        decoded  = Arrays.toString(data);
                         info.put("data", decoded);
                         break;
 
                     case ENUMS.CAPTURE_DATADEST_JS_DB:
 
-                        float rms       = AudioInputCapture.getAudioLevels(data);
-                        float decibels  = AudioInputCapture.getDecibelFromAmplitude(rms);
-                        info.put("data", decibels);
+                        rms       = AudioInputCapture.getAudioLevels(data);
+                        decibels  = AudioInputCapture.getDecibelFromAmplitude(rms);
+                        info.put("decibels", decibels);
+                        break;
+
+                    case ENUMS.CAPTURE_DATADEST_JS_RAWDB:
+                        decoded  = Arrays.toString(data);
+                        info.put("data", decoded);
+                        rms       = AudioInputCapture.getAudioLevels(data);
+                        decibels  = AudioInputCapture.getDecibelFromAmplitude(rms);
+                        info.put("decibels", decibels);
                         break;
                 }
                 Messaging.sendUpdate2Web(callbackContext, info, true);
@@ -464,41 +481,38 @@ public class SpeechRecognitionService extends Service
     //------------------------------------------------------------------------------------------------
     // ON ERRORS
     //------------------------------------------------------------------------------------------------
-    // if called by AudioInputReceiver....the thread already stopped/suspended itself
-    public void onCaptureError(String message)
+    public void onError(String message, int error_code)
     {
         try
         {
             JSONObject info = new JSONObject();
-            info.put("type", ERRORS.CAPTURE_ERROR);
+            info.put("type", error_code);
             info.put("message", message);        
             Messaging.sendError2Web(callbackContext, info, true);
         }
-        catch (JSONException e){e.printStackTrace();}
+        catch (JSONException e){e.printStackTrace();}        
+    }
+    
+    // presently redundant methods
+    // if called by AudioInputReceiver....the thread already stopped/suspended itself
+    public void onCaptureError(String message)
+    {
+        onError(message, ERRORS.CAPTURE_ERROR);
     }    
     
     public void onMFCCError(String message)
     {
-        try
-        {
-            JSONObject info = new JSONObject();
-            info.put("type", ERRORS.MFCC_ERROR);
-            info.put("message", message);        
-            Messaging.sendError2Web(callbackContext, info, true);
-        }
-        catch (JSONException e){e.printStackTrace();}
+        onError(message, ERRORS.MFCC_ERROR);        
     }    
     
     public void onVADError(String message)
     {
-        try
-        {
-            JSONObject info = new JSONObject();
-            info.put("type", ERRORS.VAD_ERROR);
-            info.put("message", message);        
-            Messaging.sendError2Web(callbackContext, info, true);
-        }
-        catch (JSONException e){e.printStackTrace();}
+        onError(message, ERRORS.VAD_ERROR);        
+    }    
+    
+    public void onTFError(String message)
+    {
+        onError(message, ERRORS.TF_ERROR);        
     }    
     
     //=================================================================================================

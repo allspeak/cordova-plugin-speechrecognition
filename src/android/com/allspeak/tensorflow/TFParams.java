@@ -1,18 +1,24 @@
 package com.allspeak.tensorflow;
 
+import android.content.res.AssetManager;
 import org.json.JSONObject;
 import org.json.JSONArray;
 import org.json.JSONException;
 
+import com.allspeak.ENUMS;
+
 public class TFParams
 {
-    public int nInputParams         = DEFAULT.INPUT_PARAMS;
-    public int nContextFrames       = DEFAULT.CONTEXT_FRAMES;   
-    public int nItems2Recognize     = DEFAULT.ITEMS_TO_RECOGNIZE;   
-    public String sModelFileName    = DEFAULT.MODEL_FILENAME;   
-    public String sLabelFileName    = DEFAULT.MODEL_LABELNAME;   
-    public String sInputNodeName    = DEFAULT.INPUT_NODENAME;   
-    public String sOutputNodeName   = DEFAULT.OUTPUT_NODENAME;   
+    public int nInputParams             = DEFAULT.INPUT_PARAMS;
+    public int nContextFrames           = DEFAULT.CONTEXT_FRAMES;   
+    public int nItems2Recognize         = DEFAULT.ITEMS_TO_RECOGNIZE;   
+    public String sModelFileName        = DEFAULT.MODEL_FILENAME;   
+    public String sLabelFileName        = DEFAULT.MODEL_LABELNAME;   
+    public String sInputNodeName        = DEFAULT.INPUT_NODENAME;   
+    public String sOutputNodeName       = DEFAULT.OUTPUT_NODENAME; 
+    public AssetManager mAssetManager   = null;
+    public int nDataDest                = DEFAULT.OUTPUT_DATADEST; 
+    public boolean bLoaded              = DEFAULT.LOADED; 
     
     public TFParams(){}  
     
@@ -41,21 +47,24 @@ public class TFParams
                         break;
 
                     case "sModelFileName":
-                        sModelFileName    = init.getString(field);
+                        sModelFileName      = init.getString(field);
                         break;
                   
                     case "sLabelFileName":
-                        sLabelFileName    = init.getString(field);
+                        sLabelFileName      = init.getString(field);
                         break;
                   
                     case "sInputNodeName":
-                        sInputNodeName    = init.getString(field);
+                        sInputNodeName      = init.getString(field);
                         break;
                   
                     case "sOutputNodeName":
-                        sOutputNodeName    = init.getString(field);
+                        sOutputNodeName     = init.getString(field);
                         break;
                   
+                    case "nDataDest":
+                        nDataDest           = init.getInt(field);
+                        break;
                 }
             }
         }
@@ -70,9 +79,11 @@ public class TFParams
         public static int INPUT_PARAMS          = 792;        
         public static int CONTEXT_FRAMES        = 11;        
         public static int ITEMS_TO_RECOGNIZE    = 25;        
-        public static String MODEL_FILENAME     = "";        
-        public static String MODEL_LABELNAME    = "";        
-        public static String INPUT_NODENAME     = "I";        
+        public static String MODEL_FILENAME     = "trained";        
+        public static String MODEL_LABELNAME    = "trained";        
+        public static String INPUT_NODENAME     = "inputs/I";        
         public static String OUTPUT_NODENAME    = "O";        
+        public static int OUTPUT_DATADEST       = ENUMS.TF_DATADEST_MODEL;        
+        public static boolean LOADED            = false;        
     }    
 }

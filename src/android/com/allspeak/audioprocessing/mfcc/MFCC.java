@@ -2,7 +2,6 @@
  */
 package com.allspeak.audioprocessing.mfcc;
 
-
 import android.os.Handler;
 
 import org.apache.cordova.CallbackContext;
@@ -12,8 +11,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 
 import java.io.File;
-import java.io.FileWriter;
-import java.lang.System;
 
 import android.os.Environment;
 import android.util.Log;
@@ -24,12 +21,11 @@ import android.os.ResultReceiver;
 import com.allspeak.ENUMS;
 import com.allspeak.ERRORS;
 import com.allspeak.audioprocessing.WavFile;
-import com.allspeak.utility.StringUtility;
+import com.allspeak.utility.StringUtilities;
 import com.allspeak.utility.Messaging;
+import com.allspeak.utility.FileUtilities;
 
 import com.allspeak.utility.TrackPerformance;
-
-
 
 /*
 it sends the following messages to Plugin Activity:
@@ -37,7 +33,6 @@ it sends the following messages to Plugin Activity:
 - progress_file
 - progress_folder
 - error
-
 */
 
 public class MFCC  
@@ -54,7 +49,6 @@ public class MFCC
     private Handler mCommandCallback            = null;     // Thread
     private Handler mResultCallback             = null;     // Thread
     private CallbackContext callbackContext     = null;
-  
 
 //    private TrackPerformance tp;//    private int[][] aiElapsedTimes;
 
@@ -69,7 +63,6 @@ public class MFCC
     
     private float[][] faFullMFCC;           // contains (nframes, numparams) calculated MFCC and its derivatives
     private float[][] faFullFilterBanks;    // contains (nframes, numparams) calculated FilterBanks and its derivatives
-    
     
     private float[][][] faDerivatives;  // contains (2, nframes, numparams)  1st & 2nd derivatives of the calculated params
     private int nindices1;
@@ -113,7 +106,6 @@ public class MFCC
         callbackContext     = wlcallback;
     }   
     //================================================================================================================
-    
     public void setParams(MFCCParams params)
     {
         // JS interface call params:     mfcc_json_params, source, datatype, origintype, write, [outputpath_noext];  params have been validated in the js interface
@@ -164,7 +156,6 @@ public class MFCC
     {
         mfccParams.sOutputPath  = output_mfcc_path;
     }
-    
     //=================================================================================================================
     // PRIVATE
     //=================================================================================================================
@@ -176,6 +167,11 @@ public class MFCC
         return processRawData(data);
     }
 
+    public void clearData()
+    {
+        mfcc.clearData();
+    }
+    
     // get score, get derivatives => exportData
     public synchronized float[][] processRawData(float[] data)
     {
@@ -228,7 +224,7 @@ public class MFCC
             mfccParams.sOutputPath  = input_file_noext;
             String sAudiofile       = input_file_noext + ".wav";
             float[] data            = readWav(sAudiofile);  
-            deleteParamsFiles(mfccParams.sOutputPath);            
+            FileUtilities.deleteExternalStorageFile(mfccParams.sOutputPath + "_scores.dat");
 //            tp.addTimepoint(1);
             processRawData(data);
 //            tp.addTimepoint(2);   
@@ -260,7 +256,7 @@ public class MFCC
             for (int i = 0; i < files.length; i++)
             {
                 tempfile            = input_folderpath + File.separatorChar + files[i].getName();
-                processFile(StringUtility.removeExtension(tempfile));
+                processFile(StringUtilities.removeExtension(tempfile));
             }   
 //            sendMessageToMain(ENUMS.MFCC_STATUS_PROGRESS_FOLDER, "progress_folder", mfccParams.sOutputPath);          
             // BUG....it doesn't work...since the last-1 file, in the target I get a Bundle with either process_file and process_folder messages
@@ -300,9 +296,11 @@ public class MFCC
                 case ENUMS.MFCC_DATADEST_ALL:
                 case ENUMS.MFCC_DATADEST_FILEWEB:
                     
-                    if(mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS)    scores = exportArray2String(faFullMFCC, sOutputPrecision);
-                    else                                                            scores = exportArray2String(faFullFilterBanks, sOutputPrecision);
-                    writeTextParams(scores, mfccParams.sOutputPath + "_scores.dat");
+                    if(mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS)    scores = StringUtilities.exportArray2String(faFullMFCC, sOutputPrecision);
+                    else                                                            scores = StringUtilities.exportArray2String(faFullFilterBanks, sOutputPrecision);
+                    
+                    boolean res = FileUtilities.writeStringToFile(scores, mfccParams.sOutputPath + "_scores.dat");
+//                    writeTextParams(scores, mfccParams.sOutputPath + "_scores.dat");
                     //                tp.addTimepoint(4);                
                     break;
             }
@@ -346,7 +344,7 @@ public class MFCC
 //            else{ int[] elapsed = tp.endTracking();                res_jsonarray.put(1, new JSONArray(elapsed)); }
             return data;
         }
-        catch(JSONException e)
+        catch(Exception e)
         {
             e.printStackTrace();
             Log.e(TAG, "exportData" + ": Error: " + e.toString());
@@ -354,101 +352,10 @@ public class MFCC
             return null;
         }
     }    
-    
-    //transform to string to either write to file or send back to Web Layer
-    private String exportArray2String(float[][] scores, String precision)
-    {
-        String params   = ""; 
-        int nscores     = scores[0].length; 
-        for (int f = 0; f < nFrames; f++)
-        {
-            for (int p = 0; p < nscores; p++)
-                params = params + String.format(precision, scores[f][p]) + " ";
-            params = params + System.getProperty("line.separator");
-        }    
-        return params;
-    }
-      
-    private boolean writeTextParams(String params, String output_file)
-    {
-        // write parameters to text files
-        boolean res = false;
-        if(output_file != null)
-        {
-            try
-            {
-                res = writeFile(output_file, params);
-//                if(res) Log.d(TAG, "writeTextParams: written file " + output_file);            
-    //            res = writeFile(output_file_noext + "_label.dat", sAudioTag);
-            }
-            catch(Exception e)
-            {
-                Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
-            }
-        }  
-        return res;
-    }
 
-    private boolean writeTextParamsLabel(String params, String output_file, String label)
-    {
-        // write parameters to text files...mettere try e catch
-        boolean res = writeTextParams(params, output_file);
-        if(res)
-        {
-            try
-            {   
-                String output_file_noext = StringUtility.removeExtension(output_file);
-                res = writeFile(output_file_noext + "_label.dat", label);
-                if(res) Log.d(TAG, "writeTextParamsLabel: written file " + output_file_noext + "_label.dat");            
-            }
-            catch(Exception e)
-            {
-               Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
-            }            
-        }
-        return res;
-    };
-    
-    private boolean deleteParamsFiles(String output_file)
-    {
-        boolean res1=false,res2=false,res3=false;
-        
-        File f;
-        f = new File(Environment.getExternalStorageDirectory(), output_file + "_scores.dat");
-        if (f.exists()) res1 = f.delete();
-
-        f = new File(Environment.getExternalStorageDirectory(), output_file + "_scores1st.dat");
-        if (f.exists()) res2 = f.delete();
-
-        f = new File(Environment.getExternalStorageDirectory(), output_file + "_scores2nd.dat");
-        if (f.exists()) res3 = f.delete();
-        
-        return res1 && res2 && res3;
-    }
-    
     //======================================================================================    
     // ACCESSORY
     //======================================================================================    
-    private boolean writeFile(String filename, String data) throws Exception
-    {
-        try 
-        {
-            File f = new File(Environment.getExternalStorageDirectory(), filename);
-            if (!f.exists()) {
-                f.createNewFile();
-            }
-            FileWriter writer = new FileWriter(f, true);
-            writer.write(data);
-            writer.close();            
-            return true;
-        }
-        catch (Exception e) 
-        {
-            e.printStackTrace();
-            Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
-            return false;
-        }	
-    }
 
     private float[] readWav(String filepath)
     {

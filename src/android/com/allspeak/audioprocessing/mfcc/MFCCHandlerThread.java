@@ -235,10 +235,11 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
         nArrivedSamples             = 0;      
         nManipulatedSamples         = 0;
         nProcessingOperations       = 0;
+        mfcc.clearData();
         Messaging.sendMessageToHandler(mCommandCallback, ENUMS.TF_CMD_CLEAR);
     }    
    
-    private void sendData2TF(int sentSamples)
+    private void sendRecognizeCMD2TF(int sentSamples)
     {
         if (checkData(sentSamples)) Messaging.sendDataToHandler(mCommandCallback, ENUMS.TF_CMD_RECOGNIZE, "nframes", nProcessedFrames);
     }    
@@ -314,7 +315,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
                 
                 int nframes         = arrangeDataInQueue(data); // takes new data and copy to faMFCCQueue & faData2Process ..return number of calculated frames
                 
-                Messaging.sendDataToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROCESS_STARTED,"nframes", nframes);
+//                Messaging.sendDataToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROCESS_STARTED,"nframes", nframes);
                 float[][] cepstra   = mfcc.processRawData(faData2Process);
                 int newframes       = cepstra.length;
                 if(nframes != newframes)
@@ -333,9 +334,9 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
                 clearData();
                 break;
                 
-            case ENUMS.MFCC_CMD_SENDDATA: // VAD says that a new sentence has been detected. I send data to TF handlerThread 
+            case ENUMS.MFCC_CMD_SENDDATA: // VAD says that a new sentence has been detected. I send a command to TF handlerThread 
                 int sentSamples = bundle.getInt("info");
-                sendData2TF(sentSamples);
+                sendRecognizeCMD2TF(sentSamples);
                 break;
         }
         return true;

@@ -30,11 +30,16 @@ import com.allspeak.utility.Messaging;
 import com.allspeak.ENUMS;
 import com.allspeak.ERRORS;
 import com.allspeak.audioprocessing.WavFile;
-import com.allspeak.utility.StringUtility;
+import com.allspeak.utility.StringUtilities;
+import com.allspeak.utility.FileUtilities;
 import com.allspeak.utility.TrackPerformance;
 
+import com.allspeak.utility.Messaging;
 
-
+import com.allspeak.tensorflow.TensorFlowSpeechClassifier;
+import com.allspeak.tensorflow.Classifier.Recognition;
+import com.allspeak.tensorflow.Classifier;
+import java.util.List;
 /*
 it sends the following messages to Plugin Activity:
 - data
@@ -46,10 +51,9 @@ it sends the following messages to Plugin Activity:
 
 public class TF  
 {
-    private static final String TAG             = "TF";
+    private static final String LOG_TAG         = "TF";
     
-  
-    private TFParams mTfParams               = null;                                   // MFCC parameters
+    private TFParams mTfParams                  = null;                                   // MFCC parameters
     
     // properties to send results back to Plugin Main
     private Handler mStatusCallback             = null;     // Thread
@@ -57,7 +61,7 @@ public class TF
     private Handler mResultCallback             = null;     // Thread
     private CallbackContext callbackContext     = null;
 
-   
+    private Classifier mClassifier              = null;
     //================================================================================================================
     // CONSTRUCTORS
     //================================================================================================================
@@ -118,17 +122,103 @@ public class TF
     //=================================================================================================================
     // PUBLIC
     //=================================================================================================================
+    public boolean loadModel()
+    {
+        try
+        {
+            String sModelFileName = mTfParams.sModelFileName.startsWith("file://") ? mTfParams.sModelFileName.split("file://")[1] : mTfParams.sModelFileName;
+            String sLabelFileName = mTfParams.sLabelFileName.startsWith("file://") ? mTfParams.sLabelFileName.split("file://")[1] : mTfParams.sLabelFileName;
+        
+            boolean exists = true;
+            String err = "";
+            if(!FileUtilities.existFile(sModelFileName))
+            {
+                exists = false;
+                err += (" " + sModelFileName);
+            }
+            if(!FileUtilities.existFile(sLabelFileName))
+            {            
+                exists = false;
+                err += (" " + sLabelFileName);               
+            }
+
+            if(exists)
+            {
+                mClassifier = TensorFlowSpeechClassifier.create(
+                        mTfParams.mAssetManager,
+                        sModelFileName,
+                        sLabelFileName,
+                        mTfParams.nInputParams,
+                        mTfParams.sInputNodeName,
+                        mTfParams.sOutputNodeName);
+            
+                callbackContext.success();
+            }
+            else callbackContext.error("the following files are missing: " + err);
+            
+            return true;
+        }
+        catch (Exception e) 
+        {
+            mClassifier = null;
+            e.printStackTrace();
+            throw e;
+        }          
+    }
     public void doRecognize(float[][] cepstra, int frames2recognize)    // cepstra = [?][72]
     {
-        float[][] contextedCepstra = getContextedFrames(cepstra, frames2recognize);
-        
-        // inform service that a TF call has been submitted
-        Messaging.sendMessageToHandler(mStatusCallback, ENUMS.TF_STATUS_PROCESS_STARTED);
+        float[][] contextedCepstra = getContextedFrames(cepstra, frames2recognize);  // [?][72] => [?][792]
+        if(mClassifier != null)
+        {
+            List<Recognition> results = mClassifier.recognizeSpeech(contextedCepstra);
+            
+            try
+            {
+                JSONObject output       = new JSONObject();  
+                output.put("type", ENUMS.TF_RESULT);
+
+                JSONArray items         = new JSONArray();  
+                for (Recognition result : results) 
+                {
+                    JSONObject record   = new JSONObject();
+                    record.put("title", result.getTitle());
+                    record.put("confidence", result.getConfidence());
+                    items.put(record);
+                } 
+                output.put("items", items);
+                Messaging.sendUpdate2Web(callbackContext, output, true); 
+                
+                switch((int)mTfParams.nDataDest)
+                {
+                    case ENUMS.TF_DATADEST_MODEL_FILE:
+                    case ENUMS.TF_DATADEST_FILEONLY:
+                        String outfile      = "AllSpeak/audiofiles/temp/cepstra.dat";
+                        String outfile_ctx  = "AllSpeak/audiofiles/temp/ctx_cepstra.dat";
+                        FileUtilities.write2DArrayToFile(cepstra, frames2recognize, outfile, "%.4f");
+                        FileUtilities.write2DArrayToFile(contextedCepstra, frames2recognize, outfile_ctx, "%.4f");
+                        break;
+                }
+            }
+            catch(Exception e)
+            {
+                e.printStackTrace();                  
+                Log.e(LOG_TAG, e.getMessage(), e);
+                Messaging.sendErrorString2Web(callbackContext, e.getMessage(), ERRORS.TF_ERROR, true);
+            }            
+        }
+        else Messaging.sendErrorString2Web(callbackContext, "TF model not loaded", ERRORS.TF_ERROR_NOMODEL, true);
     }
     //=================================================================================================================
     // PRIVATE
     //=================================================================================================================
-    public float[][] getContextedFrames(float[][] cepstra, int frames2recognize)    // cepstra = [?][72]
+    private boolean writeSentenceCepstra(String filename, float[][] cepstra, int frames2recognize) throws Exception
+    {
+        String str_cepstra  = StringUtilities.exportArray2String(cepstra, "%.4f", frames2recognize);
+        StringUtilities.writeStringToFile(filename, str_cepstra);        
+        return true;
+    }
+    
+    private float[][] getContextedFrames(float[][] cepstra, int frames2recognize)    // cepstra = [?][72]
     {
         int ncepstra                    = cepstra[0].length;
         float[][] contextedCepstra      = new float[frames2recognize][mTfParams.nInputParams];
@@ -185,6 +275,9 @@ public class TF
         }
         return contextedCepstra;
     } 
+    
+    
+
     //======================================================================================    
 }
 

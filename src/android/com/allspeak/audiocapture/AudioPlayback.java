@@ -136,7 +136,7 @@ public class AudioPlayback extends Thread
                         JSONObject info = new JSONObject(); 
                         info.put("data_type", ENUMS.CAPTURE_DATADEST_JS_DB); 
                         info.put("type", ENUMS.CAPTURE_RESULT);                        
-                        info.put("data", Float.toString(decibels));
+                        info.put("decibels", Float.toString(decibels));
                         Messaging.sendUpdate2Web(mWlCb, info, true);
                     }                                        
                 }

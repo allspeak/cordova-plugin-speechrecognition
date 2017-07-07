@@ -2,12 +2,17 @@
  */
 package com.allspeak.utility;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.util.Arrays;
+import java.io.BufferedWriter;
+import android.os.Environment;
+import com.allspeak.utility.Messaging;
 
 
-public class StringUtility 
+public class StringUtilities 
 {
-    private static final String TAG = "StringUtility";
+    private static final String TAG = "StringUtilities";
     
     //--------------------------------------------------------------------------------------------------------------------    
     public static String removeExtension(String filepath)
@@ -102,11 +107,29 @@ public class StringUtility
         
         return final_parts;
     }
-}
+
+    //transform a double array to string
+    public static String exportArray2String(float[][] scores, String precision)
+    {
+        return exportArray2String(scores, precision, scores.length);
+    }
+    
+    //transform some first rows of a double array to string
+    public static String exportArray2String(float[][] scores, String precision, int rows)
+    {
+        String params   = ""; 
+        int y           = scores[0].length; 
+        for (int f = 0; f < rows; f++)
+        {
+            for (int p = 0; p < y; p++)
+                params = params + String.format(precision, scores[f][p]) + " ";
+            params = params + System.getProperty("line.separator");
+        }    
+        return params;
+    }
 
 
-
-
+            
 
 
 

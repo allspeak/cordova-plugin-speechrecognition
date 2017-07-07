@@ -79,6 +79,8 @@ public class TensorFlowSpeechClassifier implements Classifier
         // Alas, the placeholder node for input in the graphdef typically used does not specify a shape, so it must be passed in as a parameter. 
         c.inputSize                     = inputSize;
         c.inferenceInterface            = new TensorFlowInferenceInterface();
+        
+        modelFilename = labelFilename.startsWith("file://") ? modelFilename.split("file://")[1] : modelFilename;                
         if (c.inferenceInterface.initializeTensorFlow(assetManager, modelFilename) != 0) throw new RuntimeException("TF initialization failed");
     
         // The shape of the output is [N, NUM_CLASSES], where N is the batch size.
@@ -90,7 +92,6 @@ public class TensorFlowSpeechClassifier implements Classifier
 
         // Pre-allocate buffers.
         c.outputNames   = new String[] {outputName};
-        
 
         return c;
     }
@@ -100,7 +101,7 @@ public class TensorFlowSpeechClassifier implements Classifier
         Vector<String> labels = new Vector<String>();
         // Read the label names into memory.
         // TODO(andrewharp): make this handle non-assets.
-        final boolean hasAssetPrefix = labelFilename.startsWith("file:///android_asset/");
+        boolean hasAssetPrefix = labelFilename.startsWith("file:///android_asset/");
         String actualFilename = hasAssetPrefix ? labelFilename.split("file:///android_asset/")[1] : labelFilename;
         Log.i(TAG, "Reading labels from: " + actualFilename);
         BufferedReader br = null;
@@ -113,15 +114,16 @@ public class TensorFlowSpeechClassifier implements Classifier
         }
         catch (IOException e) 
         {
-            if (hasAssetPrefix) throw new RuntimeException("Problem reading label file!" , e);
+            if (hasAssetPrefix) throw new RuntimeException("Problem reading TF model label file!" , e);
             try 
             {
-                br = new BufferedReader(new InputStreamReader(new FileInputStream(actualFilename)));
+                actualFilename  = labelFilename.startsWith("file://") ? labelFilename.split("file://")[1] : labelFilename;                
+                br              = new BufferedReader(new InputStreamReader(new FileInputStream(actualFilename)));
                 String line;
                 while ((line = br.readLine()) != null) labels.add(line);
                 br.close();
             }
-            catch (IOException e2) { throw new RuntimeException("Problem reading label file!" , e);  }
+            catch (IOException e2) { throw new RuntimeException("Problem reading TF model label file!" , e);  }
         }        
         return labels;
     }
@@ -142,6 +144,18 @@ public class TensorFlowSpeechClassifier implements Classifier
             confidences = recognizeFrame(framesCepstra[f]);
             for(int c = 0; c < nOutputClasses; c++) outputs[c] += confidences[c];
         }
+       
+        // Find the best classifications.
+        PriorityQueue<Recognition> pq =
+            new PriorityQueue<Recognition>(
+                3,
+                new Comparator<Recognition>() {
+                    @Override
+                    public int compare(Recognition lhs, Recognition rhs) {
+                        // Intentionally reversed to put high confidence at the head of the queue.
+                        return Float.compare(rhs.getConfidence(), lhs.getConfidence());
+                    }
+                });
         
         final ArrayList<Recognition> recognitions = new ArrayList<Recognition>();
         float max = 0;
@@ -154,9 +168,10 @@ public class TensorFlowSpeechClassifier implements Classifier
                 max     = outputs[c];
                 item    = c; 
             }
-            recognitions.add(new Recognition("" + c, labels.size() > c ? labels.get(c) : "unknown", outputs[c]));
+            pq.add(new Recognition("" + c, labels.size() > c ? labels.get(c) : "unknown", outputs[c]));
         }
-        recognitions.add(0, recognitions.get(item));
+        for (int i = 0; i < nOutputClasses; ++i) recognitions.add(pq.poll());
+        
         Trace.endSection(); // "recognizeSpeech"
         return recognitions;        
     }
@@ -169,7 +184,7 @@ public class TensorFlowSpeechClassifier implements Classifier
 
         // Copy the input data into TensorFlow.
         Trace.beginSection("fillNodeFloat");
-        inferenceInterface.fillNodeFloat(inputName, new int[] {1, inputSize, inputSize, 3}, frameCepstra);  //   << ===========  ????????????????????????
+        inferenceInterface.fillNodeFloat(inputName, new int[] {1, inputSize}, frameCepstra);  //   << ===========  ????????????????????????
         Trace.endSection();
 
         // Run the inference call.
@@ -184,9 +199,22 @@ public class TensorFlowSpeechClassifier implements Classifier
 
         Trace.endSection(); // "recognizeFrame"
 
+//        softmax(confidences);
         return confidences;
     }
 
+    private void softmax(float[] vals) 
+    {
+        float max = Float.NEGATIVE_INFINITY;
+        for (final float val : vals) max = Math.max(max, val);
+        float sum = 0.0f;
+        for (int i = 0; i < vals.length; ++i) 
+        {
+            vals[i] = (float) Math.exp(vals[i] - max);
+            sum += vals[i];
+        }
+        for (int i = 0; i < vals.length; ++i) vals[i] = vals[i] / sum;
+    }    
     @Override
     public void enableStatLogging(boolean debug) {
         inferenceInterface.enableStatLogging(debug);
