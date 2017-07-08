@@ -299,7 +299,7 @@ public class MFCC
                     if(mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS)    scores = StringUtilities.exportArray2String(faFullMFCC, sOutputPrecision);
                     else                                                            scores = StringUtilities.exportArray2String(faFullFilterBanks, sOutputPrecision);
                     
-                    boolean res = FileUtilities.writeStringToFile(scores, mfccParams.sOutputPath + "_scores.dat");
+                    boolean res = FileUtilities.writeStringToFile(mfccParams.sOutputPath + "_scores.dat", scores, false);
 //                    writeTextParams(scores, mfccParams.sOutputPath + "_scores.dat");
                     //                tp.addTimepoint(4);                
                     break;

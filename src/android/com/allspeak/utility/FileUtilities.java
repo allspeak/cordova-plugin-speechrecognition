@@ -12,15 +12,15 @@ public class FileUtilities
 {
     private static final String TAG = "FileUtilities";
     
-
-    public static boolean writeStringToFile(String filename, String data) throws Exception
+    // overwrite or append in case of existing file
+    public static boolean writeStringToFile(String filename, String data, boolean overwrite) throws Exception
     {
         try 
         {
             File f = new File(Environment.getExternalStorageDirectory(), filename);
-            if (!f.exists()) {
-                f.createNewFile();
-            }
+            if (f.exists() && overwrite)  f.delete();
+            if (!f.exists()) f.createNewFile();
+            
             FileWriter writer = new FileWriter(f, true);
             writer.write(data);
             writer.close();            
@@ -32,22 +32,35 @@ public class FileUtilities
         }	
     }
 
-    public static boolean write2DArrayToFile(float[][] scores, int rows, String filename, String precision) throws Exception
+    public static boolean write2DArrayToFile(float[][] scores, int rows, String filename, String precision, boolean overwrite) throws Exception
     {
-        int col = scores[0].length;
-        BufferedWriter outputWriter = null;
-        outputWriter = new BufferedWriter(new FileWriter(Environment.getExternalStorageDirectory() + "/" + filename));
-        for (int i = 0; i < rows; i++) 
+        try
         {
-            for(int j = 0; j < col; j++)//for each column
-            {            
-                outputWriter.write(Float.toString(scores[i][j])+ " ");
+            int col = scores[0].length;
+            BufferedWriter outputWriter = null;
+
+            File f = new File(Environment.getExternalStorageDirectory(), filename);
+            if (f.exists() && overwrite)  f.delete();
+  
+
+            outputWriter = new BufferedWriter(new FileWriter(Environment.getExternalStorageDirectory() + "/" + filename));
+            for (int i = 0; i < rows; i++) 
+            {
+                for(int j = 0; j < col; j++)//for each column
+                {            
+                    outputWriter.write(Float.toString(scores[i][j])+ " ");
+                }
+                outputWriter.newLine();
+                outputWriter.flush();  
             }
-            outputWriter.newLine();
-            outputWriter.flush();  
+            outputWriter.close();  
+            return true;
         }
-        outputWriter.close();  
-        return true;
+        catch(Exception e)
+        {
+            throw (e);
+        }
+            
     }
 
     public static boolean deleteExternalStorageFile(String output_file)

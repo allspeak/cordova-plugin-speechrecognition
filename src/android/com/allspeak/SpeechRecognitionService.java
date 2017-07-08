@@ -31,8 +31,10 @@ import java.util.Arrays;
 import com.allspeak.ENUMS;
 import com.allspeak.ERRORS;
 import com.allspeak.utility.Messaging;
+import com.allspeak.utility.FileUtilities;
 import com.allspeak.audioprocessing.mfcc.*;
 import com.allspeak.audioprocessing.mfcc.MFCCParams;
+import com.allspeak.audioprocessing.mfcc.Framing;
 import com.allspeak.audioprocessing.vad.*;
 import com.allspeak.audiocapture.*;
 import com.allspeak.audiocapture.AudioInputCapture;
@@ -77,8 +79,9 @@ public class SpeechRecognitionService extends Service
     private MFCCParams mMfccParams              = null;
     private final MFCCHandler mMfccHandler      = new MFCCHandler(this);
     private MFCCHandlerThread mfcc              = null;        
+    private Handler mMfccHandlerThread          = null;     // handler of MFCCHandlerThread to send messages 
 
-//    private boolean bIsCalculatingMFCC          = false;              // do not calculate any mfcc score on startCatpure
+    private boolean bIsCalculatingMFCC          = false;              // do not calculate any mfcc score on startCatpure
     private int nMFCCProcessedFrames            = 0;
     private int nMFCCFrames2beProcessed         = 0;
 
@@ -156,19 +159,20 @@ public class SpeechRecognitionService extends Service
         {
             callbackContext             = cb;
             mCfgParams                  = cfgParams;
-            Handler mMfccHandlerThread   = null;
             if(mfccParams != null)
             {
                 mMfccParams             = mfccParams;
                 nMFCCDataDest           = mMfccParams.nDataDest;
-
-                mfcc.setParams(mMfccParams);
-                mfcc.setCallbacks(mMfccHandler);
-                mMfccHandlerThread       = mfcc.getHandlerLooper();                  
+                mfcc.init(mMfccParams, mMfccHandler);       // MFCC send commands & results to TF, status here
+                mMfccHandlerThread      = mfcc.getHandlerLooper();          // get the mfcc looper   
+                
+                if(mMfccParams.nDataDest > ENUMS.MFCC_DATADEST_NOCALC) 
+                    bIsCalculatingMFCC = true;
+                if(mMfccParams.sOutputPath != "" && mMfccParams.nDataDest >= ENUMS.MFCC_DATADEST_FILE)
+                    FileUtilities.deleteExternalStorageFile(mMfccParams.sOutputPath + "_scores.dat");
             }            
-            aicCapture                  = new AudioInputCapture(mCfgParams, aicHandler, null, mMfccHandlerThread);    // if(mfccParams != null) : CAPTURE => MFCC              
-//            bIsCalculatingMFCC          = cfgParams.bStartMFCC;
-            nCapturedDataDest           = cfgParams.nDataDest;
+            aicCapture                  = new AudioInputCapture(mCfgParams, aicHandler, null, aicHandler);    // if(mfccParams != null) : CAPTURE => MFCC              
+            nCapturedDataDest           = mCfgParams.nDataDest;
 
         }
         catch (Exception e) 
@@ -220,8 +224,7 @@ public class SpeechRecognitionService extends Service
     {
         callbackContext             = cb;        
         aicCapture.stop();
-        aicCapture = null;
-//        bIsCalculatingMFCC          = false;
+        bIsCalculatingMFCC          = false;
         nCapturedDataDest           = 0;     
     }    
 
@@ -268,7 +271,7 @@ public class SpeechRecognitionService extends Service
 
             // I get the length (first in samples, then in frames) of the max allowed speech chunk. 
             int nMaxSpeechLengthSample  = vad.getMaxSpeechLengthSamples();  
-            int nMaxSpeechLengthFrames  = MFCCCalcJAudio.getFrames(nMaxSpeechLengthSample, mMfccParams.nWindowLength, mMfccParams.nWindowDistance);
+            int nMaxSpeechLengthFrames  = Framing.getFrames(nMaxSpeechLengthSample, mMfccParams.nWindowLength, mMfccParams.nWindowDistance);
             int nParams                 = (mMfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? 3*mMfccParams.nNumberOfMFCCParameters : 3*mMfccParams.nNumberofFilters);
 
             // I pass to MFCC to let him allocate the proper cepstra buffer
@@ -336,14 +339,18 @@ public class SpeechRecognitionService extends Service
     // receive new audio data from AudioInputReceiver:
     // - start calculating MFCC
     // - return raw data to web layer if selected
-    public void onCaptureData(float[] data)
+    public void onCaptureData(Message msg)
     {
+        Bundle b        = msg.getData(); 
+        float[] data    = b.getFloatArray("data");  
+        
         nCapturedBlocks++;  
         nCapturedBytes += data.length;
 
 //        Log.d(LOG_TAG, "new raw data arrived in MainPlugin Activity: " + Integer.toString(nCapturedBlocks));
         
-//        if(bIsCalculatingMFCC) mfcc.getQueueMFCC(data); // calculate MFCC/MFFILTERS ??
+        if(bIsCalculatingMFCC)
+            mMfccHandlerThread.sendMessage(Message.obtain(msg)); // calculate MFCC/MFFILTERS ?? get a copy of the original message
            
         // send raw to WEB ??
         if(mCfgParams.nDataDest != ENUMS.CAPTURE_DATADEST_NONE)
@@ -497,6 +504,8 @@ public class SpeechRecognitionService extends Service
     // if called by AudioInputReceiver....the thread already stopped/suspended itself
     public void onCaptureError(String message)
     {
+        stopCapture(callbackContext);
+        bIsCalculatingMFCC = false;
         onError(message, ERRORS.CAPTURE_ERROR);
     }    
     
@@ -537,7 +546,7 @@ public class SpeechRecognitionService extends Service
                     switch((int)msg.what) //get message type
                     {
                         case ENUMS.CAPTURE_RESULT:
-                            service.onCaptureData(b.getFloatArray("data"));
+                            service.onCaptureData(msg);
                             break;
                         
                         case ENUMS.CAPTURE_STATUS_STOPPED:

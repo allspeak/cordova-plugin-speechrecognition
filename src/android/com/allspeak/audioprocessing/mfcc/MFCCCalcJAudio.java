@@ -22,6 +22,7 @@
 package com.allspeak.audioprocessing.mfcc;
 
 import com.allspeak.audioprocessing.FFT;
+import com.allspeak.audioprocessing.mfcc.Framing;
 
 // if m_bCalculate0ThCoeff  is true,
 // this class decrements m_nnumberOfParameters by 1 and
@@ -309,31 +310,14 @@ public class MFCCCalcJAudio {
             }
         }
     }
-
-    
-    // =======================================================================================================
-    // CHUNK ANALYSIS 
-    // =======================================================================================================
-    // returns the number of frames you can divide a vector into
-    public static int getFrames(int inlen, int windowLength, int windowDistance)
-    {
-        return (1 + (int) Math.ceil((inlen-windowLength)/windowDistance));
-    }
-
-    // determines the maximum number of samples you can provide to MFCC analysis to get a clean number of frames
-    // assuming I have 1024 samples, I can process 11 frames, consuming 1000 samples => I return it
-    public static int getOptimalVectorLength(int inlen, int wlength, int wdist)
-    {
-        int nframes = (1 + (int) Math.floor((inlen-wlength)/wdist));
-        return  (wlength + wdist*(nframes-1));
-    }    
+   
     //--------------------------------------------------------------------------------------------------------
     // calculate CEPSTRA PARAMETERS & first/second order derivatives of a speech chunk    
     public float[][] getFullMFCC(float[] audiodata)
     {
         // divide the input stream in multiple frames of length nWindowLength and starting every nWindowDistance samples 
         int inlen           = audiodata.length;
-        m_nFrames           = getFrames(inlen, m_nWindowLength, m_nWindowDistance);
+        m_nFrames           = Framing.getFrames(inlen, m_nWindowLength, m_nWindowDistance);
         float[][] faMFCC   = new float[m_nFrames][3*m_nnumberOfParameters];
         float[] temp;
         try
@@ -375,7 +359,7 @@ public class MFCCCalcJAudio {
     {
         // divide the input stream in multiple frames of length nWindowLength and starting every nWindowDistance samples 
         int inlen           = audiodata.length;
-        m_nFrames           = getFrames(inlen, m_nWindowLength, m_nWindowDistance);
+        m_nFrames           = Framing.getFrames(inlen, m_nWindowLength, m_nWindowDistance);
         float[][] faMFCC    = new float[m_nFrames][3*m_nnumberOfFilters];
         float[] temp;
         try
@@ -425,7 +409,7 @@ public class MFCCCalcJAudio {
     {
         // divide the input stream in multiple frames of length nWindowLength and starting every nWindowDistance samples 
         int inlen           = audiodata.length;
-        m_nFrames           = getFrames(inlen, m_nWindowLength, m_nWindowDistance);
+        m_nFrames           = Framing.getFrames(inlen, m_nWindowLength, m_nWindowDistance);
         float[][] faMFCC   = new float[m_nFrames][m_nnumberOfParameters];
         try
         {
@@ -467,7 +451,7 @@ public class MFCCCalcJAudio {
     {
         // divide the input stream in multiple frames of length nWindowLength and starting every nWindowDistance samples 
         int inlen           = audiodata.length;
-        m_nFrames           = getFrames(inlen, m_nWindowLength, m_nWindowDistance);
+        m_nFrames           = Framing.getFrames(inlen, m_nWindowLength, m_nWindowDistance);
         float[][] faMFCC    = new float[m_nFrames][m_nnumberOfFilters];
         try
         {

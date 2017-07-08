@@ -12,24 +12,15 @@ import org.apache.cordova.PluginResult;
 
 import org.json.JSONObject;
 import org.json.JSONArray;
-import org.json.JSONException;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.lang.System;
-
-import android.os.Environment;
 import android.util.Log;
-import java.io.FilenameFilter;
 
-import android.os.ResultReceiver;
 
 import com.allspeak.utility.Messaging;
 
 
 import com.allspeak.ENUMS;
 import com.allspeak.ERRORS;
-import com.allspeak.audioprocessing.WavFile;
 import com.allspeak.utility.StringUtilities;
 import com.allspeak.utility.FileUtilities;
 import com.allspeak.utility.TrackPerformance;
@@ -194,8 +185,8 @@ public class TF
                     case ENUMS.TF_DATADEST_FILEONLY:
                         String outfile      = "AllSpeak/audiofiles/temp/cepstra.dat";
                         String outfile_ctx  = "AllSpeak/audiofiles/temp/ctx_cepstra.dat";
-                        FileUtilities.write2DArrayToFile(cepstra, frames2recognize, outfile, "%.4f");
-                        FileUtilities.write2DArrayToFile(contextedCepstra, frames2recognize, outfile_ctx, "%.4f");
+                        FileUtilities.write2DArrayToFile(cepstra, frames2recognize, outfile, "%.4f", true);
+                        FileUtilities.write2DArrayToFile(contextedCepstra, frames2recognize, outfile_ctx, "%.4f", true);
                         break;
                 }
             }
@@ -214,7 +205,7 @@ public class TF
     private boolean writeSentenceCepstra(String filename, float[][] cepstra, int frames2recognize) throws Exception
     {
         String str_cepstra  = StringUtilities.exportArray2String(cepstra, "%.4f", frames2recognize);
-        StringUtilities.writeStringToFile(filename, str_cepstra);        
+        FileUtilities.writeStringToFile(filename, str_cepstra, true);        
         return true;
     }
     

@@ -16,7 +16,8 @@ import com.allspeak.utility.Messaging;
 // not necessary
 import com.allspeak.audioprocessing.mfcc.MFCCParams;
 import com.allspeak.audioprocessing.mfcc.MFCC;
-import com.allspeak.audioprocessing.mfcc.MFCCCalcJAudio;
+import com.allspeak.audioprocessing.mfcc.Framing;
+
 
 
 /*
@@ -116,7 +117,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
     public void init(MFCCParams params, Handler scb, Handler ccb, Handler rcb, int maxspeechsamples)
     {
         init(params, scb, ccb, rcb);
-        nMaxSpeechLengthFrames  = MFCCCalcJAudio.getFrames(maxspeechsamples, params.nWindowLength, params.nWindowDistance);
+        nMaxSpeechLengthFrames  = Framing.getFrames(maxspeechsamples, params.nWindowLength, params.nWindowDistance);
     }    
     public void init(MFCCParams params, Handler cb, CallbackContext wlcb)
     {
@@ -131,7 +132,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
     public void init(MFCCParams params, Handler scb, Handler ccb, Handler rcb, CallbackContext wlcb, int maxspeechsamples)
     {
         init(params, scb, ccb, rcb, wlcb);
-        nMaxSpeechLengthFrames  = MFCCCalcJAudio.getFrames(maxspeechsamples, params.nWindowLength, params.nWindowDistance);
+        nMaxSpeechLengthFrames  = Framing.getFrames(maxspeechsamples, params.nWindowLength, params.nWindowDistance);
     }    
     //===============================================================================================
     // wrapper to thread execution 
@@ -207,7 +208,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
         int nOldData        = nQueueLastIndex;
         int nNewData        = data.length;
         int nTotQueue       = nQueueLastIndex + nNewData;
-        int nMFCCWindow     = MFCCCalcJAudio.getOptimalVectorLength(nTotQueue, mfccParams.nWindowLength, mfccParams.nWindowDistance);
+        int nMFCCWindow     = Framing.getOptimalVectorLength(nTotQueue, mfccParams.nWindowLength, mfccParams.nWindowDistance);
         int nData2take      = nMFCCWindow - nQueueLastIndex;             
         int nData2Store     = data.length - nData2take + mfccParams.nData2Reprocess; 
 
@@ -225,7 +226,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
         System.arraycopy(data, nData2take - mfccParams.nData2Reprocess, faMFCCQueue, 0, nData2Store); 
         nQueueLastIndex = nData2Store;  
 
-        return MFCCCalcJAudio.getFrames(nMFCCWindow, mfccParams.nWindowLength, mfccParams.nWindowDistance);
+        return Framing.getFrames(nMFCCWindow, mfccParams.nWindowLength, mfccParams.nWindowDistance);
     }
     
     private void clearData()
@@ -251,7 +252,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
         boolean res;
         String strmsg;
 
-        int expectedFrames = MFCCCalcJAudio.getFrames(sentSamples, mfccParams.nWindowLength, mfccParams.nWindowDistance);
+        int expectedFrames = Framing.getFrames(sentSamples, mfccParams.nWindowLength, mfccParams.nWindowDistance);
         if(expectedFrames == nProcessedFrames)
         {
             strmsg  = "MFCC_CMD_SENDDATA: sample OK !! => processed frames: " + String.valueOf(nProcessedFrames) + ", processedSamples: " + String.valueOf(nArrivedSamples);
