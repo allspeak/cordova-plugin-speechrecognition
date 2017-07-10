@@ -446,18 +446,18 @@ speechrecognition.getMFCC = function(mfcc_params, source, filepath_noext)
         errorCB("ERROR in mfccCalculation: source is empty")
         return false;
     }
-    else if(mfcc_params.nDataOrig == speechrecognition.ENUM.mfcc.DATAORIGIN.JSONDATA && source.constructor !== Array) 
+    else if(mfcc_params.nDataOrig == speechrecognition.ENUM.PLUGIN.MFCC_DATAORIGIN_JSONDATA && source.constructor !== Array) 
     {
         errorCB("ERROR in mfccCalculation: you set data origin as data, but did not provide a data array");
         return false;
     }
-    else if ((mfcc_params.nDataOrig == speechrecognition.ENUM.mfcc.DATAORIGIN.FILE || mfcc_params.nDataOrig == speechrecognition.ENUM.mfcc.DATAORIGIN.FOLDER) && source.constructor !== String)        
+    else if ((mfcc_params.nDataOrig == speechrecognition.ENUM.PLUGIN.MFCC_DATAORIGIN_FILE || mfcc_params.nDataOrig == speechrecognition.ENUM.PLUGIN.MFCC_DATAORIGIN_FOLDER) && source.constructor !== String)        
     {
         errorCB("ERROR in mfccCalculation: you set data origin as file/folder, but did not provide a string parameter");
         return false;
     }
     
-    exec(speechrecognition.onMFCCSuccess, speechrecognition.onMFCCError, speechrecognition.pluginName, 'getMFCC', [mfcc_json_params, source, filepath_noext]);            
+    exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, 'getMFCC', [mfcc_json_params, source, filepath_noext]);            
 };
 
 //---------------------------------------------------------------
@@ -559,7 +559,7 @@ speechrecognition._pluginEvent = function (data) {
                 
             case speechrecognition.ENUM.PLUGIN.MFCC_RESULT:
                 cordova.fireWindowEvent("mfccdata", {data: data});
-                break;
+                break;onMFCCSuccess
                 
             case speechrecognition.ENUM.PLUGIN.MFCC_STATUS_PROGRESS_DATA:
                 cordova.fireWindowEvent("mfccprogressdata", {data: data});
@@ -567,6 +567,10 @@ speechrecognition._pluginEvent = function (data) {
                 
             case speechrecognition.ENUM.PLUGIN.MFCC_STATUS_PROGRESS_FILE:
                 cordova.fireWindowEvent("mfccprogressfile", {data: data});
+                break;
+                
+            case speechrecognition.ENUM.PLUGIN.MFCC_STATUS_PROGRESS_FOLDER:
+                cordova.fireWindowEvent("mfccprogressfolder", {data: data});
                 break;
                 
             case speechrecognition.ENUM.PLUGIN.SPEECH_STATUS_STARTED:
@@ -604,10 +608,7 @@ speechrecognition._pluginEvent = function (data) {
 // TODO : receive an error code from plugin
 speechrecognition._pluginError = function (error) 
 {
-    if(speechrecognition._capturing)
-    {
-        speechrecognition.stopCapture();
-    }
+    if(speechrecognition._capturing)       speechrecognition.stopCapture();
     cordova.fireWindowEvent("pluginError", {message: error.message, type:error.type});
 };
 

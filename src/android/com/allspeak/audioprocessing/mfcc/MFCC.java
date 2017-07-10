@@ -257,10 +257,10 @@ public class MFCC
             {
                 tempfile            = input_folderpath + File.separatorChar + files[i].getName();
                 processFile(StringUtilities.removeExtension(tempfile));
-            }   
-//            sendMessageToMain(ENUMS.MFCC_STATUS_PROGRESS_FOLDER, "progress_folder", mfccParams.sOutputPath);          
+            } 
             // BUG....it doesn't work...since the last-1 file, in the target I get a Bundle with either process_file and process_folder messages
             // folder processing completion is presently resolved in the web layer.
+            // Messaging.sendMessageToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROGRESS_FOLDER, "progress_folder", mfccParams.sOutputPath);
         }
         catch(Exception e)
         {

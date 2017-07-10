@@ -313,9 +313,7 @@ public class SpeechRecognitionService extends Service
             callbackContext             = cb;   
             mMfccParams                 = mfccParams;           
             nMFCCDataDest               = mMfccParams.nDataDest;
-            mfcc.setParams(mMfccParams);
-            mfcc.setWlCb(callbackContext);                
-
+            mfcc.init(mMfccParams, mMfccHandler, callbackContext);       // MFCC send commands & results to TF, status here            
             mfcc.getMFCC(inputpathnoext);   
         }
         catch (Exception e) 

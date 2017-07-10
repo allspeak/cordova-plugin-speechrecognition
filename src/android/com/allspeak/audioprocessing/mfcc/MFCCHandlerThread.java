@@ -70,6 +70,48 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
         super(name, priority);
     }
     //===============================================================================================
+    public void init(MFCCParams params, Handler cb, CallbackContext wlcb)
+    {
+        mfccParams          = params;
+        mStatusCallback     = cb;        
+        mCommandCallback    = cb;        
+        mResultCallback     = cb;  
+        mWlCb               = wlcb;         
+        nScores             = (mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? mfccParams.nNumberOfMFCCParameters : mfccParams.nNumberofFilters);
+        mfcc                = new MFCC(mfccParams, cb, mWlCb);
+    }
+    
+    public void init(MFCCParams params, Handler cb)
+    {
+        init(params, cb, null);
+    }
+    
+    public void init(MFCCParams params, Handler scb, Handler ccb, Handler rcb)
+    {
+        mfccParams          = params;
+        mStatusCallback     = scb;        
+        mCommandCallback    = ccb;        
+        mResultCallback     = rcb;   
+        nScores             = (mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? mfccParams.nNumberOfMFCCParameters : mfccParams.nNumberofFilters);
+        mfcc                = new MFCC(mfccParams, scb, ccb, rcb, mWlCb);
+    }
+    public void init(MFCCParams params, Handler scb, Handler ccb, Handler rcb, int maxspeechsamples)
+    {
+        init(params, scb, ccb, rcb);
+        nMaxSpeechLengthFrames  = Framing.getFrames(maxspeechsamples, params.nWindowLength, params.nWindowDistance);
+    }    
+
+    public void init(MFCCParams params, Handler scb, Handler ccb, Handler rcb, CallbackContext wlcb)
+    {
+        init(params, scb, ccb, rcb);
+        mWlCb       = wlcb;
+    }    
+    public void init(MFCCParams params, Handler scb, Handler ccb, Handler rcb, CallbackContext wlcb, int maxspeechsamples)
+    {
+        init(params, scb, ccb, rcb, wlcb);
+        nMaxSpeechLengthFrames  = Framing.getFrames(maxspeechsamples, params.nWindowLength, params.nWindowDistance);
+    }        
+    //===============================================================================================
     public void setParams(MFCCParams params)
     {
         mfccParams  = params;
@@ -95,45 +137,6 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
         mResultCallback     = rcb;        
         mfcc.setCallbacks(mStatusCallback, mCommandCallback, mResultCallback);
     }
-//--------------------------------------------------------------------------------------------------
-    public void init(MFCCParams params, Handler cb)
-    {
-        mfccParams          = params;
-        mStatusCallback     = cb;        
-        mCommandCallback    = cb;        
-        mResultCallback     = cb;  
-        nScores             = (mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? mfccParams.nNumberOfMFCCParameters : mfccParams.nNumberofFilters);
-        mfcc                = new MFCC(mfccParams, cb, mWlCb);
-    }
-    public void init(MFCCParams params, Handler scb, Handler ccb, Handler rcb)
-    {
-        mfccParams          = params;
-        mStatusCallback     = scb;        
-        mCommandCallback    = ccb;        
-        mResultCallback     = rcb;   
-        nScores             = (mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? mfccParams.nNumberOfMFCCParameters : mfccParams.nNumberofFilters);
-        mfcc                = new MFCC(mfccParams, scb, ccb, rcb, mWlCb);
-    }
-    public void init(MFCCParams params, Handler scb, Handler ccb, Handler rcb, int maxspeechsamples)
-    {
-        init(params, scb, ccb, rcb);
-        nMaxSpeechLengthFrames  = Framing.getFrames(maxspeechsamples, params.nWindowLength, params.nWindowDistance);
-    }    
-    public void init(MFCCParams params, Handler cb, CallbackContext wlcb)
-    {
-        init(params, cb);
-        mWlCb       = wlcb; 
-    }
-    public void init(MFCCParams params, Handler scb, Handler ccb, Handler rcb, CallbackContext wlcb)
-    {
-        init(params, scb, ccb, rcb);
-        mWlCb       = wlcb;
-    }    
-    public void init(MFCCParams params, Handler scb, Handler ccb, Handler rcb, CallbackContext wlcb, int maxspeechsamples)
-    {
-        init(params, scb, ccb, rcb, wlcb);
-        nMaxSpeechLengthFrames  = Framing.getFrames(maxspeechsamples, params.nWindowLength, params.nWindowDistance);
-    }    
     //===============================================================================================
     // wrapper to thread execution 
     //===============================================================================================
