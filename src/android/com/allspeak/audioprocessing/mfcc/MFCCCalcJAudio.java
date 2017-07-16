@@ -28,7 +28,8 @@ import com.allspeak.audioprocessing.mfcc.Framing;
 // this class decrements m_nnumberOfParameters by 1 and
 // adds the 0-th coefficient to complete a vector with
 // the number of MFCC's specified by the user.
-public class MFCCCalcJAudio {
+public class MFCCCalcJAudio 
+{
 
     private static final String TAG = "MFCCCalcJAudio";
     
@@ -357,49 +358,30 @@ public class MFCCCalcJAudio {
 
     public float[][] getFullMFFilters(float[] audiodata)
     {
-        // divide the input stream in multiple frames of length nWindowLength and starting every nWindowDistance samples 
-        int inlen           = audiodata.length;
-        m_nFrames           = Framing.getFrames(inlen, m_nWindowLength, m_nWindowDistance);
-        float[][] faMFCC    = new float[m_nFrames][3*m_nnumberOfFilters];
+        float[][] frames    = Framing.frameVector(audiodata, m_nWindowLength, m_nWindowDistance);
+        m_nFrames           = frames.length;
+        float[][] faMFCC    = new float[m_nFrames][3*m_nnumberOfFilters];        
         float[] temp;
-        try
+        for(int f=0; f<m_nFrames; f++)
         {
-            float [] buffer    = new float[m_nWindowLength];
-            for (int f = 0; f < m_nFrames-1; f++)
-            {
-                for (int j = 0; j < m_nWindowLength; j++)
-                    buffer[j]  = audiodata[j + f*m_nWindowDistance];
-                
-                temp    = getFilterBankOutputs(buffer); 
-                int len = temp.length;
-                System.arraycopy(temp, 0, faMFCC[f], 0, len);
-            }
-            // during the last frame i may fill with blanks
-            for (int j = 0; j < m_nWindowLength; j++)
-            {
-                int id = j + (m_nFrames-1)*m_nWindowDistance;
-                if(id < inlen)
-                    buffer[j]       = audiodata[id];
-                else
-                    buffer[j]       = 0;
-            }      
-            temp    = getFilterBankOutputs(buffer); 
+            temp = getFilterBankOutputs(frames[f]);
             int len = temp.length;
-            System.arraycopy(temp, 0, faMFCC[m_nFrames-1], 0, len);
-
-            getSpectralDerivativesConcatenated(faMFCC, mDerivativesQueue);
-            
-            // fill the queue with the last-1 & last frames
-            System.arraycopy(faMFCC[m_nFrames-2], 0, mDerivativesQueue[0], 0, m_nnumberOfFilters);
-            System.arraycopy(faMFCC[m_nFrames-1], 0, mDerivativesQueue[1], 0, m_nnumberOfFilters);
-            
-            return faMFCC;
+            System.arraycopy(temp, 0, faMFCC[f], 0, len);
         }
-        catch(Exception e) 
+        if(mDerivativesQueue == null)
         {
-            e.printStackTrace();
-            return null;
-        }        
+            mDerivativesQueue        = new float[m_nDeltaWindow][m_nDefaultScoreLength];
+            System.arraycopy(faMFCC[0], 0, mDerivativesQueue[0], 0, m_nnumberOfFilters);
+            System.arraycopy(faMFCC[0], 0, mDerivativesQueue[1], 0, m_nnumberOfFilters);              
+        }
+
+        getSpectralDerivativesConcatenated(faMFCC, mDerivativesQueue);
+
+        // fill the queue with the last-1 & last frames
+        System.arraycopy(faMFCC[m_nFrames-2], 0, mDerivativesQueue[0], 0, m_nnumberOfFilters);
+        System.arraycopy(faMFCC[m_nFrames-1], 0, mDerivativesQueue[1], 0, m_nnumberOfFilters);        
+        
+        return faMFCC;
     }
 
     //--------------------------------------------------------------------------------------------------------

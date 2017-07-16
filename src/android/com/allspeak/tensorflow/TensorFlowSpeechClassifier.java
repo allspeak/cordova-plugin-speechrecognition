@@ -30,6 +30,9 @@ import java.util.Vector;
 import org.tensorflow.Operation;
 import org.tensorflow.contrib.android.TensorFlowInferenceInterface;
 
+import com.allspeak.utility.FileUtilities;
+
+
 /** A classifier specialized to label images using TensorFlow. */
 public class TensorFlowSpeechClassifier implements Classifier 
 {
@@ -139,11 +142,22 @@ public class TensorFlowSpeechClassifier implements Classifier
         outputs = new float[nOutputClasses];
         float[] confidences;
         
-        for(int f=0; f<nFrames; f++)
-        {
-            confidences = recognizeFrame(framesCepstra[f]);
-            for(int c = 0; c < nOutputClasses; c++) outputs[c] += confidences[c];
-        }
+        String outfile      = "AllSpeak/audiofiles/temp/probabilities.dat";
+
+//        try
+//        {
+            for(int f=0; f<nFrames; f++)
+            {
+                confidences = recognizeFrame(framesCepstra[f]);
+//                FileUtilities.writeArrayToFile(confidences, outfile, "%.4f", true);
+                for(int c = 0; c < nOutputClasses; c++) outputs[c] += confidences[c];
+            }
+
+//        }
+//        catch(IOException e)
+//        {
+//            e.printStackTrace();
+//        }         
        
         // Find the best classifications.
         PriorityQueue<Recognition> pq =
@@ -170,7 +184,7 @@ public class TensorFlowSpeechClassifier implements Classifier
             }
             pq.add(new Recognition("" + c, labels.size() > c ? labels.get(c) : "unknown", outputs[c]));
         }
-        for (int i = 0; i < nOutputClasses; ++i) recognitions.add(pq.poll());
+        for (int i = 0; i < 3; ++i) recognitions.add(pq.poll());
         
         Trace.endSection(); // "recognizeSpeech"
         return recognitions;        

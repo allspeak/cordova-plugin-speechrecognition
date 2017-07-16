@@ -12,10 +12,12 @@ import com.allspeak.ENUMS;
 import com.allspeak.ERRORS;
 
 import com.allspeak.utility.Messaging;
+import com.allspeak.utility.FileUtilities;
 
 // not necessary
 import com.allspeak.tensorflow.TFParams;
 import com.allspeak.tensorflow.TF;
+import java.io.IOException;
 
 
 /*
@@ -141,10 +143,9 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
     public void recognize(float[] data)
     {
         Bundle bundle  = new Bundle();
-        Message message;
-                
         bundle.putFloatArray("data", data);
-        message = mInternalHandler.obtainMessage();
+
+        Message message = mInternalHandler.obtainMessage();
         message.setData(bundle);
         message.what    = ENUMS.TF_CMD_RECOGNIZE;
         mInternalHandler.sendMessage(message);
@@ -153,18 +154,29 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
     // load model
     public boolean loadModel()
     {
-//        return tf.loadModel();
         Message message = mInternalHandler.obtainMessage();
         message.what    = ENUMS.TF_CMD_LOADMODEL;
         mInternalHandler.sendMessage(message);
         return true;
     }    
   
+    // recognize from a file with contexted frames cepstras
+    public boolean recognizeCepstraFile(String cepstra_file_path, CallbackContext wlcb)
+    {
+        tf.setWlCb(wlcb);
+        Bundle bundle  = new Bundle();        
+        bundle.putString("file", cepstra_file_path);    
+        
+        Message message = mInternalHandler.obtainMessage();
+        message.setData(bundle);        
+        message.what    = ENUMS.TF_CMD_RECOGNIZE_FILE;
+        mInternalHandler.sendMessage(message);
+        return true;        
+    }    
     //===============================================================================================
     // INTERNAL PROCESSING
     //===============================================================================================
 
-    
     private void clearData(int row, int col)
     {
         nProcessedFrames    = 0;
@@ -195,7 +207,8 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
     {
         Bundle bundle = msg.getData();
         int nframes;
-        float[] data;
+        float[] data = null;
+        float[][] cepstra = null;
         switch((int)msg.what)
         {
             case ENUMS.TF_CMD_CLEAR:  
@@ -217,12 +230,23 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
                 nframes             = bundle.getInt("nframes");
                 boolean res         = checkData(nframes);
                 if(true)            tf.doRecognize(faCalculatedCepstra, nProcessedFrames);// TODO: decide what to do whether the frames do not correspond
-
+                break;
+                
+            case ENUMS.TF_CMD_RECOGNIZE_FILE:  
+                String cepstra_file = bundle.getString("file");
+                try
+                {
+                    cepstra             = FileUtilities.read2DArrayFromFile(cepstra_file);
+                    if(true)            tf.doRecognize(cepstra, cepstra.length);// TODO: decide what to do whether the frames do not correspond                    
+                }
+                catch(IOException e)
+                {
+                    e.printStackTrace();
+                }  
                 break;
                 
             case ENUMS.TF_CMD_LOADMODEL:  
                 tf.loadModel();
-
                 break;
                 
             case ENUMS.TF_CMD_NEWCEPSTRA:  
@@ -230,7 +254,7 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
                 data                = bundle.getFloatArray("data");
                 nframes             = bundle.getInt("nframes");
                 int nparams         = bundle.getInt("nparams");
-                float[][] cepstra   = Messaging.deFlattenArray(data, nframes, nparams);
+                cepstra             = Messaging.deFlattenArray(data, nframes, nparams);
                 
                 // store calculated cepstra in its buffer
                 for(int f=0; f<nframes; f++) System.arraycopy(cepstra[f], 0, faCalculatedCepstra[nProcessedFrames+f], 0, nparams);   

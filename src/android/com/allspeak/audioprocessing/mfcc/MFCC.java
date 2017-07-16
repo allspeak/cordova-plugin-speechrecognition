@@ -73,6 +73,8 @@ public class MFCC
     private int[] indicesout;
     private int nDerivDenom;
     
+    private float[][] mDerivativesQueue = null;  // store the last nDeltaWindow-samples to calculate derivatives 
+    
     //================================================================================================================
     // CONSTRUCTORS
     //================================================================================================================
@@ -112,6 +114,8 @@ public class MFCC
         mfccParams      = params; 
         nScores         = (mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? mfccParams.nNumberOfMFCCParameters : mfccParams.nNumberofFilters);
         sOutputPrecision= (mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? sOutputMFCCPrecision : sOutputFiltersPrecision);
+        
+        mDerivativesQueue        = new float[mfccParams.nDeltaWindow][nScores];
         
         if ((boolean)mfccParams.bCalculate0ThCoeff) mfccParams.nNumberOfMFCCParameters++;//take in account the zero-th MFCC        
 

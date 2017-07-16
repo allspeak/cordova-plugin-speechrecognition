@@ -156,9 +156,16 @@ public class TF
             throw e;
         }          
     }
+   
     public void doRecognize(float[][] cepstra, int frames2recognize)    // cepstra = [?][72]
     {
-        float[][] contextedCepstra = getContextedFrames(cepstra, frames2recognize);  // [?][72] => [?][792]
+        float[][] contextedCepstra = null;
+        
+        if(cepstra[0].length != mTfParams.nInputParams)
+            contextedCepstra = getContextedFrames(cepstra, frames2recognize);  // [?][72] => [?][792]
+        else
+            contextedCepstra = cepstra;
+        
         if(mClassifier != null)
         {
             List<Recognition> results = mClassifier.recognizeSpeech(contextedCepstra);
@@ -173,7 +180,7 @@ public class TF
                 {
                     JSONObject record   = new JSONObject();
                     record.put("title", result.getTitle());
-                    record.put("confidence", result.getConfidence());
+                    record.put("confidence", String.format("%.1f%%", result.getConfidence() * 100.0f)); 
                     items.put(record);
                 } 
                 output.put("items", items);
@@ -185,6 +192,10 @@ public class TF
                     case ENUMS.TF_DATADEST_FILEONLY:
                         String outfile      = "AllSpeak/audiofiles/temp/cepstra.dat";
                         String outfile_ctx  = "AllSpeak/audiofiles/temp/ctx_cepstra.dat";
+                        
+//                        String scores = StringUtilities.exportArray2String(cepstra, "%.4f", frames2recognize);
+//                        FileUtilities.writeStringToFile(outfile, scores, true);
+                        
                         FileUtilities.write2DArrayToFile(cepstra, frames2recognize, outfile, "%.4f", true);
                         FileUtilities.write2DArrayToFile(contextedCepstra, frames2recognize, outfile_ctx, "%.4f", true);
                         break;

@@ -4,7 +4,12 @@ package com.allspeak.utility;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.FileReader;
 import java.io.BufferedWriter;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.LineNumberReader;
+
 import android.os.Environment;
 
 
@@ -13,15 +18,15 @@ public class FileUtilities
     private static final String TAG = "FileUtilities";
     
     // overwrite or append in case of existing file
-    public static boolean writeStringToFile(String filename, String data, boolean overwrite) throws Exception
+    public static boolean writeStringToFile(String filename, String data, boolean append) throws Exception
     {
         try 
         {
             File f = new File(Environment.getExternalStorageDirectory(), filename);
-            if (f.exists() && overwrite)  f.delete();
+            if (f.exists() && !append)  f.delete();
             if (!f.exists()) f.createNewFile();
             
-            FileWriter writer = new FileWriter(f, true);
+            FileWriter writer = new FileWriter(f, append);
             writer.write(data);
             writer.close();            
             return true;
@@ -32,7 +37,34 @@ public class FileUtilities
         }	
     }
 
-    public static boolean write2DArrayToFile(float[][] scores, int rows, String filename, String precision, boolean overwrite) throws Exception
+    public static boolean writeArrayToFile(float[] scores, String filename, String precision, boolean append) throws IOException
+    {
+        try
+        {
+            int col                     = scores.length;
+            BufferedWriter outputWriter = null;
+
+            File f = new File(Environment.getExternalStorageDirectory(), filename);
+            if (f.exists() && !append)  f.delete();
+  
+
+            outputWriter = new BufferedWriter(new FileWriter(Environment.getExternalStorageDirectory() + "/" + filename, append));
+            for(int j = 0; j < col; j++)//for each column
+                outputWriter.write(String.format(precision, scores[j]) + " ");
+            
+            outputWriter.newLine();
+            outputWriter.flush();  
+            outputWriter.close();  
+            return true;
+        }
+        catch(Exception e)
+        {
+            throw (e);
+        }
+            
+    }
+
+    public static boolean write2DArrayToFile(float[][] scores, int rows, String filename, String precision, boolean append) throws Exception
     {
         try
         {
@@ -40,15 +72,16 @@ public class FileUtilities
             BufferedWriter outputWriter = null;
 
             File f = new File(Environment.getExternalStorageDirectory(), filename);
-            if (f.exists() && overwrite)  f.delete();
+            if (f.exists() && !append)  f.delete();
   
 
-            outputWriter = new BufferedWriter(new FileWriter(Environment.getExternalStorageDirectory() + "/" + filename));
+            outputWriter = new BufferedWriter(new FileWriter(Environment.getExternalStorageDirectory() + "/" + filename, append));
             for (int i = 0; i < rows; i++) 
             {
                 for(int j = 0; j < col; j++)//for each column
                 {            
-                    outputWriter.write(Float.toString(scores[i][j])+ " ");
+//                    outputWriter.write(Float.toString(scores[i][j])+ " ");
+                    outputWriter.write(String.format(precision, scores[i][j]) + " ");
                 }
                 outputWriter.newLine();
                 outputWriter.flush();  
@@ -63,6 +96,58 @@ public class FileUtilities
             
     }
 
+    // assumes every row have the same number of columns,
+    // so it first reada the number of lines then calculate #columns while parsing the first row
+    public static float[][] read2DArrayFromFile(String filename) throws IOException
+    {
+        String fullpath     = Environment.getExternalStorageDirectory() + "/" + filename;
+        int nlines          = countLines(new File(fullpath));
+        float[][] matrix    = null;
+        int size            = -1;
+        try
+        {
+            BufferedReader buffer = new BufferedReader(new FileReader(fullpath));
+            String line;
+            int row = 0;
+
+            while ((line = buffer.readLine()) != null) 
+            {
+                String[] vals = line.trim().split("\\s+");
+
+                // Lazy instantiation.
+                if (matrix == null) 
+                {
+                    size = vals.length;
+                    matrix = new float[nlines][size];
+                }
+
+                for (int col = 0; col < size; col++) matrix[row][col] = Float.parseFloat(vals[col]);
+                row++;
+            }
+            return matrix;
+        }
+        catch(IOException e)
+        {
+            throw (e);
+        }   
+    }
+
+    
+    public static int countLines(File aFile) throws IOException 
+    {
+        LineNumberReader reader = null;
+        try {
+            reader = new LineNumberReader(new FileReader(aFile));
+            while ((reader.readLine()) != null);
+            return reader.getLineNumber();
+        } catch (Exception ex) {
+            return -1;
+        } finally { 
+            if(reader != null) 
+                reader.close();
+        }
+    }    
+    
     public static boolean deleteExternalStorageFile(String output_file)
     {
         File f = new File(Environment.getExternalStorageDirectory(), output_file);

@@ -32,6 +32,7 @@ public class ENUMS
     public static final int TF_CMD_RECOGNIZE            = 54; // recognize the sentence
     public static final int TF_CMD_NEWCEPSTRA           = 55; // new cepstra arrived      
     public static final int TF_RESULT                   = 56; //      
+    public static final int TF_CMD_RECOGNIZE_FILE       = 57; //      
     
     public static final int CAPTURE_DATADEST_NONE       = 200;
     public static final int CAPTURE_DATADEST_JS_RAW     = 201;

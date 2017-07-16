@@ -277,13 +277,12 @@ public class SpeechRecognitionService extends Service
             // I pass to MFCC to let him allocate the proper cepstra buffer
             mfcc.init(mMfccParams, mMfccHandler, mTfHandlerThread, mTfHandlerThread, nMaxSpeechLengthSample);       // MFCC send commands & results to TF, status here
             
-            // A TF instance has been already created during the loadModel call. This, I only update the params in case something changed
-            // pass to TF to let him allocate the proper cepstra buffer
+            // A TF instance has been already created during the loadModel call. Thus, I only update the params in case something changed
             // TODO: I should check if the model file is the same
             tf.setParams(tfParams);
             tf.setWlCb(callbackContext);
             tf.setCallbacks(mTfHandler, null, mTfHandler);
-            tf.setExtraParams(nMaxSpeechLengthFrames, nParams);
+            tf.setExtraParams(nMaxSpeechLengthFrames, nParams); // pass to TF to let him allocate the proper cepstra buffer
 
             aicCapture                  = new AudioInputCapture(mCfgParams, aicHandler, null, mVadHandlerThread); // CAPTURE send data to VAD, status here
             aicCapture.start();
@@ -323,6 +322,11 @@ public class SpeechRecognitionService extends Service
         }            
     }
     
+    public void recognizeCepstraFile(String cepstra_file_path, CallbackContext wlcb)
+    {
+        tf.recognizeCepstraFile(cepstra_file_path, wlcb);
+    }
+            
     public boolean isCapturing() {
         return bIsCapturing;
     }    
