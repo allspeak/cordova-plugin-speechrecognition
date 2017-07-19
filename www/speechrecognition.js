@@ -200,8 +200,8 @@ speechrecognition.ENUM.tf.DEFAULT = {
     nInputParams        : 792,        
     nContextFrames      : 11,        
     nItems2Recognize    : 25,
-    sModelFileName      : "trained",         
-    sLabelFileName      : "trained",          
+    sModelFilePath      : "",         
+    sLabelFilePath      : "",          
     sInputNodeName      : "inputs/I",          
     sOutputNodeName     : "O",      
     nDataDest           : speechrecognition.ENUM.PLUGIN.TF_DATADEST_MODEL      
@@ -288,8 +288,8 @@ speechrecognition.checkTfParams = function(tf_params)
     speechrecognition.tf.params.nInputParams                    = tf_params.nInputParams                || speechrecognition.ENUM.tf.DEFAULT.nInputParams;          
     speechrecognition.tf.params.nContextFrames                  = tf_params.nContextFrames              || speechrecognition.ENUM.tf.DEFAULT.nContextFrames;          
     speechrecognition.tf.params.nItems2Recognize                = tf_params.nItems2Recognize            || speechrecognition.ENUM.tf.DEFAULT.nItems2Recognize;          
-    speechrecognition.tf.params.sModelFileName                  = tf_params.sModelFileName              || speechrecognition.ENUM.tf.DEFAULT.sModelFileName;          
-    speechrecognition.tf.params.sLabelFileName                  = tf_params.sLabelFileName              || speechrecognition.ENUM.tf.DEFAULT.sLabelFileName;          
+    speechrecognition.tf.params.sModelFilePath                  = tf_params.sModelFilePath              || speechrecognition.ENUM.tf.DEFAULT.sModelFilePath;          
+    speechrecognition.tf.params.sLabelFilePath                  = tf_params.sLabelFilePath              || speechrecognition.ENUM.tf.DEFAULT.sLabelFilePath;          
     speechrecognition.tf.params.sInputNodeName                  = tf_params.sInputNodeName              || speechrecognition.ENUM.tf.DEFAULT.sInputNodeName;          
     speechrecognition.tf.params.sOutputNodeName                 = tf_params.sOutputNodeName             || speechrecognition.ENUM.tf.DEFAULT.sOutputNodeName;          
     speechrecognition.tf.params.nDataDest                       = tf_params.nDataDest                   || speechrecognition.ENUM.tf.DEFAULT.nDataDest;

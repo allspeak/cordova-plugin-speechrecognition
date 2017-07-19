@@ -117,33 +117,33 @@ public class TF
     {
         try
         {
-            String sModelFileName = mTfParams.sModelFileName.startsWith("file://") ? mTfParams.sModelFileName.split("file://")[1] : mTfParams.sModelFileName;
-            String sLabelFileName = mTfParams.sLabelFileName.startsWith("file://") ? mTfParams.sLabelFileName.split("file://")[1] : mTfParams.sLabelFileName;
+            String sModelFilePath = mTfParams.sModelFilePath.startsWith("file://") ? mTfParams.sModelFilePath.split("file://")[1] : mTfParams.sModelFilePath;
+            String sLabelFilePath = mTfParams.sLabelFilePath.startsWith("file://") ? mTfParams.sLabelFilePath.split("file://")[1] : mTfParams.sLabelFilePath;
         
             boolean exists = true;
             String err = "";
-            if(!FileUtilities.existFile(sModelFileName))
+            if(!FileUtilities.existFile(sModelFilePath))
             {
                 exists = false;
-                err += (" " + sModelFileName);
+                err += (" " + sModelFilePath);
             }
-            if(!FileUtilities.existFile(sLabelFileName))
+            if(!FileUtilities.existFile(sLabelFilePath))
             {            
                 exists = false;
-                err += (" " + sLabelFileName);               
+                err += (" " + sLabelFilePath);               
             }
 
             if(exists)
             {
                 mClassifier = TensorFlowSpeechClassifier.create(
                         mTfParams.mAssetManager,
-                        sModelFileName,
-                        sLabelFileName,
+                        sModelFilePath,
+                        sLabelFilePath,
                         mTfParams.nInputParams,
                         mTfParams.sInputNodeName,
                         mTfParams.sOutputNodeName);
             
-                callbackContext.success();
+                callbackContext.success(1);
             }
             else callbackContext.error("the following files are missing: " + err);
             
@@ -153,7 +153,8 @@ public class TF
         {
             mClassifier = null;
             e.printStackTrace();
-            throw e;
+            callbackContext.error(e.getMessage());
+            return false;
         }          
     }
    

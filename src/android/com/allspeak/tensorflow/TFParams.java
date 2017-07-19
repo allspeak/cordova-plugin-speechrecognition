@@ -12,8 +12,8 @@ public class TFParams
     public int nInputParams             = DEFAULT.INPUT_PARAMS;
     public int nContextFrames           = DEFAULT.CONTEXT_FRAMES;   
     public int nItems2Recognize         = DEFAULT.ITEMS_TO_RECOGNIZE;   
-    public String sModelFileName        = DEFAULT.MODEL_FILENAME;   
-    public String sLabelFileName        = DEFAULT.MODEL_LABELNAME;   
+    public String sModelFilePath        = DEFAULT.MODEL_FILENAME;   
+    public String sLabelFilePath        = DEFAULT.MODEL_LABELNAME;   
     public String sInputNodeName        = DEFAULT.INPUT_NODENAME;   
     public String sOutputNodeName       = DEFAULT.OUTPUT_NODENAME; 
     public AssetManager mAssetManager   = null;
@@ -46,12 +46,12 @@ public class TFParams
                         nItems2Recognize    = init.getInt(field);
                         break;
 
-                    case "sModelFileName":
-                        sModelFileName      = init.getString(field);
+                    case "sModelFilePath":
+                        sModelFilePath      = init.getString(field);
                         break;
                   
-                    case "sLabelFileName":
-                        sLabelFileName      = init.getString(field);
+                    case "sLabelFilePath":
+                        sLabelFilePath      = init.getString(field);
                         break;
                   
                     case "sInputNodeName":
