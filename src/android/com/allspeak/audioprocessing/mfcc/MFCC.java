@@ -20,6 +20,7 @@ import android.os.ResultReceiver;
 
 import com.allspeak.ENUMS;
 import com.allspeak.ERRORS;
+import com.allspeak.audioprocessing.mfcc.Framing;
 import com.allspeak.audioprocessing.WavFile;
 import com.allspeak.utility.StringUtilities;
 import com.allspeak.utility.Messaging;
@@ -228,7 +229,22 @@ public class MFCC
             mfccParams.sOutputPath  = input_file_noext;
             String sAudiofile       = input_file_noext + ".wav";
             float[] data            = readWav(sAudiofile);  
-            FileUtilities.deleteExternalStorageFile(mfccParams.sOutputPath + "_scores.dat");
+            
+            int nframes             = Framing.getFrames(data.length, mfccParams.nWindowLength, mfccParams. nWindowDistance);
+            if(FileUtilities.existRelFile(mfccParams.sOutputPath + "_scores.dat"))
+            {
+                File file = new File(Environment.getExternalStorageDirectory(), mfccParams.sOutputPath + "_scores.dat");
+                int nlines = FileUtilities.countLines(file);
+                
+                if(nlines == nframes)
+                {
+                    Messaging.sendMessageToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROGRESS_FILE, "progress_file", mfccParams.sOutputPath);                    
+                    return;
+                }
+                else
+                    FileUtilities.deleteExternalStorageFile(mfccParams.sOutputPath + "_scores.dat");
+            }
+            
 //            tp.addTimepoint(1);
             processRawData(data);
 //            tp.addTimepoint(2);   

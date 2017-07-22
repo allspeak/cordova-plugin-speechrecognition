@@ -1,8 +1,15 @@
 package com.allspeak;
 
+
+/* TODO: order errors by their effect:
+e.g.    FATAL, close the app or the smartphone (problems with service)
+        SERIOUS
+        MODERATE
+*/
+
 public class ERRORS
 {
-    public static final int SERVICE_INIT                = 100; // triggered in SpeechRecognitionService) while initializing the service
+    public static final int SERVICE_INIT                = 100; // currently sent by each execute calls ....in a future triggered in SpeechRecognitionService) while initializing the service
     
     public static final int INVALID_PARAMETER           = 101;
     public static final int MISSING_PARAMETER           = 102;

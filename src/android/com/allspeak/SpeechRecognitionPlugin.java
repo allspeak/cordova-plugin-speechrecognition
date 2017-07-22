@@ -159,6 +159,13 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     public boolean execute(String action, JSONArray args, CallbackContext _callbackContext) throws JSONException 
     {
         callbackContext = _callbackContext;
+        
+        if(mService == null)
+        {
+            Messaging.sendErrorString2Web(callbackContext, "Service not binded. FATAL ERROR", ERRORS.SERVICE_INIT, true);
+            return true;
+        }
+        
         if (action.equals("getAudioDevices")) 
         {
             try
@@ -177,13 +184,13 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
         }
         else if (action.equals("startCapture")) 
         {
-            if(mService.isCapturing())
-            {
-                Messaging.sendErrorString2Web(callbackContext, "SpeechRecognitionPlugin : plugin is already capturing.", ERRORS.CAPTURE_ALREADY_STARTED, true);
-                return true;
-            }
             try 
             {
+                if(mService.isCapturing())
+                {
+                    Messaging.sendErrorString2Web(callbackContext, "SpeechRecognitionPlugin : plugin is already capturing.", ERRORS.CAPTURE_ALREADY_STARTED, true);
+                    return true;
+                }                
                 mCfgParams                       = new CFGParams(new JSONObject((String)args.get(0))); 
                 if(!args.isNull(1))  mMfccParams = new MFCCParams(new JSONObject((String)args.get(1))); 
                 
@@ -200,13 +207,13 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
         }
         else if (action.equals("startMicPlayback")) 
         {
-            if(mService.isCapturing())
-            {
-                Messaging.sendErrorString2Web(callbackContext, "SpeechRecognitionPlugin : plugin is already capturing.", ERRORS.CAPTURE_ALREADY_STARTED, true);
-                return true;
-            }
             try 
             {
+                if(mService.isCapturing())
+                {
+                    Messaging.sendErrorString2Web(callbackContext, "SpeechRecognitionPlugin : plugin is already capturing.", ERRORS.CAPTURE_ALREADY_STARTED, true);
+                    return true;
+                }                
                 mCfgParams = new CFGParams(new JSONObject((String)args.get(0))); 
                 
                 mService.startMicPlayback(mCfgParams, callbackContext);

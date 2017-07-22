@@ -161,7 +161,7 @@ public class FileUtilities
         return f.exists();
     }    
 
-    public static boolean existFile(String parentfolder, String name)
+    public static boolean existRelFile(String name)
     {
         File f = new File(Environment.getExternalStorageDirectory(), name);
         return f.exists();

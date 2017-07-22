@@ -346,7 +346,7 @@ public class MFCCCalcJAudio
             int len = temp.length;
             System.arraycopy(temp, 0, faMFCC[m_nFrames-1], 0, len);
 
-            getSpectralDerivativesConcatenated(faMFCC, mDerivativesQueue);
+            getSpectralDerivativesConcatenated(faMFCC);
             return faMFCC;
         }
         catch(Exception e) 
@@ -375,8 +375,8 @@ public class MFCCCalcJAudio
             System.arraycopy(faMFCC[0], 0, mDerivativesQueue[1], 0, m_nnumberOfFilters);              
         }
 
-        getSpectralDerivativesConcatenated(faMFCC, mDerivativesQueue);
-
+        getSpectralDerivativesConcatenated(faMFCC);
+//        getSimpleTemporalDerivativesConcatenated(faMFCC);
         // fill the queue with the last-1 & last frames
         System.arraycopy(faMFCC[m_nFrames-2], 0, mDerivativesQueue[0], 0, m_nnumberOfFilters);
         System.arraycopy(faMFCC[m_nFrames-1], 0, mDerivativesQueue[1], 0, m_nnumberOfFilters);        
@@ -728,21 +728,34 @@ public class MFCCCalcJAudio
         return res;
     }
     
+    // USED to process a single file. the last two frames are not calculated
     // INPUT  data represent (ntimewindows X nfilters), the last m_nDeltaWindow previous frames, to be used to calculate the temporal derivative
     // OUTPUT data represent (ntimewindows X 3*nfilters)
+    private void getSimpleTemporalDerivativesConcatenated(float[][] data)
+    {
+        int nscores     = data[0].length/3;   // num scores
+        float[][] queue = new float[m_nDeltaWindow][nscores];
+        
+        // copy first m_nDeltaWindow to queue
+        for (int q=0; q<m_nDeltaWindow; q++)
+            queue[q] = data[0];
+        
+        getSimpleTemporalDerivativesConcatenated(data, queue);
+    }
+    
     private void getSimpleTemporalDerivativesConcatenated(float[][] data, float[][] queue)
     {
         int nscores             = data[0].length/3;   // num scores
         int ntw                 = data.length;      // num time windows
-
-        int borderRowsWidth     = 2*m_nDeltaWindow;
-        int finalRows           = 2*borderRowsWidth + ntw;
-
-       
+        float[] tempData;
+        float[][] futureData    = new float[m_nDeltaWindow][nscores];
+        
+        // copy last m_nDeltaWindow to queue
+        for (int q=0; q<m_nDeltaWindow; q++)
+            futureData[q] = data[0];
         //-------------------------------------------------------------------
         // first derivative
-        int offset = nscores;    
-        float[] pastData;
+        //-------------------------------------------------------------------
         for(int tw = 0; tw < ntw; tw++)
         {
             if(tw >= m_nDeltaWindow && tw < (ntw-m_nDeltaWindow))
@@ -756,17 +769,77 @@ public class MFCCCalcJAudio
             }
             else if(tw < m_nDeltaWindow)
             {
+                //first m_nDeltaWindow frames
                 for(int sc = 0; sc < nscores; sc++)
                 {
                     for(int r=1; r <= m_nDeltaWindow; r++)
                     {
-                        pastData = queue[m_nDeltaWindow-r];
-                        data[tw][nscores + sc] = r*(data[tw+r][sc] - pastData[sc]);
+                        tempData = queue[m_nDeltaWindow-r];
+                        data[tw][nscores + sc] = r*(data[tw+r][sc] - tempData[sc]);
                     }
                     data[tw][nscores + sc] /= nDerivDenom;
                 }                
             }
+            else if(tw >= (ntw-m_nDeltaWindow))
+            {
+                //last m_nDeltaWindow frames
+                for(int sc = 0; sc < nscores; sc++)
+                {
+                    for(int r=1; r <= m_nDeltaWindow; r++)
+                    {
+                        tempData = futureData[r-1];
+                        data[tw][nscores + sc] = r*(tempData[sc] - data[tw-r][sc]);
+                    }
+                    data[tw][nscores + sc] /= nDerivDenom;
+                }                 
+            }            
         }
+        //-------------------------------------------------------------------
+        // second derivative
+        //-------------------------------------------------------------------
+        // copy first m_nDeltaWindow 1-st deriv scores to queue
+        for (int q=0; q<m_nDeltaWindow; q++)
+            queue[q] = data[0];
+        
+        for(int tw = 0; tw < ntw; tw++)
+        {
+            if(tw >= m_nDeltaWindow && tw < (ntw-m_nDeltaWindow))
+            {
+                for(int sc = 0; sc < nscores; sc++)
+                {
+                    for(int r=1; r<=m_nDeltaWindow; r++)
+                        data[tw][2*nscores + sc] = r*(data[tw+r][sc+nscores] - data[tw-r][sc+nscores]);
+                    data[tw][2*nscores + sc] /= nDerivDenom;
+                }
+            }
+            else if(tw < m_nDeltaWindow)
+            {
+                for(int sc = 0; sc < nscores; sc++)
+                {
+                    for(int r=1; r <= m_nDeltaWindow; r++)
+                    {
+                        tempData = queue[m_nDeltaWindow-r];
+                        data[tw][2*nscores + sc] = r*(data[tw+r][sc+nscores] - tempData[sc+nscores]);
+                    }
+                    data[tw][2*nscores + sc] /= nDerivDenom;
+                }                
+            }
+            else if(tw >= (ntw-m_nDeltaWindow))
+            {
+                //last m_nDeltaWindow frames
+                for(int sc = 0; sc < nscores; sc++)
+                {
+                    for(int r=1; r <= m_nDeltaWindow; r++)
+                    {
+                        tempData = futureData[r-1];
+                        data[tw][2*nscores + sc] = r*(tempData[sc+nscores] - data[tw-r][sc+nscores]);
+                    }
+                    data[tw][2*nscores + sc] /= nDerivDenom;
+                }                 
+            }              
+        }
+
+        
 //        denominator = 2 * sum([i**2 for i in range(1, N+1)])
 //        delta_feat = numpy.empty_like(feat)
 //        padded = numpy.pad(feat, ((N, N), (0, 0)), mode='edge')   # padded version of feat
@@ -851,7 +924,7 @@ public class MFCCCalcJAudio
     }
     // INPUT  data represent (ntimewindows X nfilters), the last two previous frames, to be used to calculate the temporal derivative
     // OUTPUT data represent (ntimewindows X 3*nfilters)
-    private void getSpectralDerivativesConcatenated(float[][] data, float[][] queue)
+    private void getSpectralDerivativesConcatenated(float[][] data)
     {
        
         int nscores             = data[0].length/3;   // num scores

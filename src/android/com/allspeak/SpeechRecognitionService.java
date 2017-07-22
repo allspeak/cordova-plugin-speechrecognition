@@ -103,6 +103,12 @@ public class SpeechRecognitionService extends Service
     @Override
     public IBinder onBind(Intent intent) { return mBinder; }
     
+    @Override
+    public void onDestroy()
+    {
+        closeService();
+    }
+    
     //===============================================================================
     //called after plugin got the service interface (ServiceConnection::onServiceConnected)
     public String initService()
@@ -137,6 +143,38 @@ public class SpeechRecognitionService extends Service
             tf              = null;
             e.printStackTrace();
             return e.toString();
+        }            
+    }
+    //===============================================================================
+    //called after plugin got the service interface (ServiceConnection::onServiceConnected)
+    public void closeService()
+    {
+        try
+        {
+            unlockCPU();             
+            
+            if(vad != null){
+                vad.quit();
+                vad.interrupt();
+            }
+            
+            if(mfcc != null){
+                mfcc.quit();
+                mfcc.interrupt();
+            }
+            
+            if(tf != null){
+                tf.quit();
+                tf.interrupt();
+            }
+            Log.d(LOG_TAG, "========> unbindService() <========="); 
+        }
+        catch (Exception e) 
+        {
+            vad             = null;
+            mfcc            = null;
+            tf              = null;
+            e.printStackTrace();
         }            
     }
     
