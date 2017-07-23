@@ -10,13 +10,14 @@ public class Framing
     // DATA FRAMING 
     // =======================================================================================================
     // returns the number of frames you can divide a vector into
+    // first frame : 0=>windowLength, i+1 frame: then I need N steps to reach the remaining diff (inlen-windowLength) with steps of windowDistance
     public static int getFrames(int inlen, int windowLength, int windowDistance)
     {
         return (1 + (int) Math.ceil((inlen-windowLength)/windowDistance));
     }
 
     // determines the maximum number of samples you can provide to MFCC analysis to get a clean number of frames
-    // assuming I have 1024 samples, I can process 11 frames, consuming 1000 samples => I return it
+    // assuming I have 1024 samples, I can process 11 frames, consuming 1000 samples => I return 1000
     public static int getOptimalVectorLength(int inlen, int wlength, int wdist)
     {
         int nframes = (1 + (int) Math.floor((inlen-wlength)/wdist));
@@ -33,34 +34,29 @@ public class Framing
     }    
     
     // frames a vector into fwidth-length frames divided by fdistance samples.
-    // it SHOULD always receive an optimal vector (using all the samples)
-    // if the input vector is NOT optimal. it fills with zero the last, incomplete frame
+    // in real-time (queued) calculation it always receive an optimal vector (using all the samples)
+    // when processing a file, the input vector is NOT optimal. 
     public static float[][] frameVector(float[] data, int fwidth, int fdistance)
     {
         int inlen               = data.length;
+        int nframes             = getFrames(inlen, fwidth, fdistance);
+        float[][] frames        = new float[nframes][fwidth];
         int remaining_samples   = isOptimalVectorLength(inlen, fwidth, fdistance);   
-
+        
         int f;
         if(remaining_samples == 0)
         {
             //OPTIMAL VECTOR
-            int nframes             = getFrames(inlen, fwidth, fdistance);
-            float[][] frames        = new float[nframes][fwidth];
             for (f = 0; f < nframes; f++)  System.arraycopy(data, f*fdistance, frames[f], 0, fwidth);
             return frames;
         }
         else
         {
-            //NON-OPTIMAL VECTOR
-            int nframes             = getFrames(inlen, fwidth, fdistance) + 1;
-            float[][] frames        = new float[nframes][fwidth];            
-            for (f = 0; f < nframes-1; f++)  System.arraycopy(data, f*fdistance, frames[f], 0, fwidth);
-
-            // during the last frame i fill with (fwidth-remaining_samples) blanks 
-            System.arraycopy(data, f*fdistance, frames[f], 0, remaining_samples);
-            for (int j = 0; j < (fwidth-remaining_samples); j++)
-                frames[nframes-1][j+remaining_samples]    = 0;
+            //NON-OPTIMAL VECTOR..first all the nframes-1 complete vectors, then the last incomplete one.
+            for (f = 0; f < nframes-1; f++)  
+                System.arraycopy(data, f*fdistance, frames[f], 0, fwidth);
             
+               System.arraycopy(data, f*fdistance, frames[f], 0, remaining_samples);   // during the last frame i fill with (fwidth-remaining_samples) zeros 
             return frames;
         }
     }    

@@ -42,7 +42,7 @@ public class MFCC
     
   
     private MFCCParams mfccParams               = null;                                   // MFCC parameters
-    private MFCCCalcJAudio mfcc                 = null; 
+    private MFCCCalcJAudio mfccCalc                 = null; 
     
     // properties to send results back to Plugin Main
     private ResultReceiver mReceiver            = null;     // IntentService
@@ -120,7 +120,7 @@ public class MFCC
         
         if ((boolean)mfccParams.bCalculate0ThCoeff) mfccParams.nNumberOfMFCCParameters++;//take in account the zero-th MFCC        
 
-        mfcc = new MFCCCalcJAudio(  mfccParams.nNumberOfMFCCParameters,
+        mfccCalc = new MFCCCalcJAudio(  mfccParams.nNumberOfMFCCParameters,
                                     mfccParams.dSamplingFrequency,
                                     mfccParams.nNumberofFilters,
                                     mfccParams.nFftLength,
@@ -174,7 +174,7 @@ public class MFCC
 
     public void clearData()
     {
-        mfcc.clearData();
+        mfccCalc.clearData();
     }
     
     // get score, get derivatives => exportData
@@ -184,7 +184,7 @@ public class MFCC
         {
             if(mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS)
             {
-                faFullMFCC   = mfcc.getFullMFCC(data);
+                faFullMFCC   = mfccCalc.getFullMFCC(data);
                 if(faFullMFCC == null || faFullMFCC.length == 0)
                 {
                     Log.e(TAG, "processFile" + ": Error:  faFullMFCC is empty");
@@ -198,7 +198,7 @@ public class MFCC
             }
             else
             {
-                faFullFilterBanks   = mfcc.getFullMFFilters(data);                
+                faFullFilterBanks   = mfccCalc.getFullMFFilters(data);                
                 if(faFullFilterBanks == null || faFullFilterBanks.length == 0)
                 {
                     Log.e(TAG, "processFile" + ": Error:  faFullFilterBanks is empty");
@@ -221,7 +221,8 @@ public class MFCC
     }            
 
     // read wav(String) => processRawData(float[])
-    public void processFile(String input_file_noext) 
+    //if overwrite : check if file exist, if YES if it has the correct number of frames.
+    public void processFile(String input_file_noext, boolean overwrite) 
     {
         try
         {
@@ -231,20 +232,32 @@ public class MFCC
             float[] data            = readWav(sAudiofile);  
             
             int nframes             = Framing.getFrames(data.length, mfccParams.nWindowLength, mfccParams. nWindowDistance);
-            if(FileUtilities.existRelFile(mfccParams.sOutputPath + "_scores.dat"))
-            {
-                File file = new File(Environment.getExternalStorageDirectory(), mfccParams.sOutputPath + "_scores.dat");
-                int nlines = FileUtilities.countLines(file);
-                
-                if(nlines == nframes)
-                {
-                    Messaging.sendMessageToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROGRESS_FILE, "progress_file", mfccParams.sOutputPath);                    
-                    return;
-                }
-                else
-                    FileUtilities.deleteExternalStorageFile(mfccParams.sOutputPath + "_scores.dat");
-            }
             
+            String mfcc_relfile     = mfccParams.sOutputPath + "_scores.dat";
+            boolean existMfccFile   = FileUtilities.existRelFile(mfcc_relfile);
+            
+            if(overwrite)
+            {
+                if(existMfccFile)    
+                    FileUtilities.deleteExternalStorageFile(mfcc_relfile); // i write appending, hence I have to delete the existing one
+                else
+                {
+                    // check if file exists and has the right number of frames
+                    if(existMfccFile)
+                    {
+                        File f = new File(Environment.getExternalStorageDirectory(), mfcc_relfile);
+
+                        int nlines = FileUtilities.countLines(f);
+                        if(nlines == nframes)
+                        {
+                            Messaging.sendMessageToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROGRESS_FILE, "progress_file", mfccParams.sOutputPath);                    
+                            return;
+                        }                        
+                        else
+                            FileUtilities.deleteExternalStorageFile(mfcc_relfile); // i write appending, hence I have to delete the existing one
+                    }
+                }
+            }
 //            tp.addTimepoint(1);
             processRawData(data);
 //            tp.addTimepoint(2);   
@@ -259,7 +272,7 @@ public class MFCC
     }
     
     // processFolder(String) => for files in... processFile(String) => processRawData(float[])
-    public void processFolder(String input_folderpath) 
+    public void processFolder(String input_folderpath, boolean overwrite) 
     {
 //        TrackPerformance tp_folder      = new TrackPerformance(1); // I want to monitor just to total time
         File directory                  = new File(Environment.getExternalStorageDirectory().toString() + "/" + input_folderpath);
@@ -276,7 +289,7 @@ public class MFCC
             for (int i = 0; i < files.length; i++)
             {
                 tempfile            = input_folderpath + File.separatorChar + files[i].getName();
-                processFile(StringUtilities.removeExtension(tempfile));
+                processFile(StringUtilities.removeExtension(tempfile), overwrite);
             } 
             // BUG....it doesn't work...since the last-1 file, in the target I get a Bundle with either process_file and process_folder messages
             // folder processing completion is presently resolved in the web layer.

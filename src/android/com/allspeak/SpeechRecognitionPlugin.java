@@ -316,8 +316,11 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
                 // should have a nDataDest > 0  web,file,both
                 mMfccParams             = new MFCCParams(new JSONObject((String)args.get(0)));
                 String inputpathnoext   = args.getString(1); 
+                boolean overwrite       = true;
+                if(args.get(2) != null)
+                    overwrite = args.getBoolean(2); 
                 
-                mService.getMFCC(mMfccParams, inputpathnoext, callbackContext);
+                mService.getMFCC(mMfccParams, inputpathnoext, overwrite, callbackContext);
                 Messaging.sendNoResult2Web(callbackContext);
                 return true;
             }

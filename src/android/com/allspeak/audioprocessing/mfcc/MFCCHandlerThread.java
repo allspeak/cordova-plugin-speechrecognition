@@ -51,12 +51,11 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
     private float[] faData2Process          = null;             // contains (nsamples) data sent to be calculated     
     private int nQueueLastIndex             = 0;                // define the id of the faMFCCQueue last used samples 
     
-    private int nProcessingOperations       = 0;                // number of data packets received from VadHandlerThread    
-    private int nArrivedSamples             = 0;                // samples arrived from VadHandlerThread
-    private int nManipulatedSamples         = 0;                // samples used to calculate cepstra from nArrivedSamples    
-    private int nProcessedFrames            = 0;                // number of calculated frames    
+    private int nArrivedSamples             = 0;                // samples arrived from VHT or Service
+    private int nProcessedSamples           = 0;                // samples used to calculate cepstra from nArrivedSamples    
+    private int nProcessingOperations       = 0;                // number of data packets received from VadHandlerThread/SpeechRecognitionService    
+    private int nProcessedFrames            = 0;                // number of processed frames    
 
-    
     String sSource                          = "";
     
     Bundle bundle;
@@ -79,6 +78,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
         mWlCb               = wlcb;         
         nScores             = (mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? mfccParams.nNumberOfMFCCParameters : mfccParams.nNumberofFilters);
         mfcc                = new MFCC(mfccParams, cb, mWlCb);
+        clearData();
     }
     
     public void init(MFCCParams params, Handler cb)
@@ -94,6 +94,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
         mResultCallback     = rcb;   
         nScores             = (mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? mfccParams.nNumberOfMFCCParameters : mfccParams.nNumberofFilters);
         mfcc                = new MFCC(mfccParams, scb, ccb, rcb, mWlCb);
+        clearData();
     }
     public void init(MFCCParams params, Handler scb, Handler ccb, Handler rcb, int maxspeechsamples)
     {
@@ -141,7 +142,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
     // wrapper to thread execution 
     //===============================================================================================
     // GET FROM folder or a file
-    public void getMFCC(String source)
+    public void getMFCC(String source, boolean overwrite)
     {
         sSource = source;
         bundle  = new Bundle();
@@ -151,6 +152,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
             case ENUMS.MFCC_DATAORIGIN_FILE:
                 
                 bundle.putString("source", source);
+                bundle.putBoolean("overwrite", overwrite);
                 message         = mInternalHandler.obtainMessage();
                 message.what    = ENUMS.MFCC_CMD_GETFILE;
                 message.setData(bundle);
@@ -160,6 +162,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
             case ENUMS.MFCC_DATAORIGIN_FOLDER:
 
                 bundle.putString("source", source);
+                bundle.putBoolean("overwrite", overwrite);
                 message         = mInternalHandler.obtainMessage();
                 message.what    = ENUMS.MFCC_CMD_GETFOLDER;
                 message.setData(bundle);
@@ -204,8 +207,8 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
     }     
     
     //===============================================================================================
-    // receive new data, calculate how many samples must be processed and send them to analysis. 
-    // copy the last 120 samples of these to-be-processed data plus the remaining still-to-be-processed ones to the queue array
+    // receive new data, calculate how many samples must be processed and send them to analysis. (with 1024 = 1000 to-be-processed + 24 still-to-be-processed)
+    // update queue = oldqueue + remaining still-to-be-processed + the last 120 samples of these to-be-processed data
     private int arrangeDataInQueue(float[] data)
     {
         int nOldData        = nQueueLastIndex;
@@ -235,10 +238,12 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
     private void clearData()
     {
         nQueueLastIndex             = 0;    
-        nProcessedFrames            = 0;      
+  
         nArrivedSamples             = 0;      
-        nManipulatedSamples         = 0;
+        nProcessedSamples           = 0;
         nProcessingOperations       = 0;
+        nProcessedFrames            = 0;            
+        
         mfcc.clearData();
         Messaging.sendMessageToHandler(mCommandCallback, ENUMS.TF_CMD_CLEAR);
     }    
@@ -269,14 +274,14 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
        
         int manipulatedSamples  = mfccParams.nWindowLength + (nProcessedFrames-1)*mfccParams.nWindowDistance + mfccParams.nData2Reprocess*(nProcessingOperations-1);
 
-//        if(manipulatedSamples == nManipulatedSamples)
+//        if(manipulatedSamples == nProcessedSamples)
 //        {
 //            strmsg  = "CMD_SENDDATA: sample OK !! => processed frames: " + String.valueOf(nProcessedFrames) + ", processedSamples: " + String.valueOf(nArrivedSamples);
 //            res     = true;
 //        }
 //        else
 //        {
-//            strmsg  = "CMD_SENDDATA: sample ERROR, frames: " + String.valueOf(nProcessedFrames) + " expected2bemanipulated: " + String.valueOf(manipulatedSamples) + ", manipulated: " + String.valueOf(nManipulatedSamples);
+//            strmsg  = "CMD_SENDDATA: sample ERROR, frames: " + String.valueOf(nProcessedFrames) + " expected2bemanipulated: " + String.valueOf(manipulatedSamples) + ", manipulated: " + String.valueOf(nProcessedSamples);
 //            res     = false;
 //        }
         Log.d(LOG_TAG, strmsg);         
@@ -288,18 +293,21 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
     {
         Bundle bundle = msg.getData();
         float[] data;
+        boolean overwrite;
         switch((int)msg.what)
         {                       
 
             case ENUMS.MFCC_CMD_GETFILE:
-                sSource         = bundle.getString("source");
-                mfcc.processFile(sSource);
+                sSource             = bundle.getString("source");
+                overwrite           = bundle.getBoolean("overwrite");
+                mfcc.processFile(sSource, overwrite);
                 break;
 
             case ENUMS.MFCC_CMD_GETFOLDER:
                 
                 sSource             = bundle.getString("source");
-                mfcc.processFolder(sSource);
+                overwrite           = bundle.getBoolean("overwrite");
+                mfcc.processFolder(sSource, overwrite);
                 break;
 
             case ENUMS.MFCC_CMD_GETDATA:
@@ -310,8 +318,8 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
                 mfcc.processRawData(data);
                 break;
 
-            case ENUMS.MFCC_CMD_GETQDATA:  
-            case ENUMS.CAPTURE_RESULT:  //  to process real-time data captured by the AudioInputReceiver thread
+            case ENUMS.MFCC_CMD_GETQDATA:   //  to process (real-time) data redirected here by Service. usually for recording/feature extract ops
+            case ENUMS.CAPTURE_RESULT:      //  to process real-time data captured by the AudioInputReceiver thread, usually for speech recognition
                     
                 data                = bundle.getFloatArray("data");
                 nArrivedSamples     += data.length;
@@ -319,7 +327,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
                 
                 int nframes         = arrangeDataInQueue(data); // takes new data and copy to faMFCCQueue & faData2Process ..return number of calculated frames
                 
-//                Messaging.sendDataToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROCESS_STARTED,"nframes", nframes);
+                Messaging.sendDataToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROCESS_STARTED, nframes, nProcessingOperations);
                 float[][] cepstra   = mfcc.processRawData(faData2Process);
                 int newframes       = cepstra.length;
                 if(nframes != newframes)
@@ -328,10 +336,10 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
                     return false;
                 }
                     
-                nManipulatedSamples += faData2Process.length;
+                nProcessedSamples   += faData2Process.length;
                 nProcessedFrames    += newframes;
                 
-                Messaging.sendDataToHandler(mResultCallback, ENUMS.TF_CMD_NEWCEPSTRA, cepstra, newframes, nScores*3);
+                if((int)msg.what == ENUMS.CAPTURE_RESULT) Messaging.sendDataToHandler(mResultCallback, ENUMS.TF_CMD_NEWCEPSTRA, cepstra, newframes, nScores*3);
                 break;
                 
             case ENUMS.MFCC_CMD_CLEAR:  // called by VAD or during this::init to delete all the stored CEPSTRA

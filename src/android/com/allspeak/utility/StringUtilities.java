@@ -2,13 +2,7 @@
  */
 package com.allspeak.utility;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.util.Arrays;
-import java.io.BufferedWriter;
-import android.os.Environment;
-import com.allspeak.utility.Messaging;
-
+import java.util.Locale;
 
 public class StringUtilities 
 {
@@ -122,7 +116,7 @@ public class StringUtilities
         for (int f = 0; f < rows; f++)
         {
             for (int p = 0; p < y; p++)
-                params = params + String.format(precision, scores[f][p]) + " ";
+                params = params + String.format(Locale.US, precision, scores[f][p]) + " ";
             params = params + System.getProperty("line.separator");
         }    
         return params;

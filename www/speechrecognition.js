@@ -436,8 +436,10 @@ speechrecognition.stopMFCC = function () {
     if (speechrecognition._capturing) 
         exec(null, speechrecognition._pluginError, speechrecognition.pluginName, "stopMFCC", []);
 };
-speechrecognition.getMFCC = function(mfcc_params, source, filepath_noext)
+speechrecognition.getMFCC = function(mfcc_params, source, filepath_noext, overwrite)
 {
+    if(overwrite == null)  overwrite = true;
+        
     var mfcc_json_params    = speechrecognition.checkMfccParams(mfcc_params);
     
     //check params consistency
@@ -552,7 +554,7 @@ speechrecognition._pluginEvent = function (data) {
                 break;
                 
             case speechrecognition.ENUM.PLUGIN.CAPTURE_STATUS_STOPPED:
-                console.log("audioInputMfcc._stopaudioInputEvent: captured " + parseInt(data.bytesread) + "bytes, " + parseInt(data.datacaptured)*12 + " time windows, dataprocessed: " + parseInt(data.dataprocessed)*12);
+                console.log("audioInputMfcc._stopaudioInputEvent: captured " + parseInt(data.bytesread) + " bytes, " + parseInt(data.framesprocessed) + " processed frames, still " + parseInt(data.frames2beprocessed) + " to be processed, expected frames: " + parseInt(data.expectedframes));
                 cordova.fireWindowEvent("capturestopped", {data: data});
                 speechrecognition._capturing = false;                   
                 break;

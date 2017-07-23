@@ -356,6 +356,7 @@ public class MFCCCalcJAudio
         }        
     }
 
+    // data lenght can be optimal (if received from a queue) or not (when reading a wav file
     public float[][] getFullMFFilters(float[] audiodata)
     {
         float[][] frames    = Framing.frameVector(audiodata, m_nWindowLength, m_nWindowDistance);

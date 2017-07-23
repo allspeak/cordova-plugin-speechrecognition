@@ -83,7 +83,9 @@ public class SpeechRecognitionService extends Service
 
     private boolean bIsCalculatingMFCC          = false;              // do not calculate any mfcc score on startCatpure
     private int nMFCCProcessedFrames            = 0;
+    private int nMFCCProcessedBlocks            = 0;
     private int nMFCCFrames2beProcessed         = 0;
+    private int nMFCCExpectedFrames             = 0;        //updated by onCaptureData
 
     // what to do with MFCC data
     private int nMFCCDataDest                   = ENUMS.MFCC_DATADEST_NONE;        // send back to Web Layer or not  
@@ -206,6 +208,7 @@ public class SpeechRecognitionService extends Service
                 
                 if(mMfccParams.nDataDest > ENUMS.MFCC_DATADEST_NOCALC) 
                     bIsCalculatingMFCC = true;
+                
                 if(mMfccParams.sOutputPath != "" && mMfccParams.nDataDest >= ENUMS.MFCC_DATADEST_FILE)
                     FileUtilities.deleteExternalStorageFile(mMfccParams.sOutputPath + "_scores.dat");
             }            
@@ -222,10 +225,7 @@ public class SpeechRecognitionService extends Service
 
         try
         {
-            nCapturedBlocks         = 0;
-            nCapturedBytes          = 0;
-            nMFCCProcessedFrames    = 0;
-            nMFCCFrames2beProcessed = 0;
+            resetDataCounters();
             bTriggerAction          = false;            
             aicCapture.start();
             return true;
@@ -262,7 +262,6 @@ public class SpeechRecognitionService extends Service
     {
         callbackContext             = cb;        
         aicCapture.stop();
-        bIsCalculatingMFCC          = false;
         nCapturedDataDest           = 0;     
     }    
 
@@ -343,7 +342,7 @@ public class SpeechRecognitionService extends Service
         vad.stopSpeechRecognition(callbackContext);
     }    
         
-    public void getMFCC(MFCCParams mfccParams, String inputpathnoext, CallbackContext cb)
+    public void getMFCC(MFCCParams mfccParams, String inputpathnoext, boolean overwrite, CallbackContext cb)
     {
         try 
         {
@@ -351,7 +350,7 @@ public class SpeechRecognitionService extends Service
             mMfccParams                 = mfccParams;           
             nMFCCDataDest               = mMfccParams.nDataDest;
             mfcc.init(mMfccParams, mMfccHandler, callbackContext);       // MFCC send commands & results to TF, status here            
-            mfcc.getMFCC(inputpathnoext);   
+            mfcc.getMFCC(inputpathnoext, overwrite);   
         }
         catch (Exception e) 
         {
@@ -385,12 +384,16 @@ public class SpeechRecognitionService extends Service
         float[] data    = b.getFloatArray("data");  
         
         nCapturedBlocks++;  
-        nCapturedBytes += data.length;
+        nCapturedBytes      += data.length;
+        nMFCCExpectedFrames = Framing.getFrames(nCapturedBytes, mMfccParams.nWindowLength, mMfccParams.nWindowDistance);
 
-//        Log.d(LOG_TAG, "new raw data arrived in MainPlugin Activity: " + Integer.toString(nCapturedBlocks));
-        
         if(bIsCalculatingMFCC)
-            mMfccHandlerThread.sendMessage(Message.obtain(msg)); // calculate MFCC/MFFILTERS ?? get a copy of the original message
+        {   
+            Message newmsg  = Message.obtain(msg);
+            // I rename the msg code in order to tell MFCCThreadHandler that are captured data not to be sent to TF
+            newmsg.what     = ENUMS.MFCC_CMD_GETQDATA; 
+            mMfccHandlerThread.sendMessage(newmsg); // calculate MFCC/MFFILTERS ?? get a copy of the original message
+        }
            
         // send raw to WEB ??
         if(mCfgParams.nDataDest != ENUMS.CAPTURE_DATADEST_NONE)
@@ -450,19 +453,31 @@ public class SpeechRecognitionService extends Service
         catch (JSONException e){e.printStackTrace();}            
     }
     
-    public void onCaptureStop(String bytesread)
+    public void onCaptureStop(String totalReadBytes)
     {
-//        Log.d(LOG_TAG, "StopCapture: read " + bytesread + "bytes, captured " + Integer.toString(nCapturedBlocks) + " blocks, processed " + Integer.toString(nMFCCFrames2beProcessed) + " frames");            
-        bTriggerAction  = true;
         try
         {
+            int ntotalReadBytes = Integer.parseInt(totalReadBytes);
+            if(nCapturedBytes != ntotalReadBytes)    
+                Log.w(LOG_TAG, "onCaptureStop: read by AIReceiver: " + totalReadBytes + "bytes, internal count " + Integer.toString(nCapturedBytes));            
+
+            bTriggerAction  = true;
+
+            if(bIsCalculatingMFCC) 
+            {
+                nMFCCExpectedFrames = Framing.getFrames(ntotalReadBytes, mMfccParams.nWindowLength, mMfccParams.nWindowDistance);
+                nMFCCFrames2beProcessed = nMFCCExpectedFrames - nMFCCProcessedFrames;
+            }            
+            
             unlockCPU();
             bIsCapturing    = false;
             JSONObject info = new JSONObject();
             info.put("type", ENUMS.CAPTURE_STATUS_STOPPED);
-            info.put("datacaptured", nCapturedBlocks);        
-            info.put("dataprocessed", nMFCCFrames2beProcessed);        
-            info.put("bytesread", bytesread);        
+            info.put("capturedblocks", nCapturedBlocks);        
+            info.put("framesprocessed", nMFCCProcessedFrames);        
+            info.put("frames2beprocessed", nMFCCFrames2beProcessed);        
+            info.put("bytesread", totalReadBytes);        
+            info.put("expectedframes", nMFCCExpectedFrames);        
             Messaging.sendUpdate2Web(callbackContext, info, true);
         }
         catch (JSONException e){e.printStackTrace();}
@@ -472,10 +487,11 @@ public class SpeechRecognitionService extends Service
     // MFCC
     //------------------------------------------------------------------------------------------------
     // called by MFCC class when sending frames to be processed
-    public void onMFCCStartProcessing(int nframes)
+    public void onMFCCStartProcessing(int nframes, int nmfccblocks)
     {
 //        Log.d(LOG_TAG, "start to process: " + Integer.toString(nframes));
         nMFCCFrames2beProcessed += nframes;
+        nMFCCProcessedBlocks    = nmfccblocks;
     }
     
     public void onMFCCData(float[][] params, String source)
@@ -515,13 +531,19 @@ public class SpeechRecognitionService extends Service
     public void onMFCCProgress(int frames)
     {
         nMFCCProcessedFrames    += frames;
-        nMFCCFrames2beProcessed -= frames;
-        Log.d(LOG_TAG, "processed frames : " + Integer.toString(nMFCCProcessedFrames) +  ", still to be processed: " + Integer.toString(nMFCCFrames2beProcessed));
+        nMFCCFrames2beProcessed = nMFCCExpectedFrames - nMFCCProcessedFrames;
         
-        if(bTriggerAction && nMFCCFrames2beProcessed == 0)
+//        Log.d(LOG_TAG, "onMFCCProgress : expected frames : " + nMFCCExpectedFrames  + ", processed frames : " + Integer.toString(nMFCCProcessedFrames) +  ", still to be processed: " + Integer.toString(nMFCCFrames2beProcessed));
+//        Log.d(LOG_TAG, "onMFCCProgress : captured blocks: " + Integer.toString(nCapturedBlocks) + ", mfccprocessed blocks: " + Integer.toString(nMFCCProcessedBlocks));
+//        Log.d(LOG_TAG, "------");
+        
+        if(bTriggerAction && nMFCCExpectedFrames == nMFCCProcessedFrames)
         {
-            Log.d(LOG_TAG, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+            Log.d(LOG_TAG, "@@@@@@@@@@@@@@@ F I N I S H E D   M F C C   C A L C @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
             bTriggerAction = false;
+            bIsCalculatingMFCC = false;
+            resetDataCounters();
+            
         }
     }
     
@@ -634,7 +656,7 @@ public class SpeechRecognitionService extends Service
                     switch((int)msg.what) //get message type
                     {
                         case ENUMS.MFCC_STATUS_PROGRESS_DATA:
-                            
+                            // da MFCC::exportData
                             service.onMFCCProgress(Integer.parseInt(b.getString("progress")));
                             break;
                             
@@ -668,8 +690,8 @@ public class SpeechRecognitionService extends Service
                             break;
                             
                         case ENUMS.MFCC_STATUS_PROCESS_STARTED:
-                            
-                            service.onMFCCStartProcessing(b.getInt("nframes"));
+                            // da MFCCHandlerThread::handleMessage::ENUMS.MFCC_CMD_GETQDATA or ENUMS.CAPTURE_RESULT
+                            service.onMFCCStartProcessing(msg.arg1, msg.arg2);  //  "nframes" & "nops"
                             break;
                     }
                 }
@@ -744,6 +766,15 @@ public class SpeechRecognitionService extends Service
     //=================================================================================================
     // ACCESSORY FUNCTIONS
     //=================================================================================================
+    private void resetDataCounters()
+    {
+        nCapturedBlocks         = 0;
+        nCapturedBytes          = 0;
+        nMFCCProcessedBlocks    = 0;    
+        nMFCCProcessedFrames    = 0;
+        nMFCCFrames2beProcessed = 0;        
+    }
+    
     private void lockCPU()
     {
         if(!cpuWeakLock.isHeld())    cpuWeakLock.acquire();       
