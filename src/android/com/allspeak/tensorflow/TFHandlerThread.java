@@ -258,7 +258,7 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
                 
                 // store calculated cepstra in its buffer
                 for(int f=0; f<nframes; f++) System.arraycopy(cepstra[f], 0, faCalculatedCepstra[nProcessedFrames+f], 0, nparams);   
-                nProcessedFrames += nframes;
+                    nProcessedFrames += nframes;
                 break;
         }
         return true;
