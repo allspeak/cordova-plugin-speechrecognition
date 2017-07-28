@@ -126,6 +126,26 @@ public class Messaging
         return b;
     }  
     
+    
+    public static Bundle sendDataToHandler(Handler handl, int action_code, float[][] data, int nDim1, int nDim2, int nShift)
+    {
+        if(handl == null) return null;
+        
+        Bundle b            = new Bundle();
+        float[] mfcc        = flatten2DimArray(data);
+        
+        b.putFloatArray("data",     mfcc);
+        b.putInt("nframes", nDim1);
+        b.putInt("nparams", nDim2);
+        b.putInt("ndeltawindow", nShift);
+        
+        Message message     = handl.obtainMessage();
+        message.what        = action_code;
+        message.setData(b);
+        handl.sendMessage(message);   
+        return b;
+    }  
+    
     public static float[] flatten2DimArray(float[][] input)
     {
         float[] output = new float[input.length * input[0].length];

@@ -59,10 +59,10 @@ public class VAD
 
     private boolean     bCaptureRunning = false;
 
-    private int         nMaxSpeechLengthSamples = 0; // determines faCurrentSpeechHistory length
-    private float[]     faCurrentSpeechHistory;
-    private int         nCurrentSpeechLength = 0;  // incremented by appendSpeechToHistory, used as: if(nCurrentSpeechLength + 1 > nSpeechMaximumLengthChunks) maximumLengthSpeechEvent();
-    private int         nCurrentSpeechSamples = 0;  // incremented by appendSpeechToHistory, used as: if(nCurrentSpeechLength + 1 > nSpeechMaximumLengthChunks) maximumLengthSpeechEvent();
+    private int         nMaxSpeechLengthSamples = 0; // determines faCurrentSpeech length
+    private float[]     faCurrentSpeech;
+    private int         nCurrentSpeechLength = 0;  // incremented by appendSpeech, used as: if(nCurrentSpeechLength + 1 > nSpeechMaximumLengthChunks) maximumLengthSpeechEvent();
+    private int         nCurrentSpeechSamples = 0;  // incremented by appendSpeech when SAVE_DATA is requested
 
     private int         nAfterSpeechPeriod = 0;  // used as following: if (nAfterSpeechPeriod > nSpeechAllowedDelayChunks) stopSpeechEvent(); 
 
@@ -152,8 +152,8 @@ public class VAD
     public void stopCapture()
     {
 //        // taken from  stop
-//        if (faCurrentSpeechHistory.size() > 0) {
-//            handleAudioBufferCreation(faCurrentSpeechHistory.toArray(new Float[faCurrentSpeechHistory.size()]));
+//        if (faCurrentSpeech.size() > 0) {
+//            handleAudioBufferCreation(faCurrentSpeech.toArray(new Float[faCurrentSpeech.size()]));
 //        }        
         //taken from nextbuffer when not capturing
         if (bSpeakingRightNow) {
@@ -227,7 +227,7 @@ public class VAD
         {
             // Speech Started or continued?
             if (!bSpeakingRightNow) startSpeechEvent(analysisBuffer);               // send start event to WL, reset params, then call continueSpeechEvent
-            else                    continueSpeechEvent(analysisBuffer, false);     // set nAfterSpeechPeriod=0, then appendSpeechToHistory (nCurrentSpeechLength++)
+            else                    continueSpeechEvent(analysisBuffer, false);     // set nAfterSpeechPeriod=0, then appendSpeech (nCurrentSpeechLength++)
        }
         else 
         {
@@ -241,7 +241,7 @@ public class VAD
                 else 
                 {
                     // no ... wait for other ms before closing the sentence
-                    if (!mVadParams.bCompressPauses) continueSpeechEvent(analysisBuffer, true); // appendSpeechToHistory (nCurrentSpeechLength++)
+                    if (!mVadParams.bCompressPauses) continueSpeechEvent(analysisBuffer, true); // appendSpeech (nCurrentSpeechLength++)
                 }
             }
             calculateAmbientAverageLevel(fLastAudioLevel);                          // Handle silence
@@ -346,7 +346,7 @@ public class VAD
     private void continueSpeechEvent(float[] analysisBuffer, boolean silent) // analysisBuffer.length = nAnalysisBufferSize = 512
     {
         nOfEventsContinue++;
-        appendSpeechToHistory(analysisBuffer);
+        appendSpeech(analysisBuffer);
         if (!silent) nAfterSpeechPeriod = 0;
     }
     
@@ -378,23 +378,25 @@ public class VAD
      * @param speechData
      * @private
      */
-    private void appendSpeechToHistory(float[] analysisBuffer) 
+    private void appendSpeech(float[] analysisBuffer) 
     {
-        if (mVadParams.nAudioResultType != ENUMS.VAD_RESULT_DETECTION_ONLY) 
+        int data2write      = analysisBuffer.length;
+        
+        if(mVadParams.nAudioResultType == ENUMS.VAD_RESULT_SAVE_SENTENCE || mVadParams.nAudioResultType == ENUMS.VAD_RESULT_PROCESS_DATA_SAVE_SENTENCE)
         {
-            int data2write      = analysisBuffer.length;
-            int final_length    = nCurrentSpeechLength*mCfgParams.nBufferSize + data2write;
-            
-            if (final_length > faCurrentSpeechHistory.length)
+            int final_length    = nCurrentSpeechSamples + data2write;
+            if (final_length > faCurrentSpeech.length)
             {
                 // write only those data that fit into the array
-                data2write      = data2write - (final_length - faCurrentSpeechHistory.length);
-                Log.w(LOG_TAG, "appendSpeechToHistory: data needed to be truncated");
+                data2write      = data2write - (final_length - faCurrentSpeech.length);
+                Log.w(LOG_TAG, "appendSpeech: data needed to be truncated");
             }
-            System.arraycopy(analysisBuffer,0, faCurrentSpeechHistory, nCurrentSpeechLength*mCfgParams.nBufferSize, data2write);
-            Messaging.sendDataToHandler(mCommandCallback, ENUMS.MFCC_CMD_GETQDATA, "data", analysisBuffer);
-            nCurrentSpeechSamples += data2write;
+            System.arraycopy(analysisBuffer,0, faCurrentSpeech, nCurrentSpeechSamples, data2write);
         }
+        nCurrentSpeechSamples += data2write;
+        if(mVadParams.nAudioResultType == ENUMS.VAD_RESULT_PROCESS_DATA || mVadParams.nAudioResultType == ENUMS.VAD_RESULT_PROCESS_DATA_SAVE_SENTENCE)
+            Messaging.sendDataToHandler(mCommandCallback, ENUMS.MFCC_CMD_GETQDATA, "data", analysisBuffer);
+        
         nCurrentSpeechLength++;
     }
 
@@ -407,15 +409,18 @@ public class VAD
         switch((int)mVadParams.nAudioResultType)
         {
             case ENUMS.VAD_RESULT_SAVE_SENTENCE:
-                //WavFile.createWavFile( file, mCfgParams.nChannels, data, 16, (long)mCfgParams.nSampleRate);
+//                float[] data    = new float[nCurrentSpeechSamples];
+//                System.arraycopy(faCurrentSpeech, 0, data, 0, nCurrentSpeechSamples);                
+//                WavFile.createWavFile( file, mCfgParams.nChannels, data, 16, (long)mCfgParams.nSampleRate);
                 break;
                 
             case ENUMS.VAD_RESULT_PROCESS_DATA_SAVE_SENTENCE:
-                //WavFile.createWavFile( file, mCfgParams.nChannels, data, 16, (long)mCfgParams.nSampleRate);
-               
+//                float[] data    = new float[nCurrentSpeechSamples];
+//                System.arraycopy(faCurrentSpeech, 0, data, 0, nCurrentSpeechSamples);                
+//                WavFile.createWavFile( file, mCfgParams.nChannels, data, 16, (long)mCfgParams.nSampleRate);
+//                Messaging.sendDataToHandler(mCommandCallback, ENUMS.MFCC_CMD_SENDDATA, "info", nCurrentSpeechSamples);
+
             case ENUMS.VAD_RESULT_PROCESS_DATA:
-                float[] data    = new float[nCurrentSpeechSamples];
-                System.arraycopy(faCurrentSpeechHistory, 0, data, 0, nCurrentSpeechSamples);
                 Messaging.sendDataToHandler(mCommandCallback, ENUMS.MFCC_CMD_SENDDATA, "info", nCurrentSpeechSamples);
                 break;
                 
@@ -461,7 +466,7 @@ public class VAD
      */
     private void resetSpeechDetection() 
     {
-//        faCurrentSpeechHistory = null;
+//        faCurrentSpeech = null;
         nCurrentSpeechLength    = 0;
         nCurrentSpeechSamples   = 0;
         nAfterSpeechPeriod      = 0;
@@ -509,7 +514,7 @@ public class VAD
 
             // init of the array containing the longest allowed chunk data
             nMaxSpeechLengthSamples         = getMaxSpeechLengthSamples(mVadParams.nSpeechDetectionMaximum, sampleRate, bufferSize);                                                // 63*1024 = 64512
-            faCurrentSpeechHistory          = new float[nMaxSpeechLengthSamples];    
+            faCurrentSpeech          = new float[nMaxSpeechLengthSamples];    
         }
         catch (Exception e) {
             Messaging.sendMessageToHandler(mStatusCallback, ERRORS.VAD_ERROR, "error", "calculateTimePeriodsAnalysisBuffers exception: " + e);

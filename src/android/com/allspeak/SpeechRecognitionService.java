@@ -203,7 +203,7 @@ public class SpeechRecognitionService extends Service
             {
                 mMfccParams             = mfccParams;
                 nMFCCDataDest           = mMfccParams.nDataDest;
-                mfcc.init(mMfccParams, mMfccHandler);       // MFCC send commands & results to TF, status here
+                mfcc.init(mMfccParams, mMfccHandler);       // MFCC send commands, results , status here
                 mMfccHandlerThread      = mfcc.getHandlerLooper();          // get the mfcc looper   
                 
                 if(mMfccParams.nDataDest > ENUMS.MFCC_DATADEST_NOCALC) 
@@ -368,6 +368,11 @@ public class SpeechRecognitionService extends Service
         return bIsCapturing;
     }    
     
+    public boolean debugCall(JSONArray params) {
+        return true;
+    }    
+  
+    
     //=========================================================================================
     // callback called by handlers 
     //=========================================================================================
@@ -385,13 +390,13 @@ public class SpeechRecognitionService extends Service
         
         nCapturedBlocks++;  
         nCapturedBytes      += data.length;
-        nMFCCExpectedFrames = Framing.getFrames(nCapturedBytes, mMfccParams.nWindowLength, mMfccParams.nWindowDistance);
+        nMFCCExpectedFrames = Framing.getFrames(nCapturedBytes, mMfccParams.nWindowLength, mMfccParams.nWindowDistance) - mMfccParams.nDeltaWindow;
 
         if(bIsCalculatingMFCC)
         {   
             Message newmsg  = Message.obtain(msg);
             // I rename the msg code in order to tell MFCCThreadHandler that are captured data not to be sent to TF
-            newmsg.what     = ENUMS.MFCC_CMD_GETQDATA; 
+            newmsg.what     = ENUMS.CAPTURE_RESULT; 
             mMfccHandlerThread.sendMessage(newmsg); // calculate MFCC/MFFILTERS ?? get a copy of the original message
         }
            
@@ -465,7 +470,7 @@ public class SpeechRecognitionService extends Service
 
             if(bIsCalculatingMFCC) 
             {
-                nMFCCExpectedFrames = Framing.getFrames(ntotalReadBytes, mMfccParams.nWindowLength, mMfccParams.nWindowDistance);
+                nMFCCExpectedFrames = Framing.getFrames(ntotalReadBytes, mMfccParams.nWindowLength, mMfccParams.nWindowDistance) - mMfccParams.nDeltaWindow;
                 nMFCCFrames2beProcessed = nMFCCExpectedFrames - nMFCCProcessedFrames;
             }            
             
@@ -533,9 +538,9 @@ public class SpeechRecognitionService extends Service
         nMFCCProcessedFrames    += frames;
         nMFCCFrames2beProcessed = nMFCCExpectedFrames - nMFCCProcessedFrames;
         
-//        Log.d(LOG_TAG, "onMFCCProgress : expected frames : " + nMFCCExpectedFrames  + ", processed frames : " + Integer.toString(nMFCCProcessedFrames) +  ", still to be processed: " + Integer.toString(nMFCCFrames2beProcessed));
-//        Log.d(LOG_TAG, "onMFCCProgress : captured blocks: " + Integer.toString(nCapturedBlocks) + ", mfccprocessed blocks: " + Integer.toString(nMFCCProcessedBlocks));
-//        Log.d(LOG_TAG, "------");
+        Log.d(LOG_TAG, "onMFCCProgress : expected frames : " + nMFCCExpectedFrames  + ", processed frames : " + Integer.toString(nMFCCProcessedFrames) +  ", still to be processed: " + Integer.toString(nMFCCFrames2beProcessed));
+        Log.d(LOG_TAG, "onMFCCProgress : captured blocks: " + Integer.toString(nCapturedBlocks) + ", mfccprocessed blocks: " + Integer.toString(nMFCCProcessedBlocks));
+        Log.d(LOG_TAG, "------");
         
         if(bTriggerAction && nMFCCExpectedFrames == nMFCCProcessedFrames)
         {

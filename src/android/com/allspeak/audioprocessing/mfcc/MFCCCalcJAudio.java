@@ -103,7 +103,6 @@ public class MFCCCalcJAudio
     private int[] indicesout;
     private int nDerivDenom;    
     
-    private float[][] mDerivativesQueue = null;  // store the last nDeltaWindow-samples to calculate derivatives 
     
     /**The 0-th coefficient is included in nnumberOfParameters.
      * So, if one wants 12 MFCC's and additionally the 0-th
@@ -145,7 +144,7 @@ public class MFCCCalcJAudio
         m_nDefaultScoreLength   = nDefaultScoresLength;
         m_nDeltaWindow          = nDeltaWindow;
         
-        mDerivativesQueue        = new float[m_nDeltaWindow][m_nDefaultScoreLength];
+//        mDerivativesQueue        = new float[m_nDeltaWindow][m_nDefaultScoreLength];
         
         initSpectralDerivativeIndices(m_nDeltaWindow, m_nDefaultScoreLength);
     }
@@ -312,172 +311,9 @@ public class MFCCCalcJAudio
         }
     }
    
-    //--------------------------------------------------------------------------------------------------------
-    // calculate CEPSTRA PARAMETERS & first/second order derivatives of a speech chunk    
-    public float[][] getFullMFCC(float[] audiodata)
-    {
-        // divide the input stream in multiple frames of length nWindowLength and starting every nWindowDistance samples 
-        int inlen           = audiodata.length;
-        m_nFrames           = Framing.getFrames(inlen, m_nWindowLength, m_nWindowDistance);
-        float[][] faMFCC   = new float[m_nFrames][3*m_nnumberOfParameters];
-        float[] temp;
-        try
-        {
-            float [] buffer    = new float[m_nWindowLength];
-            for (int f = 0; f < m_nFrames-1; f++)
-            {
-                for (int j = 0; j < m_nWindowLength; j++)
-                    buffer[j]  = audiodata[j + f*m_nWindowDistance];
-                
-                temp    = getParameters(buffer); 
-                int len = temp.length;
-                System.arraycopy(temp, 0, faMFCC[f], 0, len);
-            }
-            // during the last frame i may fill with blanks
-            for (int j = 0; j < m_nWindowLength; j++)
-            {
-                int id = j + (m_nFrames-1)*m_nWindowDistance;
-                if(id < inlen)
-                    buffer[j]       = audiodata[id];
-                else
-                    buffer[j]       = 0;
-            }      
-            temp    = getParameters(buffer); 
-            int len = temp.length;
-            System.arraycopy(temp, 0, faMFCC[m_nFrames-1], 0, len);
-
-            getSpectralDerivativesConcatenated(faMFCC);
-            return faMFCC;
-        }
-        catch(Exception e) 
-        {
-            e.printStackTrace();
-            return null;
-        }        
-    }
-
-    // data lenght can be optimal (if received from a queue) or not (when reading a wav file
-    public float[][] getFullMFFilters(float[] audiodata)
-    {
-        float[][] frames    = Framing.frameVector(audiodata, m_nWindowLength, m_nWindowDistance);
-        m_nFrames           = frames.length;
-        float[][] faMFCC    = new float[m_nFrames][3*m_nnumberOfFilters];        
-        float[] temp;
-        for(int f=0; f<m_nFrames; f++)
-        {
-            temp = getFilterBankOutputs(frames[f]);
-            int len = temp.length;
-            System.arraycopy(temp, 0, faMFCC[f], 0, len);
-        }
-        if(mDerivativesQueue == null)
-        {
-            mDerivativesQueue        = new float[m_nDeltaWindow][m_nDefaultScoreLength];
-            System.arraycopy(faMFCC[0], 0, mDerivativesQueue[0], 0, m_nnumberOfFilters);
-            System.arraycopy(faMFCC[0], 0, mDerivativesQueue[1], 0, m_nnumberOfFilters);              
-        }
-
-        getSpectralDerivativesConcatenated(faMFCC);
-//        getSimpleTemporalDerivativesConcatenated(faMFCC);
-        // fill the queue with the last-1 & last frames
-        System.arraycopy(faMFCC[m_nFrames-2], 0, mDerivativesQueue[0], 0, m_nnumberOfFilters);
-        System.arraycopy(faMFCC[m_nFrames-1], 0, mDerivativesQueue[1], 0, m_nnumberOfFilters);        
-        
-        return faMFCC;
-    }
-
-    //--------------------------------------------------------------------------------------------------------
-    // first divide a speech chunk in frames (m_nWindowLength long, every m_nWindowDistance) 
-    // and returns the MF-FILTERS as [nframes, nscores].    
-    public float[][] getMFCC(float[] audiodata)
-    {
-        // divide the input stream in multiple frames of length nWindowLength and starting every nWindowDistance samples 
-        int inlen           = audiodata.length;
-        m_nFrames           = Framing.getFrames(inlen, m_nWindowLength, m_nWindowDistance);
-        float[][] faMFCC   = new float[m_nFrames][m_nnumberOfParameters];
-        try
-        {
-            float [] buffer    = new float[m_nWindowLength];
-            for (int f = 0; f < m_nFrames-1; f++)
-            {
-                for (int j = 0; j < m_nWindowLength; j++)
-                    buffer[j]  = audiodata[j + f*m_nWindowDistance];
-
-                faMFCC[f]           = getParameters(buffer);
-            }
-            // during the last frame i may fill with blanks
-            for (int j = 0; j < m_nWindowLength; j++)
-            {
-                int id = j + (m_nFrames-1)*m_nWindowDistance;
-                if(id < inlen)
-                    buffer[j]       = audiodata[id];
-                else
-                    buffer[j]       = 0;
-            }      
-            faMFCC[m_nFrames-1]        = getParameters(buffer); 
-            return faMFCC;
-        }
-        catch(Exception e) 
-        {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    private float[][] getMFCC(float[] audiodata, int WindowDistance, int WindowLength)
-    {
-        m_nWindowDistance = WindowDistance;
-        m_nWindowLength = WindowLength;
-        return getMFCC(audiodata);
-    }    
-
-    public float[][] getMFFilters(float[] audiodata)
-    {
-        // divide the input stream in multiple frames of length nWindowLength and starting every nWindowDistance samples 
-        int inlen           = audiodata.length;
-        m_nFrames           = Framing.getFrames(inlen, m_nWindowLength, m_nWindowDistance);
-        float[][] faMFCC    = new float[m_nFrames][m_nnumberOfFilters];
-        try
-        {
-            float [] buffer    = new float[m_nWindowLength];
-            for (int f = 0; f < m_nFrames-1; f++)
-            {
-                for (int j = 0; j < m_nWindowLength; j++)
-                    buffer[j]  = audiodata[j + f*m_nWindowDistance];
-
-                faMFCC[f]           = getFilterBankOutputs(buffer);
-            }
-            // during the last frame i may fill with blanks
-            for (int j = 0; j < m_nWindowLength; j++)
-            {
-                int id = j + (m_nFrames-1)*m_nWindowDistance;
-                if(id < inlen)
-                    buffer[j]       = audiodata[id];
-                else
-                    buffer[j]       = 0;
-            }      
-            faMFCC[m_nFrames-1]        = getFilterBankOutputs(buffer); 
-            return faMFCC;
-        }
-        catch(Exception e) 
-        {
-            e.printStackTrace();
-            return null;            
-        }
-        
-    }
-
-    private float[][] getMFFilters(float[] audiodata, int WindowDistance, int WindowLength)
-    {
-        m_nWindowDistance = WindowDistance;
-        m_nWindowLength = WindowLength;
-        return getMFFilters(audiodata);
-    }    
-    
-    public void clearData()
-    {
-        mDerivativesQueue = null;
-    }    
-    //--------------------------------------------------------------------------------------------------------
+    // =======================================================================================================
+    // =======================================================================================================
+    // =======================================================================================================
     // Returns the MF-FILTERS for ONE speech frame.    
     public float[] getFilterBankOutputs(float[] fspeechFrame) {
         //use mel filter bank
@@ -584,9 +420,10 @@ public class MFCCCalcJAudio
 
         return fMFCCParameters;
     } //end method
+    // =======================================================================================================
+    // =======================================================================================================
+    // =======================================================================================================    
 
-    // =======================================================================================================
-    // =======================================================================================================
     /**Converts frequencies in Hz to mel scale according to
      * mel frequency = 2595 log(1 + (f/700)), where log is base 10
      * and f is the frequency in Hz.
@@ -631,9 +468,340 @@ public class MFCCCalcJAudio
             "\n" + "MFCC.bIsLifteringEnabled  = " + m_bIsLifteringEnabled  +
             "\n" + "MFCC.bCalculate0ThCoeff  = " + m_bCalculate0ThCoeff ;
     }
+
+    // =======================================================================================================
+    // cepstra calculation (parameters, filters) calls
+    // =======================================================================================================    
+    // PARAMETERS : returns [nframes][3*m_nnumberOfParameters]
+    // write only first [:][m_nnumberOfParameters] values
+    public float[][] getMFCC(float[][] frames)
+    {
+        try
+        {
+            m_nFrames           = frames.length;
+            float[][] faMFCC    = new float[m_nFrames][3*m_nnumberOfParameters];        
+            float[] temp;
+            for(int f=0; f<m_nFrames; f++)
+            {
+                temp = getParameters(frames[f]);
+                int len = temp.length;
+                System.arraycopy(temp, 0, faMFCC[f], 0, len);
+            }
+            return faMFCC;
+        }
+        catch(Exception e) 
+        {
+            e.printStackTrace();
+            return null;
+        }  
+    }
+    
+    //------------------------------------------------------------------------------------------------
+    // FILTERS : returns [nframes][3*m_nnumberOfFilters]
+    // write only first [:][m_nnumberOfFilters] values
+    public float[][] getMFFilters(float[][] frames)
+    {
+        try
+        {
+            m_nFrames           = frames.length;
+            float[][] faMFCC    = new float[m_nFrames][3*m_nnumberOfFilters];  
+            float[] temp;
+            for(int f=0; f<m_nFrames; f++)
+            {
+                temp = getFilterBankOutputs(frames[f]);
+                int len = temp.length;
+                System.arraycopy(temp, 0, faMFCC[f], 0, len);
+            }
+            return faMFCC;
+        }
+        catch(Exception e) 
+        {
+            e.printStackTrace();
+            return null;
+        }             
+    }
+
     // =======================================================================================================
     // 1-st & 2-nd order derivatives of cepstra data
     // =======================================================================================================
+    // USED to process a single file. 
+    // it duplicates the first and last m_nDeltaWindow frames
+    // INPUT  data represent (nframes X 3*nfilters), 
+    // OUTPUT data represent (nframes X 3*nfilters)
+    public void addTemporalDerivatives(float[][] cepstra)
+    {
+        int nscores         = cepstra[0].length/3;   // num scores
+        int ntw             = cepstra.length;      // num time windows
+        float[] tempData;
+        
+        // copy first m_nDeltaWindow scores to pastData        
+        float[][] pastData  = new float[m_nDeltaWindow][nscores];
+        for (int q = 0; q < m_nDeltaWindow; q++)
+            System.arraycopy(cepstra[0], 0, pastData[q], 0, nscores); 
+        
+        // copy last m_nDeltaWindow scores to futureData
+        float[][] futureData    = new float[m_nDeltaWindow][nscores];
+        for (int q=0; q<m_nDeltaWindow; q++)
+            System.arraycopy(cepstra[ntw-1], 0, futureData[q], 0, nscores);
+        
+        //-------------------------------------------------------------------
+        // first derivative
+        //-------------------------------------------------------------------
+        for(int tw = 0; tw < ntw; tw++)
+        {
+            if(tw >= m_nDeltaWindow && tw < (ntw-m_nDeltaWindow))
+            {
+                for(int sc = 0; sc < nscores; sc++)
+                {
+                    for(int r=1; r<=m_nDeltaWindow; r++)
+                        cepstra[tw][nscores + sc] = r*(cepstra[tw+r][sc] - cepstra[tw-r][sc]);
+                    cepstra[tw][nscores + sc] /= nDerivDenom;
+                }
+            }
+            else if(tw < m_nDeltaWindow)
+            {
+                //first m_nDeltaWindow frames
+                for(int sc = 0; sc < nscores; sc++)
+                {
+                    for(int r=1; r <= m_nDeltaWindow; r++)
+                    {
+                        tempData = pastData[m_nDeltaWindow-r];
+                        cepstra[tw][nscores + sc] = r*(cepstra[tw+r][sc] - tempData[sc]);
+                    }
+                    cepstra[tw][nscores + sc] /= nDerivDenom;
+                }                
+            }
+            else if(tw >= (ntw-m_nDeltaWindow))
+            {
+                //last m_nDeltaWindow frames
+                for(int sc = 0; sc < nscores; sc++)
+                {
+                    for(int r=1; r <= m_nDeltaWindow; r++)
+                    {
+                        tempData = futureData[r-1];
+                        cepstra[tw][nscores + sc] = r*(tempData[sc] - cepstra[tw-r][sc]);
+                    }
+                    cepstra[tw][nscores + sc] /= nDerivDenom;
+                }                 
+            }            
+        }
+        //-------------------------------------------------------------------
+        // second derivative
+        //-------------------------------------------------------------------
+        // I copy the first derivative of borders frames in 0->(nscores-1) positions
+        // copy first m_nDeltaWindow 1-st deriv scores to pastData
+        // copy last m_nDeltaWindow 1-st deriv scores to futureData
+        for (int q=0; q<m_nDeltaWindow; q++)
+        {
+            System.arraycopy(cepstra[0], nscores, pastData[q], 0, nscores); 
+            System.arraycopy(cepstra[ntw-1], nscores, futureData[q], 0, nscores); 
+        }        
+       
+        for(int tw = 0; tw < ntw; tw++)
+        {
+            if(tw >= m_nDeltaWindow && tw < (ntw-m_nDeltaWindow))
+            {
+                for(int sc = 0; sc < nscores; sc++)
+                {
+                    for(int r=1; r<=m_nDeltaWindow; r++)
+                        cepstra[tw][2*nscores + sc] = r*(cepstra[tw+r][sc+nscores] - cepstra[tw-r][sc+nscores]);
+                    cepstra[tw][2*nscores + sc] /= nDerivDenom;
+                }
+            }
+            else if(tw < m_nDeltaWindow)
+            {
+                for(int sc = 0; sc < nscores; sc++)
+                {
+                    for(int r=1; r <= m_nDeltaWindow; r++)
+                    {
+                        tempData = pastData[m_nDeltaWindow-r];
+                        cepstra[tw][2*nscores + sc] = r*(cepstra[tw+r][sc+nscores] - tempData[sc]);  // tempData = [m_nDeltaWindow][nscores]
+                    }
+                    cepstra[tw][2*nscores + sc] /= nDerivDenom;
+                }                
+            }
+            else if(tw >= (ntw-m_nDeltaWindow))
+            {
+                //last m_nDeltaWindow frames
+                for(int sc = 0; sc < nscores; sc++)
+                {
+                    for(int r=1; r <= m_nDeltaWindow; r++)
+                    {
+                        tempData = futureData[r-1];
+                        cepstra[tw][2*nscores + sc] = r*(tempData[sc] - cepstra[tw-r][sc+nscores]);
+                    }
+                    cepstra[tw][2*nscores + sc] /= nDerivDenom;
+                }                 
+            }              
+        }
+    }
+    //----------------------------------------------------------------------------------------------------------------
+    // USED to process a live stream. 
+    // it gets the m_nDeltaWindow previous cestra's frames and calculate derivatives only for the valid frames (nframes-m_nDeltaWindow)
+    // INPUT  data represent (nframes X 3*nfilters), the last m_nDeltaWindow previous frames, to be used to calculate the temporal derivative
+    // OUTPUT data represent (nframes-m_nDeltaWindow X 3*nfilters)    
+    public void addTemporalDerivatives(float[][] cepstra, float[][] pastData)
+    {
+        int nscores             = cepstra[0].length/3;   // num scores
+        int ntw                 = cepstra.length;      // num time windows
+        float[] tempData;
+        
+        if(pastData == null)
+        {
+            pastData = new float[m_nDeltaWindow][nscores];
+            // copy first m_nDeltaWindow nscores-vectors to pastData
+            for (int q = 0; q < m_nDeltaWindow; q++)
+                System.arraycopy(cepstra[0], 0, pastData[q], 0, nscores); 
+        }
+        //-------------------------------------------------------------------
+        // first derivative
+        //-------------------------------------------------------------------
+        for(int tw = 0; tw < ntw; tw++)
+        {
+            if(tw >= m_nDeltaWindow && tw < (ntw-m_nDeltaWindow))
+            {
+                for(int sc = 0; sc < nscores; sc++)
+                {
+                    for(int r=1; r<=m_nDeltaWindow; r++)
+                        cepstra[tw][nscores + sc] = r*(cepstra[tw+r][sc] - cepstra[tw-r][sc]);
+                    cepstra[tw][nscores + sc] /= nDerivDenom;
+                }
+            }
+            else if(tw < m_nDeltaWindow)
+            {
+                //first m_nDeltaWindow frames
+                for(int sc = 0; sc < nscores; sc++)
+                {
+                    for(int r=1; r <= m_nDeltaWindow; r++)
+                    {
+                        tempData = pastData[m_nDeltaWindow-r];
+                        cepstra[tw][nscores + sc] = r*(cepstra[tw+r][sc] - tempData[sc]);
+                    }
+                    cepstra[tw][nscores + sc] /= nDerivDenom;
+                }                
+            }
+        }
+        //-------------------------------------------------------------------
+        // second derivative
+        //-------------------------------------------------------------------
+        // I copy the first derivative of borders frames in 0->(nscores-1) positions
+        // copy first m_nDeltaWindow 1-st deriv scores to pastData
+        // copy last m_nDeltaWindow 1-st deriv scores to futureData
+        for (int q=0; q<m_nDeltaWindow; q++)
+            System.arraycopy(cepstra[0], nscores, pastData[q], 0, nscores); 
+       
+        for(int tw = 0; tw < ntw; tw++)
+        {
+            if(tw >= m_nDeltaWindow && tw < (ntw-m_nDeltaWindow))
+            {
+                for(int sc = 0; sc < nscores; sc++)
+                {
+                    for(int r=1; r<=m_nDeltaWindow; r++)
+                        cepstra[tw][2*nscores + sc] = r*(cepstra[tw+r][sc+nscores] - cepstra[tw-r][sc+nscores]);
+                    cepstra[tw][2*nscores + sc] /= nDerivDenom;
+                }
+            }
+            else if(tw < m_nDeltaWindow)
+            {
+                for(int sc = 0; sc < nscores; sc++)
+                {
+                    for(int r=1; r <= m_nDeltaWindow; r++)
+                    {
+                        tempData = pastData[m_nDeltaWindow-r];
+                        cepstra[tw][2*nscores + sc] = r*(cepstra[tw+r][sc+nscores] - tempData[sc]);  // tempData = [m_nDeltaWindow][nscores]
+                    }
+                    cepstra[tw][2*nscores + sc] /= nDerivDenom;
+                }                
+            }
+        }
+//        denominator = 2 * sum([i**2 for i in range(1, N+1)])
+//        delta_feat = numpy.empty_like(feat)
+//        padded = numpy.pad(feat, ((N, N), (0, 0)), mode='edge')   # padded version of feat
+//
+//        for fr in range(NUMFRAMES):
+//            delta_feat[fr] = [0 for _ in range(NUMSCORES)]
+//            for d in xrange(1, N+1):
+//                delta_feat[fr] = map(add, delta_feat[fr], d*(padded[fr+N+d] - padded[fr+N-d]))
+//            delta_feat[fr] /= denominator        
+
+    }
+
+    // =======================================================================================================
+    // INPUT  data represent (ntimewindows X nfilters), the last two previous frames, to be used to calculate the temporal derivative
+    // OUTPUT data represent (ntimewindows X 3*nfilters)
+    public void addSpectralDerivatives(float[][] data)
+    {
+       
+        int nscores             = data[0].length/3;   // num scores
+        int ntw                 = data.length;      // num time windows
+//        float[][] res           = new float[ntw][nscores*3];
+        
+        int borderColumnsWidth  = 2*m_nDeltaWindow;
+        int finalColumns        = 2*borderColumnsWidth + nscores;
+        
+        // with the first and last column (score), I have to emulate the following Python code : 
+        // column vector [ntw] => [ntw,1] => [ntw, 2*deltawindow]
+        
+        float[][] appendedVec   = new float[ntw][finalColumns];
+        float[][] deltaVec      = new float[ntw][finalColumns];
+        float[][] deltadeltaVec = new float[ntw][finalColumns];
+        
+        for(int c=0; c<finalColumns; c++)
+        {
+            if(c<borderColumnsWidth)
+                for(int tw=0; tw<ntw; tw++)
+                    appendedVec[tw][c] = data[tw][0];
+            else if (c>=borderColumnsWidth && c<(borderColumnsWidth+nscores))
+                for(int tw=0; tw<ntw; tw++)
+                    appendedVec[tw][c] = data[tw][c-borderColumnsWidth];
+            else
+                for(int tw=0; tw<ntw; tw++)
+                    appendedVec[tw][c] = data[tw][nscores-1];
+        }
+        //-------------------------------------------------------------------
+        // first derivative
+        int offset = nscores;
+        float[][] deltaVecCur       = new float[ntw][nindices1];
+
+        for(int dw=1; dw<=m_nDeltaWindow; dw++)
+        {
+            for(int r=0; r<nindices1; r++)
+                for(int tw=0; tw<ntw; tw++)
+                    deltaVecCur[tw][r] = appendedVec[tw][indices1[r]+dw] - appendedVec[tw][indices1[r]-dw];
+            
+            for(int r=0; r<nindices1; r++)
+                for(int tw=0; tw<ntw; tw++)
+                    deltaVec[tw][indices1[r]] = deltaVec[tw][indices1[r]] + deltaVecCur[tw][r]*dw;
+        }
+        // final extraction: [ntw][2*dw + nscores + 2*dw] => [ntw][nscores]
+        for(int sc=0; sc<nscores; sc++)
+            for(int tw=0; tw<ntw; tw++)
+                data[tw][sc+offset] = deltaVec[tw][sc+2*m_nDeltaWindow]/nDerivDenom;
+        
+        //-------------------------------------------------------------------
+        // second derivative
+        offset = 2*nscores;        
+        float[][] deltadeltaVecCur = new float[ntw][nindices2];        
+        
+        for(int dw=1; dw<=m_nDeltaWindow; dw++)
+        {
+            for(int r=0; r<nindices2; r++)
+                for(int tw=0; tw<ntw; tw++)
+                    deltadeltaVecCur[tw][r] = deltaVec[tw][indices2[r]+dw] - deltaVec[tw][indices2[r]-dw];
+            
+            for(int r=0; r<nindices2; r++)
+                for(int tw=0; tw<ntw; tw++)
+                    deltadeltaVec[tw][indices2[r]] = deltadeltaVec[tw][indices2[r]] + deltadeltaVecCur[tw][r]*dw;
+        }
+        
+        // final extraction: [ntw][nscores + 4*dw] => [ntw][nscores]
+        for(int sc=0; sc<nscores; sc++)
+            for(int tw=0; tw<ntw; tw++)
+                data[tw][sc+offset] = deltadeltaVec[tw][sc+2*m_nDeltaWindow]/nDerivDenom;
+        
+        //-------------------------------------------------------------------
+    }
+     
     private void initSpectralDerivativeIndices(int ndw, int nscores)
     {
         nindices1           = nscores + ndw*2;
@@ -654,6 +822,137 @@ public class MFCCCalcJAudio
         nDerivDenom = 0;
         for(int dw=1; dw<=ndw; dw++)
             nDerivDenom = nDerivDenom + 2*(dw*dw);        
+    }      
+    // =======================================================================================================
+}
+
+
+
+/*
+public static void main(String[] args) {
+    int nNumberofFilters = 24;
+    int nLifteringCoefficient = 22;
+    boolean bIsLifteringEnabled  = true;
+    boolean bCalculate0ThCoeff  = false;
+    int nNumberOfMFCCParameters = 12; //without considering 0-th
+    double dSamplingFrequency = 8000.0;
+    int nFFTLength = 512;
+    if (bCalculate0ThCoeff ) {
+      //take in account the zero-th MFCC
+      nNumberOfMFCCParameters = nNumberOfMFCCParameters + 1;
+    }
+    else {
+      nNumberOfMFCCParameters = nNumberOfMFCCParameters;
+    }
+    MFCC mfcc = new MFCC(nNumberOfMFCCParameters,
+                         dSamplingFrequency,
+                         nNumberofFilters,
+                         nFFTLength,
+                         bIsLifteringEnabled ,
+                         nLifteringCoefficient,
+                         bCalculate0ThCoeff );
+    System.out.println(mfcc.toString());
+    //simulate a frame of speech
+    double[] x = new double[160];
+    x[2]=10; x[4]=14;
+    double[] dparameters = mfcc.getParameters(x);
+    System.out.println("MFCC parameters:");
+    for (int i = 0; i < dparameters.length; i++) {
+      System.out.print(" " + dparameters[i]);
+    }
+  }
+*/
+
+
+
+
+/*
+    //--------------------------------------------------------------------------------------------------------
+    // first divide a speech chunk in frames (m_nWindowLength long, every m_nWindowDistance) 
+    // and returns the MF-FILTERS as [nframes, nscores].    
+    public float[][] getMFCC(float[] audiodata)
+    {
+        // divide the input stream in multiple frames of length nWindowLength and starting every nWindowDistance samples 
+        int inlen           = audiodata.length;
+        m_nFrames           = Framing.getFrames(inlen, m_nWindowLength, m_nWindowDistance);
+        float[][] faMFCC   = new float[m_nFrames][m_nnumberOfParameters];
+        try
+        {
+            float [] buffer    = new float[m_nWindowLength];
+            for (int f = 0; f < m_nFrames-1; f++)
+            {
+                for (int j = 0; j < m_nWindowLength; j++)
+                    buffer[j]  = audiodata[j + f*m_nWindowDistance];
+
+                faMFCC[f]           = getParameters(buffer);
+            }
+            // during the last frame i may fill with blanks
+            for (int j = 0; j < m_nWindowLength; j++)
+            {
+                int id = j + (m_nFrames-1)*m_nWindowDistance;
+                if(id < inlen)
+                    buffer[j]       = audiodata[id];
+                else
+                    buffer[j]       = 0;
+            }      
+            faMFCC[m_nFrames-1]        = getParameters(buffer); 
+            return faMFCC;
+        }
+        catch(Exception e) 
+        {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private float[][] getMFCC(float[] audiodata, int WindowDistance, int WindowLength)
+    {
+        m_nWindowDistance = WindowDistance;
+        m_nWindowLength = WindowLength;
+        return getMFCC(audiodata);
+    }    
+
+    public float[][] getMFFilters(float[] audiodata)
+    {
+        // divide the input stream in multiple frames of length nWindowLength and starting every nWindowDistance samples 
+        int inlen           = audiodata.length;
+        m_nFrames           = Framing.getFrames(inlen, m_nWindowLength, m_nWindowDistance);
+        float[][] faMFCC    = new float[m_nFrames][m_nnumberOfFilters];
+        try
+        {
+            float [] buffer    = new float[m_nWindowLength];
+            for (int f = 0; f < m_nFrames-1; f++)
+            {
+                for (int j = 0; j < m_nWindowLength; j++)
+                    buffer[j]  = audiodata[j + f*m_nWindowDistance];
+
+                faMFCC[f]           = getFilterBankOutputs(buffer);
+            }
+            // during the last frame i may fill with blanks
+            for (int j = 0; j < m_nWindowLength; j++)
+            {
+                int id = j + (m_nFrames-1)*m_nWindowDistance;
+                if(id < inlen)
+                    buffer[j]       = audiodata[id];
+                else
+                    buffer[j]       = 0;
+            }      
+            faMFCC[m_nFrames-1]        = getFilterBankOutputs(buffer); 
+            return faMFCC;
+        }
+        catch(Exception e) 
+        {
+            e.printStackTrace();
+            return null;            
+        }
+        
+    }
+
+    private float[][] getMFFilters(float[] audiodata, int WindowDistance, int WindowLength)
+    {
+        m_nWindowDistance = WindowDistance;
+        m_nWindowLength = WindowLength;
+        return getMFFilters(audiodata);
     }    
     
     // input data represent (ntimewindows X nfilters)
@@ -728,312 +1027,5 @@ public class MFCCCalcJAudio
         //-------------------------------------------------------------------
         return res;
     }
-    
-    // USED to process a single file. the last two frames are not calculated
-    // INPUT  data represent (ntimewindows X nfilters), the last m_nDeltaWindow previous frames, to be used to calculate the temporal derivative
-    // OUTPUT data represent (ntimewindows X 3*nfilters)
-    private void getSimpleTemporalDerivativesConcatenated(float[][] data)
-    {
-        int nscores     = data[0].length/3;   // num scores
-        float[][] queue = new float[m_nDeltaWindow][nscores];
-        
-        // copy first m_nDeltaWindow to queue
-        for (int q=0; q<m_nDeltaWindow; q++)
-            queue[q] = data[0];
-        
-        getSimpleTemporalDerivativesConcatenated(data, queue);
-    }
-    
-    private void getSimpleTemporalDerivativesConcatenated(float[][] data, float[][] queue)
-    {
-        int nscores             = data[0].length/3;   // num scores
-        int ntw                 = data.length;      // num time windows
-        float[] tempData;
-        float[][] futureData    = new float[m_nDeltaWindow][nscores];
-        
-        // copy last m_nDeltaWindow to queue
-        for (int q=0; q<m_nDeltaWindow; q++)
-            futureData[q] = data[0];
-        //-------------------------------------------------------------------
-        // first derivative
-        //-------------------------------------------------------------------
-        for(int tw = 0; tw < ntw; tw++)
-        {
-            if(tw >= m_nDeltaWindow && tw < (ntw-m_nDeltaWindow))
-            {
-                for(int sc = 0; sc < nscores; sc++)
-                {
-                    for(int r=1; r<=m_nDeltaWindow; r++)
-                        data[tw][nscores + sc] = r*(data[tw+r][sc] - data[tw-r][sc]);
-                    data[tw][nscores + sc] /= nDerivDenom;
-                }
-            }
-            else if(tw < m_nDeltaWindow)
-            {
-                //first m_nDeltaWindow frames
-                for(int sc = 0; sc < nscores; sc++)
-                {
-                    for(int r=1; r <= m_nDeltaWindow; r++)
-                    {
-                        tempData = queue[m_nDeltaWindow-r];
-                        data[tw][nscores + sc] = r*(data[tw+r][sc] - tempData[sc]);
-                    }
-                    data[tw][nscores + sc] /= nDerivDenom;
-                }                
-            }
-            else if(tw >= (ntw-m_nDeltaWindow))
-            {
-                //last m_nDeltaWindow frames
-                for(int sc = 0; sc < nscores; sc++)
-                {
-                    for(int r=1; r <= m_nDeltaWindow; r++)
-                    {
-                        tempData = futureData[r-1];
-                        data[tw][nscores + sc] = r*(tempData[sc] - data[tw-r][sc]);
-                    }
-                    data[tw][nscores + sc] /= nDerivDenom;
-                }                 
-            }            
-        }
-        //-------------------------------------------------------------------
-        // second derivative
-        //-------------------------------------------------------------------
-        // copy first m_nDeltaWindow 1-st deriv scores to queue
-        for (int q=0; q<m_nDeltaWindow; q++)
-            queue[q] = data[0];
-        
-        for(int tw = 0; tw < ntw; tw++)
-        {
-            if(tw >= m_nDeltaWindow && tw < (ntw-m_nDeltaWindow))
-            {
-                for(int sc = 0; sc < nscores; sc++)
-                {
-                    for(int r=1; r<=m_nDeltaWindow; r++)
-                        data[tw][2*nscores + sc] = r*(data[tw+r][sc+nscores] - data[tw-r][sc+nscores]);
-                    data[tw][2*nscores + sc] /= nDerivDenom;
-                }
-            }
-            else if(tw < m_nDeltaWindow)
-            {
-                for(int sc = 0; sc < nscores; sc++)
-                {
-                    for(int r=1; r <= m_nDeltaWindow; r++)
-                    {
-                        tempData = queue[m_nDeltaWindow-r];
-                        data[tw][2*nscores + sc] = r*(data[tw+r][sc+nscores] - tempData[sc+nscores]);
-                    }
-                    data[tw][2*nscores + sc] /= nDerivDenom;
-                }                
-            }
-            else if(tw >= (ntw-m_nDeltaWindow))
-            {
-                //last m_nDeltaWindow frames
-                for(int sc = 0; sc < nscores; sc++)
-                {
-                    for(int r=1; r <= m_nDeltaWindow; r++)
-                    {
-                        tempData = futureData[r-1];
-                        data[tw][2*nscores + sc] = r*(tempData[sc+nscores] - data[tw-r][sc+nscores]);
-                    }
-                    data[tw][2*nscores + sc] /= nDerivDenom;
-                }                 
-            }              
-        }
 
-        
-//        denominator = 2 * sum([i**2 for i in range(1, N+1)])
-//        delta_feat = numpy.empty_like(feat)
-//        padded = numpy.pad(feat, ((N, N), (0, 0)), mode='edge')   # padded version of feat
-//
-//        for fr in range(NUMFRAMES):
-//            delta_feat[fr] = [0 for _ in range(NUMSCORES)]
-//            for d in xrange(1, N+1):
-//                delta_feat[fr] = map(add, delta_feat[fr], d*(padded[fr+N+d] - padded[fr+N-d]))
-//            delta_feat[fr] /= denominator        
-    }
-    
-    private void getTemporalDerivativesConcatenated(float[][] data, float[][] queue)
-    {
-        int nscores             = data[0].length/3;   // num scores
-        int ntw                 = data.length;      // num time windows
-//        float[][] res           = new float[ntw][nscores*3];
-        
-        int borderRowsWidth     = 2*m_nDeltaWindow;
-        int finalRows           = 2*borderRowsWidth + ntw;
-        
-        // with the first and last column (score), I have to emulate the following Python code : 
-        // column vector [ntw] => [ntw,1] => [ntw, 2*deltawindow]
-        
-        float[][] appendedVec   = new float[finalRows][nscores];
-        float[][] deltaVec      = new float[finalRows][nscores];
-        float[][] deltadeltaVec = new float[finalRows][nscores];
-        
-        for(int r=0; r<finalRows; r++)
-        {
-            if(r < borderRowsWidth)
-                for(int sc=0; sc<nscores; sc++)
-                    appendedVec[r][sc] = data[0][sc];
-            else if (r>=borderRowsWidth && r<(borderRowsWidth+ntw))
-                for(int sc=0; sc<nscores; sc++)
-                    appendedVec[r][sc] = data[r-borderRowsWidth][sc];
-            else
-                for(int sc=0; sc<nscores; sc++)
-                    appendedVec[r][sc] = data[ntw-1][sc];
-        }
-        //-------------------------------------------------------------------
-        // first derivative
-        int offset = nscores;
-        float[][] deltaVecCur       = new float[ntw][nindices1];
-
-        for(int dw=1; dw<=m_nDeltaWindow; dw++)
-        {
-            for(int r=0; r<nindices1; r++)
-                for(int tw=0; tw<ntw; tw++)
-                    deltaVecCur[tw][r] = appendedVec[tw][indices1[r]+dw] - appendedVec[tw][indices1[r]-dw];
-            
-            for(int r=0; r<nindices1; r++)
-                for(int tw=0; tw<ntw; tw++)
-                    deltaVec[tw][indices1[r]] = deltaVec[tw][indices1[r]] + deltaVecCur[tw][r]*dw;
-        }
-        // final extraction: [ntw][2*dw + nscores + 2*dw] => [ntw][nscores]
-        for(int sc=0; sc<nscores; sc++)
-            for(int tw=0; tw<ntw; tw++)
-                data[tw][sc+offset] = deltaVec[tw][sc+2*m_nDeltaWindow]/nDerivDenom;
-        
-        //-------------------------------------------------------------------
-        // second derivative
-        offset = 2*nscores;        
-        float[][] deltadeltaVecCur = new float[ntw][nindices2];        
-        
-        for(int dw=1; dw<=m_nDeltaWindow; dw++)
-        {
-            for(int r=0; r<nindices2; r++)
-                for(int tw=0; tw<ntw; tw++)
-                    deltadeltaVecCur[tw][r] = deltaVec[tw][indices2[r]+dw] - deltaVec[tw][indices2[r]-dw];
-            
-            for(int r=0; r<nindices2; r++)
-                for(int tw=0; tw<ntw; tw++)
-                    deltadeltaVec[tw][indices2[r]] = deltadeltaVec[tw][indices2[r]] + deltadeltaVecCur[tw][r]*dw;
-        }
-        
-        // final extraction: [ntw][nscores + 4*dw] => [ntw][nscores]
-        for(int sc=0; sc<nscores; sc++)
-            for(int tw=0; tw<ntw; tw++)
-                data[tw][sc+offset] = deltadeltaVec[tw][sc+2*m_nDeltaWindow]/nDerivDenom;
-        
-        //-------------------------------------------------------------------
-    }
-    // INPUT  data represent (ntimewindows X nfilters), the last two previous frames, to be used to calculate the temporal derivative
-    // OUTPUT data represent (ntimewindows X 3*nfilters)
-    private void getSpectralDerivativesConcatenated(float[][] data)
-    {
-       
-        int nscores             = data[0].length/3;   // num scores
-        int ntw                 = data.length;      // num time windows
-//        float[][] res           = new float[ntw][nscores*3];
-        
-        int borderColumnsWidth  = 2*m_nDeltaWindow;
-        int finalColumns        = 2*borderColumnsWidth + nscores;
-        
-        // with the first and last column (score), I have to emulate the following Python code : 
-        // column vector [ntw] => [ntw,1] => [ntw, 2*deltawindow]
-        
-        float[][] appendedVec   = new float[ntw][finalColumns];
-        float[][] deltaVec      = new float[ntw][finalColumns];
-        float[][] deltadeltaVec = new float[ntw][finalColumns];
-        
-        for(int c=0; c<finalColumns; c++)
-        {
-            if(c<borderColumnsWidth)
-                for(int tw=0; tw<ntw; tw++)
-                    appendedVec[tw][c] = data[tw][0];
-            else if (c>=borderColumnsWidth && c<(borderColumnsWidth+nscores))
-                for(int tw=0; tw<ntw; tw++)
-                    appendedVec[tw][c] = data[tw][c-borderColumnsWidth];
-            else
-                for(int tw=0; tw<ntw; tw++)
-                    appendedVec[tw][c] = data[tw][nscores-1];
-        }
-        //-------------------------------------------------------------------
-        // first derivative
-        int offset = nscores;
-        float[][] deltaVecCur       = new float[ntw][nindices1];
-
-        for(int dw=1; dw<=m_nDeltaWindow; dw++)
-        {
-            for(int r=0; r<nindices1; r++)
-                for(int tw=0; tw<ntw; tw++)
-                    deltaVecCur[tw][r] = appendedVec[tw][indices1[r]+dw] - appendedVec[tw][indices1[r]-dw];
-            
-            for(int r=0; r<nindices1; r++)
-                for(int tw=0; tw<ntw; tw++)
-                    deltaVec[tw][indices1[r]] = deltaVec[tw][indices1[r]] + deltaVecCur[tw][r]*dw;
-        }
-        // final extraction: [ntw][2*dw + nscores + 2*dw] => [ntw][nscores]
-        for(int sc=0; sc<nscores; sc++)
-            for(int tw=0; tw<ntw; tw++)
-                data[tw][sc+offset] = deltaVec[tw][sc+2*m_nDeltaWindow]/nDerivDenom;
-        
-        //-------------------------------------------------------------------
-        // second derivative
-        offset = 2*nscores;        
-        float[][] deltadeltaVecCur = new float[ntw][nindices2];        
-        
-        for(int dw=1; dw<=m_nDeltaWindow; dw++)
-        {
-            for(int r=0; r<nindices2; r++)
-                for(int tw=0; tw<ntw; tw++)
-                    deltadeltaVecCur[tw][r] = deltaVec[tw][indices2[r]+dw] - deltaVec[tw][indices2[r]-dw];
-            
-            for(int r=0; r<nindices2; r++)
-                for(int tw=0; tw<ntw; tw++)
-                    deltadeltaVec[tw][indices2[r]] = deltadeltaVec[tw][indices2[r]] + deltadeltaVecCur[tw][r]*dw;
-        }
-        
-        // final extraction: [ntw][nscores + 4*dw] => [ntw][nscores]
-        for(int sc=0; sc<nscores; sc++)
-            for(int tw=0; tw<ntw; tw++)
-                data[tw][sc+offset] = deltadeltaVec[tw][sc+2*m_nDeltaWindow]/nDerivDenom;
-        
-        //-------------------------------------------------------------------
-    }
-     
-    // =======================================================================================================
-}
-
-
-
-/*
-public static void main(String[] args) {
-    int nNumberofFilters = 24;
-    int nLifteringCoefficient = 22;
-    boolean bIsLifteringEnabled  = true;
-    boolean bCalculate0ThCoeff  = false;
-    int nNumberOfMFCCParameters = 12; //without considering 0-th
-    double dSamplingFrequency = 8000.0;
-    int nFFTLength = 512;
-    if (bCalculate0ThCoeff ) {
-      //take in account the zero-th MFCC
-      nNumberOfMFCCParameters = nNumberOfMFCCParameters + 1;
-    }
-    else {
-      nNumberOfMFCCParameters = nNumberOfMFCCParameters;
-    }
-    MFCC mfcc = new MFCC(nNumberOfMFCCParameters,
-                         dSamplingFrequency,
-                         nNumberofFilters,
-                         nFFTLength,
-                         bIsLifteringEnabled ,
-                         nLifteringCoefficient,
-                         bCalculate0ThCoeff );
-    System.out.println(mfcc.toString());
-    //simulate a frame of speech
-    double[] x = new double[160];
-    x[2]=10; x[4]=14;
-    double[] dparameters = mfcc.getParameters(x);
-    System.out.println("MFCC parameters:");
-    for (int i = 0; i < dparameters.length; i++) {
-      System.out.print(" " + dparameters[i]);
-    }
-  }
 */

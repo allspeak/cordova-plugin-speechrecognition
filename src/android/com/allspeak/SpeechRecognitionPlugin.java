@@ -336,6 +336,13 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
             String cepstra_file_path = args.getString(0);
             mService.recognizeCepstraFile(cepstra_file_path, callbackContext);
             Messaging.sendNoResult2Web(callbackContext);
+            return true;
+        }    
+        else if(action.equals("debugCall")) 
+        {  
+//            if(args.get(0) != null)
+            mService.debugCall(args);     
+            return true;
         }        
         return false;
     }

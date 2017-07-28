@@ -197,8 +197,8 @@ public class TF
 //                        String scores = StringUtilities.exportArray2String(cepstra, "%.4f", frames2recognize);
 //                        FileUtilities.writeStringToFile(outfile, scores, true);
                         
-                        FileUtilities.write2DArrayToFile(cepstra, frames2recognize, outfile, "%.4f", true);
-                        FileUtilities.write2DArrayToFile(contextedCepstra, frames2recognize, outfile_ctx, "%.4f", true);
+//                        FileUtilities.write2DArrayToFile(cepstra, frames2recognize, outfile, "%.4f", true);
+//                        FileUtilities.write2DArrayToFile(contextedCepstra, frames2recognize, outfile_ctx, "%.4f", true);
                         break;
                 }
             }

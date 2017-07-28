@@ -15,13 +15,20 @@ public class Framing
     {
         return (1 + (int) Math.ceil((inlen-windowLength)/windowDistance));
     }
+    
+    // returns how many samples constitutes n frames
+    public static int getFramesWidth(int nframes, int windowLength, int windowDistance)
+    {
+        if(nframes == 0)    return 0;
+        return (windowLength + windowDistance*(nframes-1));
+    }
 
     // determines the maximum number of samples you can provide to MFCC analysis to get a clean number of frames
     // assuming I have 1024 samples, I can process 11 frames, consuming 1000 samples => I return 1000
     public static int getOptimalVectorLength(int inlen, int wlength, int wdist)
     {
         int nframes = (1 + (int) Math.floor((inlen-wlength)/wdist));
-        return  (wlength + wdist*(nframes-1));
+        return getFramesWidth(nframes, wlength, wdist);
     }    
     
     // check if the provided vector can be optimally divided in frames

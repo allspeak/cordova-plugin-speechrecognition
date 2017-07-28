@@ -499,6 +499,13 @@ speechrecognition.stopSpeechRecognition = function ()
 };
 
 
+speechrecognition.debugCall = function (obj) 
+{
+    var json_params = JSON.stringify(obj); 
+    exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, "debugCall", [json_params]);
+};
+
+
 //==================================================================================================================
 // PLUGIN CALLBACKS (from JAVA => JS)
 //==================================================================================================================

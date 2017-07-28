@@ -62,9 +62,6 @@ public class MFCC
     private final String sOutputMFCCPrecision   = "%.4f";       // label of the element the audio belongs to
     private final String sOutputFiltersPrecision= "%.4f";       // label of the element the audio belongs to
     
-    private float[][] faFullMFCC;           // contains (nframes, numparams) calculated MFCC and its derivatives
-    private float[][] faFullFilterBanks;    // contains (nframes, numparams) calculated FilterBanks and its derivatives
-    
     private float[][][] faDerivatives;  // contains (2, nframes, numparams)  1st & 2nd derivatives of the calculated params
     private int nindices1;
     private int[] indices1 ;
@@ -74,7 +71,7 @@ public class MFCC
     private int[] indicesout;
     private int nDerivDenom;
     
-    private float[][] mDerivativesQueue = null;  // store the last nDeltaWindow-samples to calculate derivatives 
+//    private float[][] mDerivativesQueue = null;  // store the last nDeltaWindow-samples to calculate derivatives 
     
     //================================================================================================================
     // CONSTRUCTORS
@@ -112,26 +109,24 @@ public class MFCC
     public void setParams(MFCCParams params)
     {
         // JS interface call params:     mfcc_json_params, source, datatype, origintype, write, [outputpath_noext];  params have been validated in the js interface
-        mfccParams      = params; 
-        nScores         = (mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? mfccParams.nNumberOfMFCCParameters : mfccParams.nNumberofFilters);
-        sOutputPrecision= (mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? sOutputMFCCPrecision : sOutputFiltersPrecision);
-        
-        mDerivativesQueue        = new float[mfccParams.nDeltaWindow][nScores];
+        mfccParams          = params; 
+        nScores             = (mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? mfccParams.nNumberOfMFCCParameters : mfccParams.nNumberofFilters);
+        sOutputPrecision    = (mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? sOutputMFCCPrecision : sOutputFiltersPrecision);
         
         if ((boolean)mfccParams.bCalculate0ThCoeff) mfccParams.nNumberOfMFCCParameters++;//take in account the zero-th MFCC        
 
         mfccCalc = new MFCCCalcJAudio(  mfccParams.nNumberOfMFCCParameters,
-                                    mfccParams.dSamplingFrequency,
-                                    mfccParams.nNumberofFilters,
-                                    mfccParams.nFftLength,
-                                    mfccParams.bIsLifteringEnabled ,
-                                    mfccParams.nLifteringCoefficient,
-                                    mfccParams.bCalculate0ThCoeff,
-                                    mfccParams.nWindowDistance,
-                                    mfccParams.nWindowLength,
-                                    mfccParams.nDataType,
-                                    nScores,
-                                    mfccParams.nDeltaWindow); 
+                                        mfccParams.dSamplingFrequency,
+                                        mfccParams.nNumberofFilters,
+                                        mfccParams.nFftLength,
+                                        mfccParams.bIsLifteringEnabled ,
+                                        mfccParams.nLifteringCoefficient,
+                                        mfccParams.bCalculate0ThCoeff,
+                                        mfccParams.nWindowDistance,
+                                        mfccParams.nWindowLength,
+                                        mfccParams.nDataType,
+                                        nScores,
+                                        mfccParams.nDeltaWindow); 
     }   
     
     public void setWlCb(CallbackContext wlcb)
@@ -154,62 +149,21 @@ public class MFCC
     }    
     //================================================================================================================
     //================================================================================================================
-    //================================================================================================================
-    //================================================================================================================
-    //================================================================================================================
-    public void setOutputFile(String output_mfcc_path)
-    {
-        mfccParams.sOutputPath  = output_mfcc_path;
-    }
     //=================================================================================================================
-    // PRIVATE
+    // COMMANDS
     //=================================================================================================================
-    public float[][] processRawData(float[] data, int dataType, int dataDest, String output_path)
-    {
-        mfccParams.nDataType    = dataType;  
-        mfccParams.nDataDest    = dataDest;    
-        mfccParams.sOutputPath  = output_path;
-        return processRawData(data);
-    }
-
-    public void clearData()
-    {
-        mfccCalc.clearData();
-    }
-    
-    // get score, get derivatives => exportData
-    public synchronized float[][] processRawData(float[] data)
+    //=================================================================================================================
+    //=================================================================================================================
+    // ONE SHOT PROCESSING, e.g. file, (spectral derivatives)
+    // returns => [nframes][3*nscores]    
+    public synchronized float[][] processFramesSpectral(float[][] frames)
     {
         try
         {
-            if(mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS)
-            {
-                faFullMFCC   = mfccCalc.getFullMFCC(data);
-                if(faFullMFCC == null || faFullMFCC.length == 0)
-                {
-                    Log.e(TAG, "processFile" + ": Error:  faFullMFCC is empty");
-                    return null;
-                }
-                else
-                {
-                    nFrames     = faFullMFCC.length;
-                    return exportData(faFullMFCC);                
-                }
-            }
-            else
-            {
-                faFullFilterBanks   = mfccCalc.getFullMFFilters(data);                
-                if(faFullFilterBanks == null || faFullFilterBanks.length == 0)
-                {
-                    Log.e(TAG, "processFile" + ": Error:  faFullFilterBanks is empty");
-                    return null;
-                }
-                else
-                {
-                    nFrames     = faFullFilterBanks.length;
-                    return exportData(faFullFilterBanks);
-                }
-            } 
+            float[][] scores    = (mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? mfccCalc.getMFCC(frames) : mfccCalc.getMFFilters(frames)); 
+            nFrames             = scores.length;
+            mfccCalc.addSpectralDerivatives(scores);      // writes [:][2*nscore:3*nscore]          
+            return exportData(scores);                
         }
         catch(Exception e)
         {
@@ -217,11 +171,61 @@ public class MFCC
             Log.e(TAG, "processFile" + ": Error: " + e.toString());
             Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
             return null;
+        }    
+    }
+    //-----------------------------------------------------------------------------------------
+    // ONE SHOT PROCESSING, e.g. file, (temporal derivatives)    
+    // returns => [nframes][3*nscores]    
+    public synchronized float[][] processFramesTemporal(float[][] frames)
+    {
+        try
+        {
+            float[][] scores    = (mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? mfccCalc.getMFCC(frames) : mfccCalc.getMFFilters(frames)); 
+            nFrames             = scores.length;
+            mfccCalc.addTemporalDerivatives(scores);                
+            return exportData(scores);                // return all the frames' scores
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+            Log.e(TAG, "processFramesTemporal" + ": Error: " + e.toString());
+            Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
+            return null;
+        } 
+    }
+    //-----------------------------------------------------------------------------------------
+    // LIVE PROCESSING (temporal derivatives)
+    // input:     frames = [nframes][nWindowLength], queue = [nframes][nscores]
+    // returns => [nframes-nDeltaWindow][3*nscores]
+    public synchronized float[][] processFramesTemporal(float[][] frames, float[][] queue)
+    {
+        try
+        {
+            float[][] scores    = (mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? mfccCalc.getMFCC(frames) : mfccCalc.getMFFilters(frames)); 
+            nFrames             = scores.length;
+            int ncols           = scores[0].length;
+            mfccCalc.addTemporalDerivatives(scores, queue);  
+            
+            // prune invalid frames
+            //  change [nframes][:] ==> [nframes-nDeltaWindow][:]             
+            float[][] validscores = new float[nFrames-mfccParams.nDeltaWindow][ncols];
+            for(int f=0; f<nFrames-mfccParams.nDeltaWindow; f++)
+                validscores[f] = scores[f];
+            
+            return exportData(validscores);   
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+            Log.e(TAG, "processFramesTemporal" + ": Error: " + e.toString());
+            Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
+            return null;
         }        
     }            
-
-    // read wav(String) => processRawData(float[])
-    //if overwrite : check if file exist, if YES if it has the correct number of frames.
+    //-----------------------------------------------------------------------------------------
+    // read wav(String) => framing => processFrames(float[][])
+    //if !overwrite : check if file exist, if YES => if it has the correct number of frames => skip it.
+    //                                            => if not                                 => overwrite it
     public void processFile(String input_file_noext, boolean overwrite) 
     {
         try
@@ -234,32 +238,30 @@ public class MFCC
             int nframes             = Framing.getFrames(data.length, mfccParams.nWindowLength, mfccParams. nWindowDistance);
             
             String mfcc_relfile     = mfccParams.sOutputPath + "_scores.dat";
-            boolean existMfccFile   = FileUtilities.existRelFile(mfcc_relfile);
             
-            if(overwrite)
+            // Since I write appending, I have to decide what to do with the existing files.
+            // 1) keep the existing file and skip or 2) delete it 
+            if(FileUtilities.existRelFile(mfcc_relfile))
             {
-                if(existMfccFile)    
-                    FileUtilities.deleteExternalStorageFile(mfcc_relfile); // i write appending, hence I have to delete the existing one
+                if(overwrite) FileUtilities.deleteExternalStorageFile(mfcc_relfile); 
                 else
                 {
-                    // check if file exists and has the right number of frames
-                    if(existMfccFile)
+                    File f = new File(Environment.getExternalStorageDirectory(), mfcc_relfile);
+                    int nlines = FileUtilities.countLines(f);
+                    if(nlines == nframes)   // is a valid file ?
                     {
-                        File f = new File(Environment.getExternalStorageDirectory(), mfcc_relfile);
-
-                        int nlines = FileUtilities.countLines(f);
-                        if(nlines == nframes)
-                        {
-                            Messaging.sendMessageToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROGRESS_FILE, "progress_file", mfccParams.sOutputPath);                    
-                            return;
-                        }                        
-                        else
-                            FileUtilities.deleteExternalStorageFile(mfcc_relfile); // i write appending, hence I have to delete the existing one
-                    }
+                        // send message & skip
+                        Messaging.sendMessageToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROGRESS_FILE, "progress_file", mfccParams.sOutputPath);                    
+                        return;
+                    }                        
+                    else    // the file exist but is corrupted...presumably a crash during processing
+                        FileUtilities.deleteExternalStorageFile(mfcc_relfile); 
                 }
             }
+            
 //            tp.addTimepoint(1);
-            processRawData(data);
+//            processFramesSpectral(Framing.frameVector(data, mfccParams.nWindowLength, mfccParams.nWindowDistance));
+            processFramesTemporal(Framing.frameVector(data, mfccParams.nWindowLength, mfccParams.nWindowDistance));
 //            tp.addTimepoint(2);   
             Messaging.sendMessageToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROGRESS_FILE, "progress_file", mfccParams.sOutputPath);
          }
@@ -270,7 +272,7 @@ public class MFCC
             Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
         }        
     }
-    
+    //-----------------------------------------------------------------------------------------
     // processFolder(String) => for files in... processFile(String) => processRawData(float[])
     public void processFolder(String input_folderpath, boolean overwrite) 
     {
@@ -302,24 +304,33 @@ public class MFCC
             Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
         }    
     }
-    
-    public void sendData2TF()
+
+    //-----------------------------------------------------------------------------------------
+    public void setOutputFile(String output_mfcc_path)
     {
-//        Messaging.sendDataToHandler(mCommandCallback, ENUMS.TF_CMD_RECOGNIZE, , ); ///
+        mfccParams.sOutputPath  = output_mfcc_path;
     }
     
+    //-----------------------------------------------------------------------------------------
+    public void clearData()
+    {
+        //mDerivativesQueue = null;
+    }
+        
     //======================================================================================
-    // E X P O R T
     //======================================================================================
-//    private void exportData(float[][] data, float[][][] derivatives) 
-    private float[][] exportData(float[][] data) 
+    // P R I V A T E
+    //======================================================================================
+    //======================================================================================
+
+    private float[][] exportData(float[][] scores) 
     {
         try
         {
             JSONArray res_jsonarray         = new JSONArray();
             res_jsonarray.put(0, "processed file:" + mfccParams.sOutputPath);
-            String scores                   = "";
-            
+            String strscores                = "";
+            int nValidFrames                = scores.length;
             //------------------------------------------------------------------
             // write data to FILE
             //------------------------------------------------------------------
@@ -329,11 +340,8 @@ public class MFCC
                 case ENUMS.MFCC_DATADEST_ALL:
                 case ENUMS.MFCC_DATADEST_FILEWEB:
                     
-                    if(mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS)    scores = StringUtilities.exportArray2String(faFullMFCC, sOutputPrecision);
-                    else                                                            scores = StringUtilities.exportArray2String(faFullFilterBanks, sOutputPrecision);
-                    
-                    boolean res = FileUtilities.writeStringToFile(mfccParams.sOutputPath + "_scores.dat", scores, false);
-//                    writeTextParams(scores, mfccParams.sOutputPath + "_scores.dat");
+                    strscores   = StringUtilities.exportArray2String(scores, sOutputPrecision);
+                    boolean res = FileUtilities.writeStringToFile(mfccParams.sOutputPath + "_scores.dat", strscores, true);
                     //                tp.addTimepoint(4);                
                     break;
             }
@@ -344,10 +352,9 @@ public class MFCC
             {
                 case ENUMS.MFCC_DATADEST_FILEWEB:
                 case ENUMS.MFCC_DATADEST_JSDATAWEB:
-                    //costruire json e chiamare
                     JSONObject info         = new JSONObject();
                     info.put("type",        ENUMS.MFCC_RESULT);
-                    info.put("data",        new JSONArray(data));
+                    info.put("data",        new JSONArray(scores));
                     info.put("progress",    mfccParams.sOutputPath);
                     Messaging.sendUpdate2Web(callbackContext, info, true);
                     break;                 
@@ -359,23 +366,22 @@ public class MFCC
             {
                 case ENUMS.MFCC_DATADEST_FILE:
                 case ENUMS.MFCC_DATADEST_FILEWEB:
-                    Messaging.sendMessageToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROGRESS_DATA, "progress", Integer.toString(nFrames));              
+                    Messaging.sendMessageToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROGRESS_DATA, "progress", Integer.toString(nValidFrames));              
                     break;
             }             
             //------------------------------------------------------------------
-            // send data to PLUGIN    
+            // send data to SERVICE MAIN    
             //------------------------------------------------------------------
             switch(mfccParams.nDataDest)
             {
-                case ENUMS.MFCC_DATADEST_NONE:
                 case ENUMS.MFCC_DATADEST_JSPROGRESS:            
                 case ENUMS.MFCC_DATADEST_JSDATA:            
                 case ENUMS.MFCC_DATADEST_ALL:            
-                    Messaging.sendDataToHandler(mResultCallback, ENUMS.MFCC_RESULT, data, nFrames, nScores*3, mfccParams.sOutputPath);  
+                    Messaging.sendDataToHandler(mResultCallback, ENUMS.MFCC_RESULT, scores, nValidFrames, nScores*3, mfccParams.sOutputPath);  
             }
             //------------------------------------------------------------------
 //            else{ int[] elapsed = tp.endTracking();                res_jsonarray.put(1, new JSONArray(elapsed)); }
-            return data;
+            return scores;
         }
         catch(Exception e)
         {
@@ -385,10 +391,6 @@ public class MFCC
             return null;
         }
     }    
-
-    //======================================================================================    
-    // ACCESSORY
-    //======================================================================================    
 
     private float[] readWav(String filepath)
     {

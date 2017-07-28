@@ -258,6 +258,12 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
                 
                 // store calculated cepstra in its buffer
                 for(int f=0; f<nframes; f++) System.arraycopy(cepstra[f], 0, faCalculatedCepstra[nProcessedFrames+f], 0, nparams);   
+
+//                try{
+//                String outfile      = "AllSpeak/audiofiles/temp/cepstra.dat";
+//                FileUtilities.write2DArrayToFile(cepstra, nframes, outfile, "%.4f", true);
+//                }catch(Exception e){e.printStackTrace();};
+                
                     nProcessedFrames += nframes;
                 break;
         }
