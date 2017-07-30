@@ -406,27 +406,36 @@ public class VAD
      */
     private void newSentenceEvent()  
     {
-        switch((int)mVadParams.nAudioResultType)
+        try
         {
-            case ENUMS.VAD_RESULT_SAVE_SENTENCE:
-//                float[] data    = new float[nCurrentSpeechSamples];
-//                System.arraycopy(faCurrentSpeech, 0, data, 0, nCurrentSpeechSamples);                
-//                WavFile.createWavFile( file, mCfgParams.nChannels, data, 16, (long)mCfgParams.nSampleRate);
-                break;
-                
-            case ENUMS.VAD_RESULT_PROCESS_DATA_SAVE_SENTENCE:
-//                float[] data    = new float[nCurrentSpeechSamples];
-//                System.arraycopy(faCurrentSpeech, 0, data, 0, nCurrentSpeechSamples);                
-//                WavFile.createWavFile( file, mCfgParams.nChannels, data, 16, (long)mCfgParams.nSampleRate);
-//                Messaging.sendDataToHandler(mCommandCallback, ENUMS.MFCC_CMD_SENDDATA, "info", nCurrentSpeechSamples);
+            float[] data = null;
+            switch((int)mVadParams.nAudioResultType)
+            {
+                case ENUMS.VAD_RESULT_SAVE_SENTENCE:
+                    data    = new float[nCurrentSpeechSamples];
+                    System.arraycopy(faCurrentSpeech, 0, data, 0, nCurrentSpeechSamples);     
+                    WavFile.createWavFile( mVadParams.sDebugString, mCfgParams.nChannels, data, 16, (long)mCfgParams.nSampleRate, true);
+                    break;
 
-            case ENUMS.VAD_RESULT_PROCESS_DATA:
-                Messaging.sendDataToHandler(mCommandCallback, ENUMS.MFCC_CMD_SENDDATA, "info", nCurrentSpeechSamples);
-                break;
-                
-                
+                case ENUMS.VAD_RESULT_PROCESS_DATA_SAVE_SENTENCE:
+                    data = new float[nCurrentSpeechSamples];
+                    System.arraycopy(faCurrentSpeech, 0, data, 0, nCurrentSpeechSamples);    
+                    
+                    String cleanpath = mVadParams.sDebugString.startsWith("file://") ? mVadParams.sDebugString.split("file://")[1] : mVadParams.sDebugString;
+                    
+                    WavFile.createWavFile(cleanpath, mCfgParams.nChannels, data, 16, (long)mCfgParams.nSampleRate, true);
+                    Messaging.sendDataToHandler(mCommandCallback, ENUMS.MFCC_CMD_SENDDATA, "info", nCurrentSpeechSamples);
+
+                case ENUMS.VAD_RESULT_PROCESS_DATA:
+                    Messaging.sendDataToHandler(mCommandCallback, ENUMS.MFCC_CMD_SENDDATA, "info", nCurrentSpeechSamples);
+                    break;
+            }
+            callSpeechStatusCB(ENUMS.SPEECH_STATUS_SENTENCE);   
         }
-        callSpeechStatusCB(ENUMS.SPEECH_STATUS_SENTENCE);   
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
     }    
     //===================================================================
     // RESET PARAMS
@@ -434,7 +443,7 @@ public class VAD
     /**
      * @private
      */
-    private void resetAll() 
+    public void resetAll() 
     {
         bSpeakingRightNow = false;
 
@@ -527,6 +536,18 @@ public class VAD
         float maxLengthSamples          = maxLengthSecond*sampleRate;                                                           // 8.0 x 8000 = 64000
         int max_segments                = (int) Math.ceil(maxLengthSamples/bufferSize);                                         // 64000/1024 = 62.25 => 63
         return max_segments*sampleRate;          
+    }
+    
+    public float getCurrentThreshold()
+    {
+        return fCurrentThreshold;
+    }
+    
+    public boolean adjustVADThreshold(int newthreshold)
+    {
+        // alternatively ....I call a function that calculate a new background level
+        mVadParams.nSpeechDetectionThreshold = newthreshold;
+        return true;
     }
     //======================================================================================    
 }

@@ -34,6 +34,8 @@ public class ENUMS
     public static final int TF_RESULT                   = 56; //      
     public static final int TF_CMD_RECOGNIZE_FILE       = 57; //      
     
+    public static final int VAD_CMD_ADJUST_THRESHOLD    = 60; //      
+    
     public static final int CAPTURE_DATADEST_NONE       = 200;
     public static final int CAPTURE_DATADEST_JS_RAW     = 201;
     public static final int CAPTURE_DATADEST_JS_DB      = 202;

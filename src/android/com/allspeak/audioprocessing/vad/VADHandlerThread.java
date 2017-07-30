@@ -133,6 +133,17 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
         return vad.getMaxSpeechLengthSamples();
     }
     //================================================================================================================    
+    public void adjustVADThreshold(int newthreshold)
+    {
+        Bundle bundle          = new Bundle();
+        bundle.putInt("newthreshold", newthreshold);
+        
+        Message message = mInternalHandler.obtainMessage();
+        message.what    = ENUMS.VAD_CMD_ADJUST_THRESHOLD;
+        message.setData(bundle);
+        mInternalHandler.sendMessage(message);   
+    }
+    //================================================================================================================    
     public void stopSpeechRecognition(CallbackContext wlcb)
     {
 //        Message message = mInternalHandler.obtainMessage();
@@ -175,7 +186,7 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
                             info.put("type", ENUMS.CAPTURE_RESULT);  
                             
                             String decoded;
-                            float rms, decibels;
+                            float rms, decibels, threshold;
                             switch(mCfgParams.nDataDest)
                             {
                                 case ENUMS.CAPTURE_DATADEST_JS_RAW:
@@ -187,6 +198,8 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
                                     rms       = AudioInputCapture.getAudioLevels(data);
                                     decibels  = AudioInputCapture.getDecibelFromAmplitude(rms);
                                     info.put("decibels", Float.toString(decibels));
+                                    threshold = vad.getCurrentThreshold();
+                                    info.put("threshold", Float.toString(threshold));
                                     break;
 
                                 case ENUMS.CAPTURE_DATADEST_JS_RAWDB:
@@ -221,6 +234,11 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
 
             case ERRORS.MFCC_ERROR:
                 onMFCCError(b.getString("error"));     // is an error
+                break;
+
+            case ENUMS.VAD_CMD_ADJUST_THRESHOLD:
+                int newthreshold = b.getInt("newthreshold");
+                vad.adjustVADThreshold(newthreshold);
                 break;
         }
         return true;

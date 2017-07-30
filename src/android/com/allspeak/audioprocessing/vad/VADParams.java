@@ -15,6 +15,7 @@ public class VADParams
     public int nAudioResultType             = DEFAULT.AUDIO_RESULT_TYPE;
     public boolean bCompressPauses          = DEFAULT.SPEECH_DETECTION_COMPRESS_PAUSES;
     public int nAnalysisChunkLength         = DEFAULT.SPEECH_DETECTION_ANALYSIS_CHUNK_LENGTH;
+    public String sDebugString              = "";
 
     public VADParams(JSONObject init)
     {
@@ -41,13 +42,16 @@ public class VADParams
                         nSpeechDetectionAllowedDelay    = init.getInt(field);
                         break;
                     case "nAudioResultType":
-                        nAudioResultType                 = init.getInt(field);
+                        nAudioResultType                = init.getInt(field);
                         break;
                     case "bCompressPauses":
                         bCompressPauses                 = init.getBoolean(field);
                         break;
                     case "nAnalysisChunkLength":
                         nAnalysisChunkLength            = init.getInt(field);
+                        break;
+                    case "sDebugString":
+                        sDebugString                    = init.getString(field);
                         break;
                 }
             }

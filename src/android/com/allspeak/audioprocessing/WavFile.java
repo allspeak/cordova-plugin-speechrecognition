@@ -78,19 +78,21 @@ public class WavFile
         return validBits;
     }
 
-    public static boolean createWavFile(File file, int numChannels, float[] data, int validBits, long sampleRate) throws IOException, Exception
+    public static boolean createWavFile(String filepath, int numChannels, float[] data, int validBits, long sampleRate, boolean overwrite) throws IOException, Exception
     {
         try
         {           
-            int numFrames = data.length; 
-            
-            WavFile wf = newWavFile(file, numChannels, (long)numFrames, validBits, sampleRate);
+            File file       = new File(filepath);
+            if (file.exists() && overwrite)  file.delete();
+            int numFrames   = data.length; 
+            WavFile wf      = newWavFile(file, numChannels, (long)numFrames, validBits, sampleRate);
             wf.writeFrames(data, numFrames);
             wf.close();
             return true;                                
         }     
         catch(Exception e)
         {
+            e.printStackTrace();
             throw e;
         }
     }

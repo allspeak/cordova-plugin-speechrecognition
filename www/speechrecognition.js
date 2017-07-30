@@ -279,6 +279,7 @@ speechrecognition.checkVadParams = function(vad_params)
     speechrecognition.vad.params.nAudioResultType               = vad_params.nAudioResultType                || speechrecognition.ENUM.vad.DEFAULT.nAudioResultType;
     speechrecognition.vad.params.bCompressPauses                = vad_params.bCompressPauses                 || speechrecognition.ENUM.vad.DEFAULT.bCompressPauses;
     speechrecognition.vad.params.nAnalysisChunkLength           = vad_params.nAnalysisChunkLength            || speechrecognition.ENUM.vad.DEFAULT.nAnalysisChunkLength;
+    speechrecognition.vad.params.sDebugString                   = vad_params.sDebugString                    || "";
 
     return JSON.stringify(speechrecognition.vad.params); 
 };
@@ -535,13 +536,13 @@ speechrecognition._pluginEvent = function (data) {
                     case speechrecognition.ENUM.PLUGIN.CAPTURE_DATADEST_JS_DB:
                         
                         if(data.decibels == "-Infinity")    data.decibels = -1000;
-                        cordova.fireWindowEvent("audiometer", {decibels: Math.round(JSON.parse(data.decibels))});   //mean decibel
+                        cordova.fireWindowEvent("audiometer", {decibels: Math.round(JSON.parse(data.decibels)), threshold: Math.round(JSON.parse(data.threshold))});   //mean decibel & threshold
                         break;
                     
                     case speechrecognition.ENUM.PLUGIN.CAPTURE_DATADEST_JS_RAWDB:
   
                         if(data.decibels == "-Infinity")    data.decibels = -1000;                        
-                        cordova.fireWindowEvent("audiometer", {decibels: Math.round(JSON.parse(data.decibels))});   //mean decibel
+                        cordova.fireWindowEvent("audiometer", {decibels: Math.round(JSON.parse(data.decibels)), threshold: Math.round(JSON.parse(data.threshold))});   //mean decibel & threshold
                     
                         if (data && data.data && data.data.length > 0) 
                         {

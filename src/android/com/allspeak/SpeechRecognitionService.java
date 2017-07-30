@@ -359,6 +359,13 @@ public class SpeechRecognitionService extends Service
         }            
     }
     
+    public void adjustVADThreshold(int newthreshold, CallbackContext cb)
+    {
+        callbackContext             = cb;   
+        vad.adjustVADThreshold(newthreshold);
+    }
+            
+    
     public void recognizeCepstraFile(String cepstra_file_path, CallbackContext wlcb)
     {
         tf.recognizeCepstraFile(cepstra_file_path, wlcb);

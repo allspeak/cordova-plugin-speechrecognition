@@ -148,6 +148,7 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
      *          loadTFModel
      *          startSpeechRecognition
      *          stopSpeechRecognition
+     *          adjustVADThreshold
      *          getMFCC
      * 
      * @param args
@@ -297,6 +298,15 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
         {
             // an interrupt command is sent to audioreceiver, when it exits from its last cycle, it sends an event here
             mService.stopSpeechRecognition(callbackContext);
+            Messaging.sendNoResult2Web(callbackContext);
+            return true;
+        } 
+        else if (action.equals("adjustVADThreshold")) 
+        {
+            // an interrupt command is sent to audioreceiver, when it exits from its last cycle, it sends an event here
+            int newthreshold   = args.getInt(0); 
+            
+            mService.adjustVADThreshold(newthreshold, callbackContext);
             Messaging.sendNoResult2Web(callbackContext);
             return true;
         } 

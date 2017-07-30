@@ -194,8 +194,8 @@ public class TF
                         String outfile      = "AllSpeak/audiofiles/temp/cepstra.dat";
                         String outfile_ctx  = "AllSpeak/audiofiles/temp/ctx_cepstra.dat";
                         
-//                        String scores = StringUtilities.exportArray2String(cepstra, "%.4f", frames2recognize);
-//                        FileUtilities.writeStringToFile(outfile, scores, true);
+                        String scores = StringUtilities.exportArray2String(cepstra, "%.4f", frames2recognize);
+                        FileUtilities.writeStringToFile(outfile, scores, true);
                         
 //                        FileUtilities.write2DArrayToFile(cepstra, frames2recognize, outfile, "%.4f", true);
 //                        FileUtilities.write2DArrayToFile(contextedCepstra, frames2recognize, outfile_ctx, "%.4f", true);
