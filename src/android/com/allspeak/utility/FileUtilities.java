@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.LineNumberReader;
 
 import android.os.Environment;
+import java.util.Locale;
 
 
 public class FileUtilities 
@@ -50,7 +51,7 @@ public class FileUtilities
 
             outputWriter = new BufferedWriter(new FileWriter(Environment.getExternalStorageDirectory() + "/" + filename, append));
             for(int j = 0; j < col; j++)//for each column
-                outputWriter.write(String.format(precision, scores[j]) + " ");
+                outputWriter.write(String.format(Locale.US, precision, scores[j]) + " ");
             
             outputWriter.newLine();
             outputWriter.flush();  
@@ -81,7 +82,7 @@ public class FileUtilities
                 for(int j = 0; j < col; j++)//for each column
                 {            
 //                    outputWriter.write(Float.toString(scores[i][j])+ " ");
-                    outputWriter.write(String.format(precision, scores[i][j]) + " ");
+                    outputWriter.write(String.format(Locale.US, precision, scores[i][j]) + " ");
                 }
                 outputWriter.newLine();
                 outputWriter.flush();  

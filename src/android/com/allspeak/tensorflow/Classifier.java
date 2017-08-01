@@ -16,6 +16,7 @@ limitations under the License.
 package com.allspeak.tensorflow;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Generic interface for interacting with different recognition engines.
@@ -72,7 +73,7 @@ public interface Classifier {
       }
 
       if (confidence != null) {
-        resultString += String.format("(%.1f%%) ", confidence * 100.0f);
+        resultString += String.format(Locale.US, "(%.1f%%) ", confidence * 100.0f);
       }
 
       return resultString.trim();

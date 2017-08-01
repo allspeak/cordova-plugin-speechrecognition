@@ -15,6 +15,14 @@ public class StringUtilities
         if(extPos == -1)    return filepath;
         else                return filepath.substring(0, extPos);
     }
+    
+    //--------------------------------------------------------------------------------------------------------------------    
+    public static String getExtension(String filepath)
+    {
+        int extPos = filepath.lastIndexOf(".");
+        if(extPos == -1)    return "";
+        else                return filepath.substring(extPos+1);
+    }
     //--------------------------------------------------------------------------------------------------------------------    
     // split a string ending with a number as following
     // "gigi23" => ["gigi", "23"];

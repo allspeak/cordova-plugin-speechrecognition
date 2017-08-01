@@ -421,23 +421,7 @@ speechrecognition.setPlayBackPercVol = function (perc) {
         exec(null, speechrecognition._pluginError, speechrecognition.pluginName, "setPlayBackPercVol", [perc]);
 };
 
-//---------------------------------------------------------------
-/**
- * Start calculating MFCC
- */
-speechrecognition.startMFCC = function () {
-    if (speechrecognition._capturing) 
-        exec(null, speechrecognition._pluginError, speechrecognition.pluginName, "stopMFCC", [speechrecognition.mfcc.params]);
-};
-
-/**
- * Stop calculating MFCC
- */
-speechrecognition.stopMFCC = function () {
-    if (speechrecognition._capturing) 
-        exec(null, speechrecognition._pluginError, speechrecognition.pluginName, "stopMFCC", []);
-};
-speechrecognition.getMFCC = function(mfcc_params, source, filepath_noext, overwrite)
+speechrecognition.getMFCC = function(mfcc_params, source, overwrite, filepath_noext)
 {
     if(overwrite == null)  overwrite = true;
         
@@ -446,24 +430,23 @@ speechrecognition.getMFCC = function(mfcc_params, source, filepath_noext, overwr
     //check params consistency
     if(source == null || !source.length)
     {
-        errorCB("ERROR in mfccCalculation: source is empty")
+        alert("ERROR in mfccCalculation: source is empty")
         return false;
     }
     else if(mfcc_params.nDataOrig == speechrecognition.ENUM.PLUGIN.MFCC_DATAORIGIN_JSONDATA && source.constructor !== Array) 
     {
-        errorCB("ERROR in mfccCalculation: you set data origin as data, but did not provide a data array");
+        alert("ERROR in mfccCalculation: you set data origin as data, but did not provide a data array");
         return false;
     }
     else if ((mfcc_params.nDataOrig == speechrecognition.ENUM.PLUGIN.MFCC_DATAORIGIN_FILE || mfcc_params.nDataOrig == speechrecognition.ENUM.PLUGIN.MFCC_DATAORIGIN_FOLDER) && source.constructor !== String)        
     {
-        errorCB("ERROR in mfccCalculation: you set data origin as file/folder, but did not provide a string parameter");
+        alert("ERROR in mfccCalculation: you set data origin as file/folder, but did not provide a string parameter");
         return false;
     }
     
-    exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, 'getMFCC', [mfcc_json_params, source, filepath_noext]);            
+    exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, 'getMFCC', [mfcc_json_params, source, overwrite, filepath_noext]);            
+    return true;
 };
-
-//---------------------------------------------------------------
 
 speechrecognition.startSpeechRecognition = function (captureCfg, vadCfg, mfccCfg, tfCfg) 
 {
@@ -499,13 +482,11 @@ speechrecognition.stopSpeechRecognition = function ()
     if (speechrecognition._capturing) exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, "stopSpeechRecognition", []);
 };
 
-
 speechrecognition.debugCall = function (obj) 
 {
     var json_params = JSON.stringify(obj); 
     exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, "debugCall", [json_params]);
 };
-
 
 //==================================================================================================================
 // PLUGIN CALLBACKS (from JAVA => JS)

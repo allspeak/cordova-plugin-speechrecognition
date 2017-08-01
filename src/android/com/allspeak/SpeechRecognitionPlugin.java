@@ -320,16 +320,24 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
         } 
         else if(action.equals("getMFCC")) 
         {            
+            // fcc_json_params, source (inputpathnoext or dataarray), overwrite, inputpathnoext (in case of dataarray)
             try 
             {               
                 // JS interface call params:     mfcc_json_params, source;  params have been validated in the js interface
                 // should have a nDataDest > 0  web,file,both
                 mMfccParams             = new MFCCParams(new JSONObject((String)args.get(0)));
-                String inputpathnoext   = args.getString(1); 
                 boolean overwrite       = true;
                 if(args.get(2) != null)
                     overwrite = args.getBoolean(2); 
                 
+                String inputpathnoext = "";
+                if(mMfccParams.nDataOrig == ENUMS.MFCC_DATAORIGIN_JSONDATA)
+                {
+                    Messaging.sendErrorString2Web(callbackContext, "getMFCC from a data array still not supported", ERRORS.PLUGIN_INIT_MFCC, true);
+                    return true;
+                }
+                else    inputpathnoext   = args.getString(1); 
+
                 mService.getMFCC(mMfccParams, inputpathnoext, overwrite, callbackContext);
                 Messaging.sendNoResult2Web(callbackContext);
                 return true;

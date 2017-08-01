@@ -231,11 +231,11 @@ public class MFCC
         try
         {
 //            tp                  = new TrackPerformance(5); // I want to monitor : wav read (if applicable), params calculation, data export(if applicable), data write(if applicable), data json packaging(if applicable)
-            mfccParams.sOutputPath  = input_file_noext;
-            String sAudiofile       = input_file_noext + ".wav";
+            mfccParams.sOutputPath  = StringUtilities.removeExtension(input_file_noext);
+            String sAudiofile       = mfccParams.sOutputPath + ".wav";
             float[] data            = readWav(sAudiofile);  
             
-            int nframes             = Framing.getFrames(data.length, mfccParams.nWindowLength, mfccParams. nWindowDistance);
+            int nframes             = Framing.getFrames(data.length, mfccParams.nWindowLength, mfccParams.nWindowDistance);
             
             String mfcc_relfile     = mfccParams.sOutputPath + "_scores.dat";
             
@@ -392,7 +392,7 @@ public class MFCC
         }
     }    
 
-    private float[] readWav(String filepath)
+    private float[] readWav(String filepath) throws Exception
     {
         try
         {
@@ -418,7 +418,7 @@ public class MFCC
         catch(Exception e)
         {
             e.printStackTrace();
-            return null;
+            throw e;
         }
     }
     //======================================================================================    

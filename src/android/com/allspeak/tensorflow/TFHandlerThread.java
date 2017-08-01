@@ -239,7 +239,7 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
                     cepstra             = FileUtilities.read2DArrayFromFile(cepstra_file);
                     if(true)            tf.doRecognize(cepstra, cepstra.length);// TODO: decide what to do whether the frames do not correspond                    
                 }
-                catch(IOException e)
+                catch(Exception e)
                 {
                     e.printStackTrace();
                 }  

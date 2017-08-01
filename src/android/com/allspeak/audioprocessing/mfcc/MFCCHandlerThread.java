@@ -239,7 +239,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
         int expectedFrames = Framing.getFrames(sentSamples, mfccParams.nWindowLength, mfccParams.nWindowDistance)- mfccParams.nDeltaWindow;
         if(expectedFrames == nProcessedFrames)
         {
-            strmsg  = "MFCC_CMD_SENDDATA: sample OK !! => processed frames: " + String.valueOf(nProcessedFrames) + ", ArrivedSamples: " + String.valueOf(nArrivedSamples);
+            strmsg  = "MFCC_CMD_SENDDATA: sample OK !! => processed valid frames: " + String.valueOf(nProcessedFrames) + " from the ArrivedSamples: " + String.valueOf(nArrivedSamples);
             res     = true;
         }
         else
@@ -280,7 +280,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
     //             |    _____|___| invalid
     //                 |         | invalid
     //
-    //             |_____________|
+    //             |_____|_______|
     //            samples queue = 120 + 2 * steplength = 280 samples
     
     // receive new data, calculate how many samples must be sent to analysis.

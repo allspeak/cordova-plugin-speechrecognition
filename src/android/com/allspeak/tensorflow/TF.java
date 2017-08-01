@@ -31,6 +31,7 @@ import com.allspeak.tensorflow.TensorFlowSpeechClassifier;
 import com.allspeak.tensorflow.Classifier.Recognition;
 import com.allspeak.tensorflow.Classifier;
 import java.util.List;
+import java.util.Locale;
 /*
 it sends the following messages to Plugin Activity:
 - data
@@ -181,7 +182,7 @@ public class TF
                 {
                     JSONObject record   = new JSONObject();
                     record.put("title", result.getTitle());
-                    record.put("confidence", String.format("%.1f%%", result.getConfidence() * 100.0f)); 
+                    record.put("confidence", String.format(Locale.US, "%.1f%%", result.getConfidence() * 100.0f)); 
                     items.put(record);
                 } 
                 output.put("items", items);
@@ -194,11 +195,11 @@ public class TF
                         String outfile      = "AllSpeak/audiofiles/temp/cepstra.dat";
                         String outfile_ctx  = "AllSpeak/audiofiles/temp/ctx_cepstra.dat";
                         
-                        String scores = StringUtilities.exportArray2String(cepstra, "%.4f", frames2recognize);
-                        FileUtilities.writeStringToFile(outfile, scores, true);
+//                        String scores = StringUtilities.exportArray2String(cepstra, "%.4f", frames2recognize);
+//                        FileUtilities.writeStringToFile(outfile, scores, true);
                         
-//                        FileUtilities.write2DArrayToFile(cepstra, frames2recognize, outfile, "%.4f", true);
-//                        FileUtilities.write2DArrayToFile(contextedCepstra, frames2recognize, outfile_ctx, "%.4f", true);
+                        FileUtilities.write2DArrayToFile(cepstra, frames2recognize, outfile, "%.4f", true);
+                        FileUtilities.write2DArrayToFile(contextedCepstra, frames2recognize, outfile_ctx, "%.4f", true);
                         break;
                 }
             }
