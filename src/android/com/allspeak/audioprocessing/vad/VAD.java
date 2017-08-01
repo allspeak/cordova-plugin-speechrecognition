@@ -29,10 +29,10 @@ import com.allspeak.ENUMS;
 import com.allspeak.ERRORS;
 import com.allspeak.utility.Messaging;
 import com.allspeak.audiocapture.AudioInputCapture;
-import com.allspeak.audiocapture.CFGParams;
+import com.allspeak.audiocapture.CaptureParams;
 import com.allspeak.audioprocessing.mfcc.MFCCParams;
 import com.allspeak.audioprocessing.vad.VADParams;
-import com.allspeak.audiocapture.CFGParams;
+import com.allspeak.audiocapture.CaptureParams;
 import com.allspeak.audioprocessing.WavFile;
 import java.io.File;
 
@@ -41,7 +41,7 @@ public class VAD
     private static final String LOG_TAG = "VAD";
     
     private VADParams mVadParams;
-    private CFGParams mCfgParams;
+    private CaptureParams mCfgParams;
     private MFCCParams mMfccParams;
     
     private Handler mStatusCallback             = null;     // Thread
@@ -86,14 +86,14 @@ public class VAD
     //================================================================================================================
     // I N I T
     //================================================================================================================    
-    public VAD(VADParams params, CFGParams captureparams, Handler scb, Handler ccb, Handler rcb)
+    public VAD(VADParams params, CaptureParams captureparams, Handler scb, Handler ccb, Handler rcb)
     {
         setParams(params, captureparams);
         mStatusCallback     = scb;
         mCommandCallback    = ccb;
         mResultCallback     = rcb;
     }
-    public VAD(VADParams params, CFGParams captureparams, Handler cb)
+    public VAD(VADParams params, CaptureParams captureparams, Handler cb)
     {
         setParams(params, captureparams);
         mStatusCallback     = cb;
@@ -101,7 +101,7 @@ public class VAD
         mResultCallback     = cb;
     }
     
-    public void setParams(VADParams vadParams, CFGParams captureparams)
+    public void setParams(VADParams vadParams, CaptureParams captureparams)
     {
         mVadParams = vadParams;
         mCfgParams = captureparams;

@@ -13,7 +13,7 @@ import org.json.JSONObject;
 
 
 import com.allspeak.utility.Messaging;
-import com.allspeak.audiocapture.CFGParams;
+import com.allspeak.audiocapture.CaptureParams;
 import com.allspeak.audiocapture.AudioInputCapture;
 import com.allspeak.audioprocessing.vad.VADParams;
 import com.allspeak.audioprocessing.vad.VAD;
@@ -47,7 +47,7 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
     private MFCCParams mMfccParams                  = null;
     private Handler mMfccHandler                    = null;
 
-    private CFGParams mCfgParams                    = null;
+    private CaptureParams mCfgParams                    = null;
     
     private boolean bIsCapturing                    = false;
  
@@ -62,7 +62,7 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
         super(name, priority);
     }    
     //===============================================================================================
-    public void setParams(VADParams vadParams, CFGParams cfgParams, MFCCParams mfccParams)
+    public void setParams(VADParams vadParams, CaptureParams cfgParams, MFCCParams mfccParams)
     {
         mVadParams      = vadParams;
         mCfgParams      = cfgParams;
@@ -97,7 +97,7 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
         vad.setCallbacks(mStatusCallback, mCommandCallback, mResultCallback);
     }    
 //--------------------------------------------------------------------------------------------------
-    public void init(VADParams vadParams, CFGParams cfgParams, Handler cb)
+    public void init(VADParams vadParams, CaptureParams cfgParams, Handler cb)
     {
         mVadParams          = vadParams;
         mCfgParams          = cfgParams;  
@@ -107,12 +107,12 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
         vad                 = new VAD(mVadParams, mCfgParams, cb);
         bIsCapturing        = true;
     }
-    public void init(VADParams vadParams, CFGParams cfgParams, Handler cb, CallbackContext wlcb)
+    public void init(VADParams vadParams, CaptureParams cfgParams, Handler cb, CallbackContext wlcb)
     {
         init(vadParams, cfgParams, cb);
         mWlCb = wlcb;
     }
-    public void init(VADParams vadParams, CFGParams cfgParams, Handler scb, Handler ccb, Handler rcb)
+    public void init(VADParams vadParams, CaptureParams cfgParams, Handler scb, Handler ccb, Handler rcb)
     {
         mVadParams          = vadParams;
         mCfgParams          = cfgParams;  
@@ -122,7 +122,7 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
         vad                 = new VAD(mVadParams, mCfgParams, scb, ccb, rcb);
         bIsCapturing        = true;
     }
-    public void init(VADParams vadParams, CFGParams cfgParams, Handler scb, Handler ccb, Handler rcb, CallbackContext wlcb)
+    public void init(VADParams vadParams, CaptureParams cfgParams, Handler scb, Handler ccb, Handler rcb, CallbackContext wlcb)
     {
         init(vadParams, cfgParams, scb, ccb, rcb);
         mWlCb = wlcb;

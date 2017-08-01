@@ -170,7 +170,7 @@ public class TF
         
         if(mClassifier != null)
         {
-            List<Recognition> results = mClassifier.recognizeSpeech(contextedCepstra);
+            List<Recognition> results = mClassifier.recognizeSpeech(contextedCepstra, mTfParams.fRecognitionThreshold);
             
             try
             {

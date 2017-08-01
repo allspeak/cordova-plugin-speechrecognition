@@ -34,7 +34,7 @@ import com.allspeak.utility.AudioDevicesManager;
 import com.allspeak.tensorflow.TFParams;
 import com.allspeak.audioprocessing.mfcc.MFCCParams;
 import com.allspeak.audioprocessing.vad.VADParams;
-import com.allspeak.audiocapture.CFGParams;
+import com.allspeak.audiocapture.CaptureParams;
 import com.allspeak.audiocapture.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -73,7 +73,7 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     private SpeechRecognitionService mService   = null;
     private boolean mBound                      = false;
     
-    private CFGParams mCfgParams                = null;
+    private CaptureParams mCfgParams                = null;
     private MFCCParams mMfccParams              = null;
     private VADParams mVadParams                = null;
     private TFParams mTfParams                  = null;
@@ -192,7 +192,7 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
                     Messaging.sendErrorString2Web(callbackContext, "SpeechRecognitionPlugin : plugin is already capturing.", ERRORS.CAPTURE_ALREADY_STARTED, true);
                     return true;
                 }                
-                mCfgParams                       = new CFGParams(new JSONObject((String)args.get(0))); 
+                mCfgParams                       = new CaptureParams(new JSONObject((String)args.get(0))); 
                 if(!args.isNull(1))  mMfccParams = new MFCCParams(new JSONObject((String)args.get(1))); 
                 
                 mService.startCapture(mCfgParams, mMfccParams, callbackContext);
@@ -215,7 +215,7 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
                     Messaging.sendErrorString2Web(callbackContext, "SpeechRecognitionPlugin : plugin is already capturing.", ERRORS.CAPTURE_ALREADY_STARTED, true);
                     return true;
                 }                
-                mCfgParams = new CFGParams(new JSONObject((String)args.get(0))); 
+                mCfgParams = new CaptureParams(new JSONObject((String)args.get(0))); 
                 
                 mService.startMicPlayback(mCfgParams, callbackContext);
                 Messaging.sendNoResult2Web(callbackContext);
@@ -277,7 +277,7 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
             }
             try 
             {
-                mCfgParams                      = new CFGParams(new JSONObject((String)args.get(0))); 
+                mCfgParams                      = new CaptureParams(new JSONObject((String)args.get(0))); 
                 mVadParams                      = new VADParams(new JSONObject((String)args.get(1))); 
                 mMfccParams                     = new MFCCParams(new JSONObject((String)args.get(2))); 
                 mTfParams                       = new TFParams(new JSONObject((String)args.get(3))); 

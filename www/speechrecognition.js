@@ -204,7 +204,8 @@ speechrecognition.ENUM.tf.DEFAULT = {
     sLabelFilePath      : "",          
     sInputNodeName      : "inputs/I",          
     sOutputNodeName     : "O",      
-    nDataDest           : speechrecognition.ENUM.PLUGIN.TF_DATADEST_MODEL      
+    nDataDest           : speechrecognition.ENUM.PLUGIN.TF_DATADEST_MODEL,      
+    fRecognitionThreshold : 0.1      
 };
 //=========================================================================================
 // CHECK INPUT PARAMS
@@ -294,7 +295,8 @@ speechrecognition.checkTfParams = function(tf_params)
     speechrecognition.tf.params.sInputNodeName                  = tf_params.sInputNodeName              || speechrecognition.ENUM.tf.DEFAULT.sInputNodeName;          
     speechrecognition.tf.params.sOutputNodeName                 = tf_params.sOutputNodeName             || speechrecognition.ENUM.tf.DEFAULT.sOutputNodeName;          
     speechrecognition.tf.params.nDataDest                       = tf_params.nDataDest                   || speechrecognition.ENUM.tf.DEFAULT.nDataDest;
-    speechrecognition.tf.params.bLoaded                         = tf_params.nDataDest                   || speechrecognition.ENUM.tf.DEFAULT.nDataDest;
+    speechrecognition.tf.params.bLoaded                         = false;
+    speechrecognition.tf.params.fRecognitionThreshold           = tf_params.fRecognitionThreshold       || speechrecognition.ENUM.tf.DEFAULT.fRecognitionThreshold;
        
     return JSON.stringify(speechrecognition.tf.params); 
 };

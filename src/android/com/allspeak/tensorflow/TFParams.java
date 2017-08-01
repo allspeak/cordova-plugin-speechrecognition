@@ -18,6 +18,9 @@ public class TFParams
     public String sOutputNodeName       = DEFAULT.OUTPUT_NODENAME; 
     public AssetManager mAssetManager   = null;
     public int nDataDest                = DEFAULT.OUTPUT_DATADEST; 
+    public float fRecognitionThreshold  = DEFAULT.RECOGNITION_THRESHOLD; 
+    
+    
     public boolean bLoaded              = DEFAULT.LOADED; 
     
     public TFParams(){}  
@@ -65,6 +68,10 @@ public class TFParams
                     case "nDataDest":
                         nDataDest           = init.getInt(field);
                         break;
+                  
+                    case "fRecognitionThreshold":
+                        fRecognitionThreshold = (float)init.getDouble(field);
+                        break;
                 }
             }
         }
@@ -84,6 +91,7 @@ public class TFParams
         public static String INPUT_NODENAME     = "inputs/I";        
         public static String OUTPUT_NODENAME    = "O";        
         public static int OUTPUT_DATADEST       = ENUMS.TF_DATADEST_MODEL;        
+        public static float RECOGNITION_THRESHOLD = 0.1f;        
         public static boolean LOADED            = false;        
     }    
 }

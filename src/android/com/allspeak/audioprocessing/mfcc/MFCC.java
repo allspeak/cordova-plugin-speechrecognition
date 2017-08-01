@@ -260,8 +260,8 @@ public class MFCC
             }
             
 //            tp.addTimepoint(1);
-//            processFramesSpectral(Framing.frameVector(data, mfccParams.nWindowLength, mfccParams.nWindowDistance));
-            processFramesTemporal(Framing.frameVector(data, mfccParams.nWindowLength, mfccParams.nWindowDistance));
+            processFramesSpectral(Framing.frameVector(data, mfccParams.nWindowLength, mfccParams.nWindowDistance));
+//            processFramesTemporal(Framing.frameVector(data, mfccParams.nWindowLength, mfccParams.nWindowDistance));
 //            tp.addTimepoint(2);   
             Messaging.sendMessageToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROGRESS_FILE, "progress_file", mfccParams.sOutputPath);
          }

@@ -6,7 +6,7 @@ import org.json.JSONException;
 
 import com.allspeak.ENUMS;
 
-public class CFGParams
+public class CaptureParams
 {
     public int nSampleRate                  = DEFAULT.SAMPLERATE;         //44100,
     public int nBufferSize                  = DEFAULT.BUFFER_SIZE;            //audioinput.AUDIOSOURCE_TYPE.VOICE_COMMUNICATION,
@@ -18,9 +18,9 @@ public class CFGParams
     public int nDataDest                    = DEFAULT.DATADEST;
     public int nDataSubSample               = DEFAULT.DATASUBSAMPLE;
  
-    public CFGParams(){}  
+    public CaptureParams(){}  
     
-    public CFGParams(JSONObject init)
+    public CaptureParams(JSONObject init)
     {
         try
         {

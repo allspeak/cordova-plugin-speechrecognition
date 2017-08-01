@@ -38,7 +38,7 @@ import com.allspeak.audioprocessing.mfcc.Framing;
 import com.allspeak.audioprocessing.vad.*;
 import com.allspeak.audiocapture.*;
 import com.allspeak.audiocapture.AudioInputCapture;
-import com.allspeak.audiocapture.CFGParams;
+import com.allspeak.audiocapture.CaptureParams;
 import com.allspeak.tensorflow.TFParams;
 import com.allspeak.tensorflow.TFHandlerThread;
 //==========================================================================================================================
@@ -51,7 +51,7 @@ public class SpeechRecognitionService extends Service
     private WakeLock cpuWeakLock                = null;
     
     // CAPTURE
-    private CFGParams mCfgParams                = null;
+    private CaptureParams mCfgParams                = null;
     private final AudioCaptureHandler aicHandler= new AudioCaptureHandler(this);
     private AudioInputCapture aicCapture        = null;                                   // Capture instance
 
@@ -193,7 +193,7 @@ public class SpeechRecognitionService extends Service
     //  isCapturing
     //===============================================================================
     //===============================================================================
-    public boolean startCapture(CFGParams cfgParams, MFCCParams mfccParams, CallbackContext cb)
+    public boolean startCapture(CaptureParams cfgParams, MFCCParams mfccParams, CallbackContext cb)
     {
         try 
         {
@@ -238,7 +238,7 @@ public class SpeechRecognitionService extends Service
         }        
     }
     
-    public boolean startMicPlayback(CFGParams cfgParams, CallbackContext cb)
+    public boolean startMicPlayback(CaptureParams cfgParams, CallbackContext cb)
     {
         try
         {
@@ -288,7 +288,7 @@ public class SpeechRecognitionService extends Service
         }            
     }
         
-    public boolean startSpeechRecognition(CFGParams cfgParams, VADParams vadParams, MFCCParams mfccParams, TFParams tfParams, CallbackContext wlcb)
+    public boolean startSpeechRecognition(CaptureParams cfgParams, VADParams vadParams, MFCCParams mfccParams, TFParams tfParams, CallbackContext wlcb)
     {
         try 
         {

@@ -37,11 +37,13 @@ import com.allspeak.utility.FileUtilities;
 public class TensorFlowSpeechClassifier implements Classifier 
 {
     private static final String TAG = "TensorFlowSpeechClassifier";
+    
+    private final int nReturnedElements = 3;
 
     // Config values.
     private String inputName;
     private String outputName;
-    private int inputSize;
+    private int inputSize;      // nodes' number of the input layer
     private int nFrames;        // varies speech by speech
     private int nOutputClasses; // trained items within the net 
 
@@ -131,9 +133,11 @@ public class TensorFlowSpeechClassifier implements Classifier
         return labels;
     }
     
-    // return a list of (nOutputClasses+1) elements. At position 0 u find the most probable element.
+    // return a list of (nOutputClasses+1) elements
+    // considering only those frames where at least one command's prob is over threshold. 
+    // At position 0 u find the most probable element.
     @Override
-    public List<Recognition> recognizeSpeech(final float[][] framesCepstra) 
+    public List<Recognition> recognizeSpeech(final float[][] framesCepstra, float threshold) 
     {
         // Log this method so that it can be analyzed with systrace.
         Trace.beginSection("recognizeSpeech"); 
@@ -142,15 +146,25 @@ public class TensorFlowSpeechClassifier implements Classifier
         outputs = new float[nOutputClasses];
         float[] confidences;
         
-        String outfile      = "AllSpeak/audiofiles/temp/probabilities.dat";
-
+//        String outfile      = "AllSpeak/audiofiles/temp/probabilities.dat";
 //        try
 //        {
             for(int f=0; f<nFrames; f++)
             {
                 confidences = recognizeFrame(framesCepstra[f]);
 //                FileUtilities.writeArrayToFile(confidences, outfile, "%.4f", true);
-                for(int c = 0; c < nOutputClasses; c++) outputs[c] += confidences[c];
+
+                // check threshold...if at least one element is over threshold, include the frame
+                boolean validframe = false;
+                for(int c = 0; c < nOutputClasses; c++)
+                {
+                    if(confidences[c] >= threshold)
+                    {
+                        validframe = true;
+                        break;
+                    }
+                }
+                if(validframe) for(int c = 0; c < nOutputClasses; c++) outputs[c] += confidences[c];
             }
 
 //        }
@@ -184,7 +198,7 @@ public class TensorFlowSpeechClassifier implements Classifier
             }
             pq.add(new Recognition("" + c, labels.size() > c ? labels.get(c) : "unknown", outputs[c]));
         }
-        for (int i = 0; i < 3; ++i) recognitions.add(pq.poll());
+        for (int i = 0; i < nReturnedElements; ++i) recognitions.add(pq.poll());
         
         Trace.endSection(); // "recognizeSpeech"
         return recognitions;        
@@ -216,19 +230,7 @@ public class TensorFlowSpeechClassifier implements Classifier
 //        softmax(confidences);
         return confidences;
     }
-
-    private void softmax(float[] vals) 
-    {
-        float max = Float.NEGATIVE_INFINITY;
-        for (final float val : vals) max = Math.max(max, val);
-        float sum = 0.0f;
-        for (int i = 0; i < vals.length; ++i) 
-        {
-            vals[i] = (float) Math.exp(vals[i] - max);
-            sum += vals[i];
-        }
-        for (int i = 0; i < vals.length; ++i) vals[i] = vals[i] / sum;
-    }    
+ 
     @Override
     public void enableStatLogging(boolean debug) {
         inferenceInterface.enableStatLogging(debug);
@@ -244,3 +246,18 @@ public class TensorFlowSpeechClassifier implements Classifier
         inferenceInterface.close();
     }
 }
+
+
+
+//    private void softmax(float[] vals) 
+//    {
+//        float max = Float.NEGATIVE_INFINITY;
+//        for (final float val : vals) max = Math.max(max, val);
+//        float sum = 0.0f;
+//        for (int i = 0; i < vals.length; ++i) 
+//        {
+//            vals[i] = (float) Math.exp(vals[i] - max);
+//            sum += vals[i];
+//        }
+//        for (int i = 0; i < vals.length; ++i) vals[i] = vals[i] / sum;
+//    }   
