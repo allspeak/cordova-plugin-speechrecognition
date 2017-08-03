@@ -137,6 +137,12 @@ public class TensorFlowSpeechClassifier implements Classifier
     // considering only those frames where at least one command's prob is over threshold. 
     // At position 0 u find the most probable element.
     @Override
+    public List<Recognition> recognizeSpeech(final float[][] framesCepstra) 
+    {
+        return recognizeSpeech(framesCepstra, 0); 
+    }
+    
+    @Override
     public List<Recognition> recognizeSpeech(final float[][] framesCepstra, float threshold) 
     {
         // Log this method so that it can be analyzed with systrace.

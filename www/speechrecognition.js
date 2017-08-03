@@ -170,7 +170,7 @@ speechrecognition.ENUM.capture.DEFAULT = {
 };
 
 speechrecognition.ENUM.mfcc.DEFAULT = {
-    nNumberOfMFCCParameters : 12,
+    nNumberOfMFCCParameters : 13,
     dSamplingFrequency      : 8000.0,
     nNumberofFilters        : 24,
     nFftLength              : 256,

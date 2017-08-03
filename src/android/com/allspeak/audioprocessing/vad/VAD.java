@@ -395,8 +395,11 @@ public class VAD
         }
         nCurrentSpeechSamples += data2write;
         if(mVadParams.nAudioResultType == ENUMS.VAD_RESULT_PROCESS_DATA || mVadParams.nAudioResultType == ENUMS.VAD_RESULT_PROCESS_DATA_SAVE_SENTENCE)
-            Messaging.sendDataToHandler(mCommandCallback, ENUMS.MFCC_CMD_GETQDATA, "data", analysisBuffer);
-        
+        {
+            float [] data = new float[data2write];
+            System.arraycopy(analysisBuffer,0, data, 0, data2write);
+            Messaging.sendDataToHandler(mCommandCallback, ENUMS.MFCC_CMD_GETQDATA, "data", data);
+        }
         nCurrentSpeechLength++;
     }
 
@@ -409,11 +412,14 @@ public class VAD
         try
         {
             float[] data = null;
+            String cleanpath;
             switch((int)mVadParams.nAudioResultType)
             {
                 case ENUMS.VAD_RESULT_SAVE_SENTENCE:
                     data    = new float[nCurrentSpeechSamples];
                     System.arraycopy(faCurrentSpeech, 0, data, 0, nCurrentSpeechSamples);     
+
+                    cleanpath = mVadParams.sDebugString.startsWith("file://") ? mVadParams.sDebugString.split("file://")[1] : mVadParams.sDebugString;
                     WavFile.createWavFile( mVadParams.sDebugString, mCfgParams.nChannels, data, 16, (long)mCfgParams.nSampleRate, true);
                     break;
 
@@ -421,11 +427,12 @@ public class VAD
                     data = new float[nCurrentSpeechSamples];
                     System.arraycopy(faCurrentSpeech, 0, data, 0, nCurrentSpeechSamples);    
                     
-                    String cleanpath = mVadParams.sDebugString.startsWith("file://") ? mVadParams.sDebugString.split("file://")[1] : mVadParams.sDebugString;
-                    
+                    cleanpath = mVadParams.sDebugString.startsWith("file://") ? mVadParams.sDebugString.split("file://")[1] : mVadParams.sDebugString;
                     WavFile.createWavFile(cleanpath, mCfgParams.nChannels, data, 16, (long)mCfgParams.nSampleRate, true);
-                    Messaging.sendDataToHandler(mCommandCallback, ENUMS.MFCC_CMD_SENDDATA, "info", nCurrentSpeechSamples);
 
+                    Messaging.sendDataToHandler(mCommandCallback, ENUMS.MFCC_CMD_SENDDATA, "info", nCurrentSpeechSamples);
+                    break;
+                    
                 case ENUMS.VAD_RESULT_PROCESS_DATA:
                     Messaging.sendDataToHandler(mCommandCallback, ENUMS.MFCC_CMD_SENDDATA, "info", nCurrentSpeechSamples);
                     break;

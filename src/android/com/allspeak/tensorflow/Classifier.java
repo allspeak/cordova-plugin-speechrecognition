@@ -82,6 +82,8 @@ public interface Classifier {
 
   List<Recognition> recognizeSpeech(float[][] framesCepstra);
   
+  List<Recognition> recognizeSpeech(float[][] framesCepstra, float threshold);
+  
   void enableStatLogging(final boolean debug);
   
   String getStatString();

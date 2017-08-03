@@ -9,7 +9,7 @@ import com.allspeak.ENUMS;
 // only the classic parameters used by MFCCCalcJAudio
 public class MFCCParams
 {
-    public int nNumberOfMFCCParameters      = 12; //without considering 0-th
+    public int nNumberOfMFCCParameters      = 13; //I want also the 0-th...also set bCalculate0ThCoeff to true
     public double dSamplingFrequency        = 8000.0;
     public int nNumberofFilters             = 24;
     public int nFftLength                   = 256;    

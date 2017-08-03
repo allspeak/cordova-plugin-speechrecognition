@@ -44,58 +44,57 @@ import com.allspeak.tensorflow.TFHandlerThread;
 //==========================================================================================================================
 public class SpeechRecognitionService extends Service 
 {
-    private final static String LOG_TAG         = "SpeechRecognitionService";
-    private final IBinder mBinder               = new LocalBinder();
+    private final static String LOG_TAG                     = "SpeechRecognitionService";
+    private final IBinder mBinder                           = new LocalBinder();
 
-    private CallbackContext callbackContext     = null;    
-    private WakeLock cpuWeakLock                = null;
+    private CallbackContext callbackContext                 = null;    
+    private WakeLock cpuWeakLock                            = null;
     
+    //-----------------------------------------------------------------------------------------------
     // CAPTURE
-    private CaptureParams mCfgParams                = null;
-    private final AudioCaptureHandler aicHandler= new AudioCaptureHandler(this);
-    private AudioInputCapture aicCapture        = null;                                   // Capture instance
+    private CaptureParams mCfgParams                        = null;
+    private final AudioCaptureHandler mAicServiceHandler    = new AudioCaptureHandler(this);
+    private AudioInputCapture aicCapture                    = null;                                   // Capture instance
 
-    private boolean bIsCapturing                = false;
+    private boolean bIsCapturing                            = false;
 
     // what to do with captured data
-    private int nCapturedDataDest               = ENUMS.CAPTURE_DATADEST_NONE;
-    private int nCapturedBlocks                 = 0;
-    private int nCapturedBytes                  = 0;
+    private int nCapturedDataDest                           = ENUMS.CAPTURE_DATADEST_NONE;
+    private int nCapturedBlocks                             = 0;
+    private int nCapturedBytes                              = 0;
     
     //-----------------------------------------------------------------------------------------------
     // PLAYBACK
-    private AudioManager mAudioManager          = null;
+    private AudioManager mAudioManager                  = null;
     
     //-----------------------------------------------------------------------------------------------
     // VAD
-    private VADParams mVadParams                = null;
-    private final VADHandler mVadHandler        = new VADHandler(this);
-    private VADHandlerThread vad                = null;        
-//    private boolean    bStartVAD                   = false;              // do not start VAD on startCapture
+    private VADParams mVadParams                        = null;
+    private final VADHandler mVadServiceHandler         = new VADHandler(this);
+    private VADHandlerThread mVadHT                     = null;        
 
-    private int nDetectedChunks                 = 0;    
     //-----------------------------------------------------------------------------------------------
     // MFCC
-    private MFCCParams mMfccParams              = null;
-    private final MFCCHandler mMfccHandler      = new MFCCHandler(this);
-    private MFCCHandlerThread mfcc              = null;        
-    private Handler mMfccHandlerThread          = null;     // handler of MFCCHandlerThread to send messages 
+    private MFCCParams mMfccParams                      = null;
+    private final MFCCHandler mMfccServiceHandler       = new MFCCHandler(this);
+    private MFCCHandlerThread mMfccHT                   = null;        
+    private Handler mMfccHTLooper                       = null;     // looper of MFCCHandlerThread to send it messages 
 
-    private boolean bIsCalculatingMFCC          = false;              // do not calculate any mfcc score on startCatpure
-    private int nMFCCProcessedFrames            = 0;
-    private int nMFCCProcessedBlocks            = 0;
-    private int nMFCCFrames2beProcessed         = 0;
-    private int nMFCCExpectedFrames             = 0;        //updated by onCaptureData
+    private boolean bIsCalculatingMFCC                  = false;              // do not calculate any mfcc score on startCatpure
+    private int nMFCCProcessedFrames                    = 0;
+    private int nMFCCProcessedBlocks                    = 0;
+    private int nMFCCFrames2beProcessed                 = 0;
+    private int nMFCCExpectedFrames                     = 0;        //updated by onCaptureData
 
     // what to do with MFCC data
-    private int nMFCCDataDest                   = ENUMS.MFCC_DATADEST_NONE;        // send back to Web Layer or not  
-    private boolean bTriggerAction              = false;    // monitor nMFCCFrames2beProcessed zero-ing, when it goes to 0 and bTriggerAction=true => 
+    private int nMFCCDataDest                           = ENUMS.MFCC_DATADEST_NONE;        // send back to Web Layer or not  
+    private boolean bTriggerAction                      = false;    // monitor nMFCCFrames2beProcessed zero-ing, when it goes to 0 and bTriggerAction=true => 
     
     //-----------------------------------------------------------------------------------------------
     // TF
 //    private TFParams mTfParams                  = null;
     private final TFHandler mTfHandler          = new TFHandler(this);
-    private TFHandlerThread tf                  = null;        
+    private TFHandlerThread mTfHT                  = null;        
     //-----------------------------------------------------------------------------------------------
     
     //===============================================================================
@@ -118,31 +117,31 @@ public class SpeechRecognitionService extends Service
         try
         {
             // set PARTIAL_WAKE_LOCK to keep on using CPU resources also when the App is in background
-            PowerManager pm         = (PowerManager) this.getSystemService(Context.POWER_SERVICE);
-            cpuWeakLock             = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "cpuWeakLock");              
+            PowerManager pm = (PowerManager) this.getSystemService(Context.POWER_SERVICE);
+            cpuWeakLock     = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "cpuWeakLock");              
             
-            mAudioManager           = (AudioManager) this.getSystemService(Context.AUDIO_SERVICE); 
+            mAudioManager   = (AudioManager) this.getSystemService(Context.AUDIO_SERVICE); 
 
             //start the VAD HandlerThread
-            vad                     = new VADHandlerThread("VADHandlerThread", Process.THREAD_PRIORITY_MORE_FAVORABLE);
-            vad.start();   
+            mVadHT          = new VADHandlerThread("VADHandlerThread", Process.THREAD_PRIORITY_MORE_FAVORABLE);
+            mVadHT.start();   
 
             //start the MFCC HandlerThread
-            mfcc                    = new MFCCHandlerThread("MFCCHandlerThread", Process.THREAD_PRIORITY_MORE_FAVORABLE);
-            mfcc.start();   
+            mMfccHT         = new MFCCHandlerThread("MFCCHandlerThread", Process.THREAD_PRIORITY_MORE_FAVORABLE);
+            mMfccHT.start();   
 
             //start the TF HandlerThread
-            tf                      = new TFHandlerThread("TFHandlerThread", Process.THREAD_PRIORITY_MORE_FAVORABLE);
-            tf.start();   
+            mTfHT           = new TFHandlerThread("TFHandlerThread", Process.THREAD_PRIORITY_MORE_FAVORABLE);
+            mTfHT.start();   
 
             Log.d(LOG_TAG, "========> initService() <========="); 
             return "ok";
         }
         catch (Exception e) 
         {
-            vad             = null;
-            mfcc            = null;
-            tf              = null;
+            mVadHT  = null;
+            mMfccHT = null;
+            mTfHT   = null;
             e.printStackTrace();
             return e.toString();
         }            
@@ -155,27 +154,27 @@ public class SpeechRecognitionService extends Service
         {
             unlockCPU();             
             
-            if(vad != null){
-                vad.quit();
-                vad.interrupt();
+            if(mVadHT != null){
+                mVadHT.quit();
+                mVadHT.interrupt();
             }
             
-            if(mfcc != null){
-                mfcc.quit();
-                mfcc.interrupt();
+            if(mMfccHT != null){
+                mMfccHT.quit();
+                mMfccHT.interrupt();
             }
             
-            if(tf != null){
-                tf.quit();
-                tf.interrupt();
+            if(mTfHT != null){
+                mTfHT.quit();
+                mTfHT.interrupt();
             }
             Log.d(LOG_TAG, "========> unbindService() <========="); 
         }
         catch (Exception e) 
         {
-            vad             = null;
-            mfcc            = null;
-            tf              = null;
+            mVadHT             = null;
+            mMfccHT            = null;
+            mTfHT              = null;
             e.printStackTrace();
         }            
     }
@@ -203,16 +202,17 @@ public class SpeechRecognitionService extends Service
             {
                 mMfccParams             = mfccParams;
                 nMFCCDataDest           = mMfccParams.nDataDest;
-                mfcc.init(mMfccParams, mMfccHandler);       // MFCC send commands, results , status here
-                mMfccHandlerThread      = mfcc.getHandlerLooper();          // get the mfcc looper   
+                mMfccHT.init(mMfccParams, mMfccServiceHandler);         // MFCC send commands, results , status here
+                mMfccHTLooper           = mMfccHT.getHandlerLooper();   // get the mfcc looper   
                 
+                bIsCalculatingMFCC      = false;
                 if(mMfccParams.nDataDest > ENUMS.MFCC_DATADEST_NOCALC) 
-                    bIsCalculatingMFCC = true;
+                    bIsCalculatingMFCC  = true;
                 
                 if(mMfccParams.sOutputPath != "" && mMfccParams.nDataDest >= ENUMS.MFCC_DATADEST_FILE)
                     FileUtilities.deleteExternalStorageFile(mMfccParams.sOutputPath + "_scores.dat");
             }            
-            aicCapture                  = new AudioInputCapture(mCfgParams, aicHandler, null, aicHandler);    // if(mfccParams != null) : CAPTURE => MFCC              
+            aicCapture                  = new AudioInputCapture(mCfgParams, mAicServiceHandler, null, mAicServiceHandler);
             nCapturedDataDest           = mCfgParams.nDataDest;
 
         }
@@ -244,7 +244,7 @@ public class SpeechRecognitionService extends Service
         {
             callbackContext     = cb;
             mCfgParams          = cfgParams;            
-            aicCapture          = new AudioInputCapture(mCfgParams, aicHandler, ENUMS.PLAYBACK_MODE); 
+            aicCapture          = new AudioInputCapture(mCfgParams, mAicServiceHandler, ENUMS.PLAYBACK_MODE); 
             aicCapture.setWlCb(callbackContext);
             aicCapture.start();
             return true;
@@ -278,8 +278,8 @@ public class SpeechRecognitionService extends Service
             callbackContext             = wlcb;
             
 //            mTfParams                   = tfParams;     
-            tf.init(tfParams, mTfHandler, null, mTfHandler, callbackContext); 
-            return tf.loadModel();
+            mTfHT.init(tfParams, mTfHandler, null, mTfHandler, callbackContext); 
+            return mTfHT.loadModel();
         }
         catch (Exception e) 
         {
@@ -299,29 +299,29 @@ public class SpeechRecognitionService extends Service
             mMfccParams                 = mfccParams;
 //            mTfParams                   = tfParams;
             
-            Handler mTfHandlerThread    = tf.getHandlerLooper();            // get the tf looper
-            Handler mVadHandlerThread   = vad.getHandlerLooper();           // get the vad looper
-            Handler mMfccHandlerThread  = mfcc.getHandlerLooper();          // get the mfcc looper   
+            Handler tfHTLooper          = mTfHT.getHandlerLooper();            // get the tf looper
+            Handler vadHTLooper         = mVadHT.getHandlerLooper();           // get the mVadHT looper
+            mMfccHTLooper               = mMfccHT.getHandlerLooper();          // get the mfcc looper   
             
             // MFCCParams params, Handler statuscb, Handler commandcb, Handler resultcb
-            vad.init(mVadParams, mCfgParams, mVadHandler, mMfccHandlerThread, mVadHandler, callbackContext);        // VAD send commands to MFCC, status here 
+            mVadHT.init(mVadParams, mCfgParams, mVadServiceHandler, mMfccHTLooper, mVadServiceHandler, callbackContext);        // VAD send commands to MFCC, status here 
 
             // I get the length (first in samples, then in frames) of the max allowed speech chunk. 
-            int nMaxSpeechLengthSample  = vad.getMaxSpeechLengthSamples();  
+            int nMaxSpeechLengthSample  = mVadHT.getMaxSpeechLengthSamples();  
             int nMaxSpeechLengthFrames  = Framing.getFrames(nMaxSpeechLengthSample, mMfccParams.nWindowLength, mMfccParams.nWindowDistance);
             int nParams                 = (mMfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? 3*mMfccParams.nNumberOfMFCCParameters : 3*mMfccParams.nNumberofFilters);
 
             // I pass to MFCC to let him allocate the proper cepstra buffer
-            mfcc.init(mMfccParams, mMfccHandler, mTfHandlerThread, mTfHandlerThread, nMaxSpeechLengthSample);       // MFCC send commands & results to TF, status here
+            mMfccHT.init(mMfccParams, mMfccServiceHandler, tfHTLooper, tfHTLooper, nMaxSpeechLengthSample);       // MFCC send commands & results to TF, status here
             
             // A TF instance has been already created during the loadModel call. Thus, I only update the params in case something changed
             // TODO: I should check if the model file is the same
-            tf.setParams(tfParams);
-            tf.setWlCb(callbackContext);
-            tf.setCallbacks(mTfHandler, null, mTfHandler);
-            tf.setExtraParams(nMaxSpeechLengthFrames, nParams); // pass to TF to let him allocate the proper cepstra buffer
+            mTfHT.setParams(tfParams);
+            mTfHT.setWlCb(callbackContext);
+            mTfHT.setCallbacks(mTfHandler, null, mTfHandler);
+            mTfHT.setExtraParams(nMaxSpeechLengthFrames, nParams); // pass to TF to let him allocate the proper cepstra buffer
 
-            aicCapture                  = new AudioInputCapture(mCfgParams, aicHandler, null, mVadHandlerThread); // CAPTURE send data to VAD, status here
+            aicCapture                  = new AudioInputCapture(mCfgParams, mAicServiceHandler, null, vadHTLooper); // CAPTURE send data to VAD, status here
             aicCapture.start();
             return true;
         }
@@ -339,7 +339,7 @@ public class SpeechRecognitionService extends Service
     {
         callbackContext = cb;      
         aicCapture.stop();
-        vad.stopSpeechRecognition(callbackContext);
+        mVadHT.stopSpeechRecognition(callbackContext);
     }    
         
     public void getMFCC(MFCCParams mfccParams, String inputpathnoext, boolean overwrite, CallbackContext cb)
@@ -349,8 +349,8 @@ public class SpeechRecognitionService extends Service
             callbackContext             = cb;   
             mMfccParams                 = mfccParams;           
             nMFCCDataDest               = mMfccParams.nDataDest;
-            mfcc.init(mMfccParams, mMfccHandler, callbackContext);       // MFCC send commands & results to TF, status here            
-            mfcc.getMFCC(inputpathnoext, overwrite);   
+            mMfccHT.init(mMfccParams, mMfccServiceHandler, callbackContext);       // MFCC send commands & results to TF, status here            
+            mMfccHT.getMFCC(inputpathnoext, overwrite);   
         }
         catch (Exception e) 
         {
@@ -362,13 +362,13 @@ public class SpeechRecognitionService extends Service
     public void adjustVADThreshold(int newthreshold, CallbackContext cb)
     {
         callbackContext             = cb;   
-        vad.adjustVADThreshold(newthreshold);
+        mVadHT.adjustVADThreshold(newthreshold);
     }
             
     
     public void recognizeCepstraFile(String cepstra_file_path, CallbackContext wlcb)
     {
-        tf.recognizeCepstraFile(cepstra_file_path, wlcb);
+        mTfHT.recognizeCepstraFile(cepstra_file_path, wlcb);
     }
             
     public boolean isCapturing() {
@@ -401,10 +401,9 @@ public class SpeechRecognitionService extends Service
 
         if(bIsCalculatingMFCC)
         {   
-            Message newmsg  = Message.obtain(msg);
-            // I rename the msg code in order to tell MFCCThreadHandler that are captured data not to be sent to TF
-            newmsg.what     = ENUMS.CAPTURE_RESULT; 
-            mMfccHandlerThread.sendMessage(newmsg); // calculate MFCC/MFFILTERS ?? get a copy of the original message
+            Message newmsg  = Message.obtain(msg);  // get a copy of the original message
+            newmsg.what     = ENUMS.CAPTURE_RESULT; // I rename the msg code in order to tell mfccHT that are captured data not to be sent to TF
+            mMfccHTLooper.sendMessage(newmsg); 
         }
            
         // send raw to WEB ??
