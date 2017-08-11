@@ -17,6 +17,9 @@ public class CaptureParams
     public float fNormalizationFactor       = (float)DEFAULT.NORMALIZATION_FACTOR;    
     public int nDataDest                    = DEFAULT.DATADEST;
     public int nDataSubSample               = DEFAULT.DATASUBSAMPLE;
+    public int nChunkMaxLengthMS            = DEFAULT.CHUNK_MAXLENGTH_MS;
+    public String sOutputPath               = "";    
+    
  
     public CaptureParams(){}  
     
@@ -59,6 +62,12 @@ public class CaptureParams
                     case "nDataSubSample":
                         nDataSubSample          = init.getInt(field);
                         break;                        
+                    case "nChunkMaxLengthMS":
+                        nChunkMaxLengthMS       = init.getInt(field);
+                        break;                        
+                    case "sOutputPath":
+                        sOutputPath             = init.getString(field);
+                        break;                        
                 }
             }
         }
@@ -77,7 +86,9 @@ public class CaptureParams
         public static int BUFFER_SIZE               = 16384;
         public static int CONCATENATE_MAX_CHUNKS    = 10;
         public static double NORMALIZATION_FACTOR   = 32767.0;
-        public static int DATADEST                  = ENUMS.CAPTURE_DATADEST_JS_RAW;    // return data to WebLayer
+        public static int DATADEST                  = ENUMS.CAPTURE_DATADEST_JS_RAW;// return data to WebLayer
         public static int DATASUBSAMPLE             = 1;                            // do not apply subsampling rate (for data sent back to weblayer)
+        public static int CHUNK_MAXLENGTH_MS        = 20000;                        // duration (in ms) of the longest recordable audio chunk
+        public static String OUTPUT_PATH            = "";                           // path of the wav to be recorded
     }    
 }

@@ -36,10 +36,14 @@ public class ENUMS
     
     public static final int VAD_CMD_ADJUST_THRESHOLD    = 60; //      
     
-    public static final int CAPTURE_DATADEST_NONE       = 200;
-    public static final int CAPTURE_DATADEST_JS_RAW     = 201;
-    public static final int CAPTURE_DATADEST_JS_DB      = 202;
-    public static final int CAPTURE_DATADEST_JS_RAWDB   = 203;
+    public static final int CAPTURE_DATADEST_NONE           = 200;
+    public static final int CAPTURE_DATADEST_JS_RAW         = 201;
+    public static final int CAPTURE_DATADEST_JS_DB          = 202;
+    public static final int CAPTURE_DATADEST_JS_RAWDB       = 203;
+    public static final int CAPTURE_DATADEST_FILE           = 204;
+    public static final int CAPTURE_DATADEST_FILE_JS_RAW    = 205;
+    public static final int CAPTURE_DATADEST_FILE_JS_DB     = 206;
+    public static final int CAPTURE_DATADEST_FILE_JS_RAWDB  = 207;
     
     public static final int CAPTURE_MODE                = 211;
     public static final int PLAYBACK_MODE               = 212;

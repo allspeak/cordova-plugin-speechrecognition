@@ -190,24 +190,28 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
                             switch(mCfgParams.nDataDest)
                             {
                                 case ENUMS.CAPTURE_DATADEST_JS_RAW:
-                                    decoded  = Arrays.toString(data);
+                                    decoded     = Arrays.toString(data);
                                     info.put("data", decoded);
                                     break;
                                     
                                 case ENUMS.CAPTURE_DATADEST_JS_DB:
-                                    rms       = AudioInputCapture.getAudioLevels(data);
-                                    decibels  = AudioInputCapture.getDecibelFromAmplitude(rms);
+                                    rms         = AudioInputCapture.getAudioLevels(data);
+                                    decibels    = AudioInputCapture.getDecibelFromAmplitude(rms);
+                                    threshold   = vad.getCurrentThreshold();
+
                                     info.put("decibels", Float.toString(decibels));
-                                    threshold = vad.getCurrentThreshold();
                                     info.put("threshold", Float.toString(threshold));
                                     break;
 
                                 case ENUMS.CAPTURE_DATADEST_JS_RAWDB:
-                                    decoded  = Arrays.toString(data);
+                                    decoded     = Arrays.toString(data);
+                                    rms         = AudioInputCapture.getAudioLevels(data);
+                                    decibels    = AudioInputCapture.getDecibelFromAmplitude(rms);
+                                    threshold   = vad.getCurrentThreshold();
+                                    
                                     info.put("data", decoded);
-                                    rms       = AudioInputCapture.getAudioLevels(data);
-                                    decibels  = AudioInputCapture.getDecibelFromAmplitude(rms);
                                     info.put("decibels", decibels);
+                                    info.put("threshold", Float.toString(threshold));
                                     break;                                    
                             }
                             Messaging.sendUpdate2Web(mWlCb, info, true);

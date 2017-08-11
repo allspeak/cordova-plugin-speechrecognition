@@ -281,16 +281,11 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
     //                 |         | invalid
     //
     //             |_____|_______|
-    //            samples queue = 120 + 2 * steplength = 280 samples
+    //            samples' queue = 120 + 2 * steplength = 280 samples
     
     // receive new data, calculate how many samples must be sent to analysis.
     //      queued data +  new samples  =  to-be-processed + newque 
-    // then frame and return  to-be-processed = [nframes][nscores]
-    // newque = the last 120 samples of the to-be-processed data + remaining still-to-be-processed
-    //
-    // queue  =   last 120 samples of the to-be-processed data       still-to-be-processed       
-    //           ________________________________________________________________________________________________
-    //          |______________________________________________|_________________________________________________|
+    // then frame and return  to-be-processed = [nframes-nDeltaWindow][nscores]
     //
     private float[][] getQueuedFrames(float[] data)
     {
@@ -343,13 +338,13 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
                
                 Messaging.sendDataToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROCESS_STARTED, nframes, nProcessingOperations);
                 float[][] cepstra   = mfcc.processFramesTemporal(frames2beprocessed, mScoresQueue); //cepstra will be [nframes-nDeltaWindow][nscores*3]
+//                float[][] cepstra   = mfcc.processFramesSpectral(frames2beprocessed, null); //cepstra will be [nframes-nDeltaWindow][nscores*3]
                 int newframes       = cepstra.length;
                 if(newframes != (nframes-mfccParams.nDeltaWindow))
                 {
                     Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", "MFCCHandlerThread::handleMessage::MFCC_CMD_GETQDATA");
                     return false;
                 }
-//                nProcessedSamples   += (frames2beprocessed.length - );
                 nProcessedFrames    += newframes;
                 
                 // first cycle & after clearData()
@@ -358,8 +353,11 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
                     mScoresQueue[dw] = cepstra[newframes - mfccParams.nDeltaWindow + dw];
                 
                 if((int)msg.what == ENUMS.MFCC_CMD_GETQDATA) 
-                    Messaging.sendDataToHandler(mResultCallback, ENUMS.TF_CMD_NEWCEPSTRA, cepstra, newframes, nScores*3); // last params indicate how many frames must overwrite... mfccParams.nDeltaWindow);
-                
+                {
+                    float [][] cepstracopy = new float[newframes][nScores*3];
+                    for(int f=0; f<newframes; f++)  System.arraycopy(cepstra[f],0, cepstracopy, 0, nScores*3);                    
+                    Messaging.sendDataToHandler(mResultCallback, ENUMS.TF_CMD_NEWCEPSTRA, cepstracopy, newframes, nScores*3); // last params indicate how many frames must overwrite... mfccParams.nDeltaWindow);
+                }
                 break;
                 
             case ENUMS.MFCC_CMD_GETFILE:

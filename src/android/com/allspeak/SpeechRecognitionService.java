@@ -19,6 +19,7 @@ import android.media.AudioManager;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.Process;
+import android.os.Environment;
 
 import android.os.Handler;
 import android.os.Message;
@@ -41,6 +42,8 @@ import com.allspeak.audiocapture.AudioInputCapture;
 import com.allspeak.audiocapture.CaptureParams;
 import com.allspeak.tensorflow.TFParams;
 import com.allspeak.tensorflow.TFHandlerThread;
+import com.allspeak.audioprocessing.WavFile;
+
 //==========================================================================================================================
 public class SpeechRecognitionService extends Service 
 {
@@ -52,12 +55,13 @@ public class SpeechRecognitionService extends Service
     
     //-----------------------------------------------------------------------------------------------
     // CAPTURE
-    private CaptureParams mCfgParams                        = null;
+    private CaptureParams mCaptureParams                    = null;
     private final AudioCaptureHandler mAicServiceHandler    = new AudioCaptureHandler(this);
     private AudioInputCapture aicCapture                    = null;                                   // Capture instance
 
+    private float[] faCapturedChunk                         = null;
     private boolean bIsCapturing                            = false;
-
+    
     // what to do with captured data
     private int nCapturedDataDest                           = ENUMS.CAPTURE_DATADEST_NONE;
     private int nCapturedBlocks                             = 0;
@@ -92,9 +96,8 @@ public class SpeechRecognitionService extends Service
     
     //-----------------------------------------------------------------------------------------------
     // TF
-//    private TFParams mTfParams                  = null;
-    private final TFHandler mTfHandler          = new TFHandler(this);
-    private TFHandlerThread mTfHT                  = null;        
+    private final TFHandler mTfHandler                  = new TFHandler(this);
+    private TFHandlerThread mTfHT                       = null;        
     //-----------------------------------------------------------------------------------------------
     
     //===============================================================================
@@ -196,8 +199,23 @@ public class SpeechRecognitionService extends Service
     {
         try 
         {
-            callbackContext             = cb;
-            mCfgParams                  = cfgParams;
+            callbackContext = cb;
+            mCaptureParams  = cfgParams;
+            
+            switch((int)mCaptureParams.nDataDest)
+            {
+                case ENUMS.CAPTURE_DATADEST_FILE:
+                case ENUMS.CAPTURE_DATADEST_FILE_JS_RAW:
+                case ENUMS.CAPTURE_DATADEST_FILE_JS_DB:
+                case ENUMS.CAPTURE_DATADEST_FILE_JS_RAWDB:
+                    int nMaxChunkLengthSamples  = VAD.getMaxSpeechLengthSamples(mCaptureParams.nChunkMaxLengthMS, mCaptureParams.nSampleRate, mCaptureParams.nBufferSize);                                                // 63*1024 = 64512
+                    faCapturedChunk             = new float[nMaxChunkLengthSamples];             
+                    break;
+                default:
+                    faCapturedChunk = null;
+                    break;
+            } 
+            
             if(mfccParams != null)
             {
                 mMfccParams             = mfccParams;
@@ -212,8 +230,8 @@ public class SpeechRecognitionService extends Service
                 if(mMfccParams.sOutputPath != "" && mMfccParams.nDataDest >= ENUMS.MFCC_DATADEST_FILE)
                     FileUtilities.deleteExternalStorageFile(mMfccParams.sOutputPath + "_scores.dat");
             }            
-            aicCapture                  = new AudioInputCapture(mCfgParams, mAicServiceHandler, null, mAicServiceHandler);
-            nCapturedDataDest           = mCfgParams.nDataDest;
+            aicCapture                  = new AudioInputCapture(mCaptureParams, mAicServiceHandler, null, mAicServiceHandler);
+            nCapturedDataDest           = mCaptureParams.nDataDest;
 
         }
         catch (Exception e) 
@@ -243,8 +261,8 @@ public class SpeechRecognitionService extends Service
         try
         {
             callbackContext     = cb;
-            mCfgParams          = cfgParams;            
-            aicCapture          = new AudioInputCapture(mCfgParams, mAicServiceHandler, ENUMS.PLAYBACK_MODE); 
+            mCaptureParams      = cfgParams;            
+            aicCapture          = new AudioInputCapture(mCaptureParams, mAicServiceHandler, ENUMS.PLAYBACK_MODE); 
             aicCapture.setWlCb(callbackContext);
             aicCapture.start();
             return true;
@@ -277,7 +295,6 @@ public class SpeechRecognitionService extends Service
         {        
             callbackContext             = wlcb;
             
-//            mTfParams                   = tfParams;     
             mTfHT.init(tfParams, mTfHandler, null, mTfHandler, callbackContext); 
             return mTfHT.loadModel();
         }
@@ -294,17 +311,16 @@ public class SpeechRecognitionService extends Service
         {
             callbackContext             = wlcb;
             
-            mCfgParams                  = cfgParams;
+            mCaptureParams              = cfgParams;
             mVadParams                  = vadParams;
             mMfccParams                 = mfccParams;
-//            mTfParams                   = tfParams;
             
             Handler tfHTLooper          = mTfHT.getHandlerLooper();            // get the tf looper
             Handler vadHTLooper         = mVadHT.getHandlerLooper();           // get the mVadHT looper
             mMfccHTLooper               = mMfccHT.getHandlerLooper();          // get the mfcc looper   
             
             // MFCCParams params, Handler statuscb, Handler commandcb, Handler resultcb
-            mVadHT.init(mVadParams, mCfgParams, mVadServiceHandler, mMfccHTLooper, mVadServiceHandler, callbackContext);        // VAD send commands to MFCC, status here 
+            mVadHT.init(mVadParams, mCaptureParams, mVadServiceHandler, mMfccHTLooper, mVadServiceHandler, callbackContext);        // VAD send commands to MFCC, status here 
 
             // I get the length (first in samples, then in frames) of the max allowed speech chunk. 
             int nMaxSpeechLengthSample  = mVadHT.getMaxSpeechLengthSamples();  
@@ -321,7 +337,7 @@ public class SpeechRecognitionService extends Service
             mTfHT.setCallbacks(mTfHandler, null, mTfHandler);
             mTfHT.setExtraParams(nMaxSpeechLengthFrames, nParams); // pass to TF to let him allocate the proper cepstra buffer
 
-            aicCapture                  = new AudioInputCapture(mCfgParams, mAicServiceHandler, null, vadHTLooper); // CAPTURE send data to VAD, status here
+            aicCapture                  = new AudioInputCapture(mCaptureParams, mAicServiceHandler, null, vadHTLooper); // CAPTURE send data to VAD, status here
             aicCapture.start();
             return true;
         }
@@ -406,40 +422,56 @@ public class SpeechRecognitionService extends Service
             mMfccHTLooper.sendMessage(newmsg); 
         }
            
-        // send raw to WEB ??
-        if(mCfgParams.nDataDest != ENUMS.CAPTURE_DATADEST_NONE)
+        // send raw to WEB and/or file ??
+        if(mCaptureParams.nDataDest != ENUMS.CAPTURE_DATADEST_NONE)
         {
             try
             {
+                // check FILE destination
+                switch((int)mCaptureParams.nDataDest)
+                {
+                    case ENUMS.CAPTURE_DATADEST_FILE:
+                    case ENUMS.CAPTURE_DATADEST_FILE_JS_RAW:
+                    case ENUMS.CAPTURE_DATADEST_FILE_JS_DB:
+                    case ENUMS.CAPTURE_DATADEST_FILE_JS_RAWDB:
+                        System.arraycopy(data,0, faCapturedChunk, nCapturedBytes-data.length, data.length); // I already incremented nCapturedBytes, thus I append before
+                        break;
+                }                
+                // check WEB destination
                 float decibels, rms;
                 String decoded;
                 JSONObject info = new JSONObject(); 
-                info.put("data_type", mCfgParams.nDataDest); 
+                info.put("data_type", mCaptureParams.nDataDest); 
                 info.put("type", ENUMS.CAPTURE_RESULT);  
 
-                switch((int)mCfgParams.nDataDest)
+                switch((int)mCaptureParams.nDataDest)
                 {
                     case ENUMS.CAPTURE_DATADEST_JS_RAW:
+                    case ENUMS.CAPTURE_DATADEST_FILE_JS_RAW:
                         decoded  = Arrays.toString(data);
                         info.put("data", decoded);
+                        Messaging.sendUpdate2Web(callbackContext, info, true);
                         break;
 
                     case ENUMS.CAPTURE_DATADEST_JS_DB:
+                    case ENUMS.CAPTURE_DATADEST_FILE_JS_DB:
 
                         rms       = AudioInputCapture.getAudioLevels(data);
                         decibels  = AudioInputCapture.getDecibelFromAmplitude(rms);
                         info.put("decibels", decibels);
+                        Messaging.sendUpdate2Web(callbackContext, info, true);
                         break;
 
                     case ENUMS.CAPTURE_DATADEST_JS_RAWDB:
+                    case ENUMS.CAPTURE_DATADEST_FILE_JS_RAWDB:
                         decoded  = Arrays.toString(data);
                         info.put("data", decoded);
                         rms       = AudioInputCapture.getAudioLevels(data);
                         decibels  = AudioInputCapture.getDecibelFromAmplitude(rms);
                         info.put("decibels", decibels);
+                        Messaging.sendUpdate2Web(callbackContext, info, true);
                         break;
                 }
-                Messaging.sendUpdate2Web(callbackContext, info, true);
             }
             catch(JSONException e)
             {
@@ -447,7 +479,6 @@ public class SpeechRecognitionService extends Service
                 Log.e(LOG_TAG, e.getMessage(), e);
                 onCaptureError(e.getMessage());            
             }                         
-                        
         }
     }
     
@@ -478,8 +509,36 @@ public class SpeechRecognitionService extends Service
             {
                 nMFCCExpectedFrames = Framing.getFrames(ntotalReadBytes, mMfccParams.nWindowLength, mMfccParams.nWindowDistance) - mMfccParams.nDeltaWindow;
                 nMFCCFrames2beProcessed = nMFCCExpectedFrames - nMFCCProcessedFrames;
-            }            
+            }     
             
+            switch((int)mCaptureParams.nDataDest)
+            {
+                case ENUMS.CAPTURE_DATADEST_FILE:
+                case ENUMS.CAPTURE_DATADEST_FILE_JS_RAW:
+                case ENUMS.CAPTURE_DATADEST_FILE_JS_DB:
+                case ENUMS.CAPTURE_DATADEST_FILE_JS_RAWDB:
+                    float[] recorded_data = new float[nCapturedBytes];
+                    System.arraycopy(faCapturedChunk,0, recorded_data, 0, nCapturedBytes);
+
+                    String path = Environment.getExternalStorageDirectory() + "/" + mCaptureParams.sOutputPath + ".wav";
+//                    String cleanpath = mCaptureParams.sOutputPath.startsWith("file://") ? mCaptureParams.sOutputPath.split("file://")[1] : mCaptureParams.sOutputPath;
+                    WavFile.createWavFile(path, mCaptureParams.nChannels, recorded_data, 16, (long)mCaptureParams.nSampleRate, true);                        
+                    break;
+            }
+            sendStopEvent(totalReadBytes);
+        }
+        catch (Exception e)
+        {
+            sendStopEvent(totalReadBytes);
+            onCaptureError(e.toString());
+            e.printStackTrace();
+        }
+    }
+    
+    private void sendStopEvent(String totalReadBytes)
+    {
+        try
+        {
             unlockCPU();
             bIsCapturing    = false;
             JSONObject info = new JSONObject();
@@ -489,11 +548,14 @@ public class SpeechRecognitionService extends Service
             info.put("frames2beprocessed", nMFCCFrames2beProcessed);        
             info.put("bytesread", totalReadBytes);        
             info.put("expectedframes", nMFCCExpectedFrames);        
-            Messaging.sendUpdate2Web(callbackContext, info, true);
+            Messaging.sendUpdate2Web(callbackContext, info, true);    
         }
-        catch (JSONException e){e.printStackTrace();}
+        catch (Exception e)
+        {
+            onCaptureError(e.toString());
+            e.printStackTrace();
+        }            
     }
-    
     //------------------------------------------------------------------------------------------------
     // MFCC
     //------------------------------------------------------------------------------------------------

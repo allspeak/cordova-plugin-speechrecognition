@@ -37,6 +37,10 @@ speechrecognition.ENUM.PLUGIN   =
     CAPTURE_DATADEST_JS_RAW         : 201,
     CAPTURE_DATADEST_JS_DB          : 202,    
     CAPTURE_DATADEST_JS_RAWDB       : 203,    
+    CAPTURE_DATADEST_FILE           : 204,    
+    CAPTURE_DATADEST_FILE_JS_RAW    : 205,    
+    CAPTURE_DATADEST_FILE_JS_DB     : 206,    
+    CAPTURE_DATADEST_FILE_JS_RAWDB  : 207,    
     
     MFCC_DATADEST_NOCALC            : 230,    // DO NOT CALCULATE MFCC during capture
     MFCC_DATADEST_NONE              : 231,    // data(float[][])=> PLUGIN
@@ -166,7 +170,9 @@ speechrecognition.ENUM.capture.DEFAULT = {
     fNormalizationFactor    : 32767.0,
     nConcatenateMaxChunks   : 10,
     nAudioSourceType        : speechrecognition.ENUM.capture.AUDIOSOURCE_TYPE.DEFAULT,
-    nDataDest               : speechrecognition.ENUM.PLUGIN.CAPTURE_DATADEST_JS_RAW
+    nDataDest               : speechrecognition.ENUM.PLUGIN.CAPTURE_DATADEST_JS_RAW,
+    nChunkMaxLengthMS       : 20000,
+    sOutputPath             : ""
 };
 
 speechrecognition.ENUM.mfcc.DEFAULT = {
@@ -197,15 +203,15 @@ speechrecognition.ENUM.vad.DEFAULT = {
 };
 
 speechrecognition.ENUM.tf.DEFAULT = {
-    nInputParams        : 792,        
-    nContextFrames      : 11,        
-    nItems2Recognize    : 25,
-    sModelFilePath      : "",         
-    sLabelFilePath      : "",          
-    sInputNodeName      : "inputs/I",          
-    sOutputNodeName     : "O",      
-    nDataDest           : speechrecognition.ENUM.PLUGIN.TF_DATADEST_MODEL,      
-    fRecognitionThreshold : 0.1      
+    nInputParams            : 792,        
+    nContextFrames          : 11,        
+    nItems2Recognize        : 25,
+    sModelFilePath          : "",         
+    sLabelFilePath          : "",          
+    sInputNodeName          : "inputs/I",          
+    sOutputNodeName         : "O",      
+    nDataDest               : speechrecognition.ENUM.PLUGIN.TF_DATADEST_MODEL,      
+    fRecognitionThreshold   : 0.1      
 };
 //=========================================================================================
 // CHECK INPUT PARAMS
@@ -234,19 +240,20 @@ speechrecognition.checkCaptureParams = function(capture_params)
     speechrecognition.capture.params.fNormalizationFactor       = capture_params.fNormalizationFactor   || speechrecognition.ENUM.capture.DEFAULT.fNormalizationFactor;
     speechrecognition.capture.params.nConcatenateMaxChunks      = capture_params.nConcatenateMaxChunks  || speechrecognition.ENUM.capture.DEFAULT.nConcatenateMaxChunks;
     speechrecognition.capture.params.nDataDest                  = capture_params.nDataDest              || speechrecognition.ENUM.capture.DEFAULT.nDataDest;
+    speechrecognition.capture.params.nChunkMaxLengthMS          = capture_params.nChunkMaxLengthMS      || speechrecognition.ENUM.capture.DEFAULT.nChunkMaxLengthMS;
+    speechrecognition.capture.params.sOutputPath                = capture_params.sOutputPath            || speechrecognition.ENUM.capture.DEFAULT.sOutputPath;
     
-    if (speechrecognition.capture.params.nChannels < 1 && speechrecognition.capture.params.nChannels > 2) {
+    if (speechrecognition.capture.params.nChannels < 1 && speechrecognition.capture.params.nChannels > 2) 
         throw "Invalid number of channels (" + speechrecognition.capture.params.nChannels + "). Only mono (1) and stereo (2) is" +" supported.";
-    }
-    if (speechrecognition.capture.params.sFormat != "PCM_16BIT" && speechrecognition.capture.params.sFormat != "PCM_8BIT") {
+    
+    if (speechrecognition.capture.params.sFormat != "PCM_16BIT" && speechrecognition.capture.params.sFormat != "PCM_8BIT") 
         throw "Invalid format (" + speechrecognition.capture.params.sFormat + "). Only 'PCM_8BIT' and 'PCM_16BIT' is" + " supported.";
-    }
-    if (speechrecognition.capture.params.nBufferSize <= 0) {
+    
+    if (speechrecognition.capture.params.nBufferSize <= 0) 
         throw "Invalid bufferSize (" + speechrecognition.capture.params.nBufferSize + "). Must be greater than zero.";
-    }
-    if (speechrecognition.capture.params.nConcatenateMaxChunks <= 0) {
+    
+    if (speechrecognition.capture.params.nConcatenateMaxChunks <= 0)
         throw "Invalid concatenateMaxChunks (" + speechrecognition.capture.params.nConcatenateMaxChunks + "). Must be greater than zero.";
-    }
     
     return JSON.stringify(speechrecognition.capture.params); 
 };
@@ -506,6 +513,7 @@ speechrecognition._pluginEvent = function (data) {
                 switch(data.data_type)
                 {
                     case speechrecognition.ENUM.PLUGIN.CAPTURE_DATADEST_JS_RAW:
+                    case speechrecognition.ENUM.PLUGIN.CAPTURE_DATADEST_FILE_JS_RAW:
                         if (data && data.data && data.data.length > 0) 
                         {
                             var audioData = JSON.parse(data.data);
@@ -517,15 +525,24 @@ speechrecognition._pluginEvent = function (data) {
                         break;
                         
                     case speechrecognition.ENUM.PLUGIN.CAPTURE_DATADEST_JS_DB:
+                    case speechrecognition.ENUM.PLUGIN.CAPTURE_DATADEST_FILE_JS_DB:
                         
                         if(data.decibels == "-Infinity")    data.decibels = -1000;
-                        cordova.fireWindowEvent("audiometer", {decibels: Math.round(JSON.parse(data.decibels)), threshold: Math.round(JSON.parse(data.threshold))});   //mean decibel & threshold
+                        if(data.threshold != null)          
+                            cordova.fireWindowEvent("audiometer", {decibels: Math.round(JSON.parse(data.decibels)), threshold: Math.round(JSON.parse(data.threshold))});   //mean decibel & threshold
+                        else
+                            cordova.fireWindowEvent("audiometer", {decibels: Math.round(JSON.parse(data.decibels))});   //mean decibel & threshold
                         break;
                     
                     case speechrecognition.ENUM.PLUGIN.CAPTURE_DATADEST_JS_RAWDB:
+                    case speechrecognition.ENUM.PLUGIN.CAPTURE_DATADEST_FILE_JS_RAWDB:
   
-                        if(data.decibels == "-Infinity")    data.decibels = -1000;                        
-                        cordova.fireWindowEvent("audiometer", {decibels: Math.round(JSON.parse(data.decibels)), threshold: Math.round(JSON.parse(data.threshold))});   //mean decibel & threshold
+                        if(data.decibels == "-Infinity")    data.decibels = -1000;    
+                        
+                        if(data.threshold != null)          
+                            cordova.fireWindowEvent("audiometer", {decibels: Math.round(JSON.parse(data.decibels)), threshold: Math.round(JSON.parse(data.threshold))});   //mean decibel & threshold
+                        else
+                            cordova.fireWindowEvent("audiometer", {decibels: Math.round(JSON.parse(data.decibels))});   //mean decibel & threshold
                     
                         if (data && data.data && data.data.length > 0) 
                         {

@@ -15,23 +15,24 @@ import org.json.JSONArray;
 
 import android.util.Log;
 
-
 import com.allspeak.utility.Messaging;
-
 
 import com.allspeak.ENUMS;
 import com.allspeak.ERRORS;
+
 import com.allspeak.utility.StringUtilities;
 import com.allspeak.utility.FileUtilities;
 import com.allspeak.utility.TrackPerformance;
-
 import com.allspeak.utility.Messaging;
 
+import com.allspeak.audioprocessing.mfcc.MFCC;
+        
 import com.allspeak.tensorflow.TensorFlowSpeechClassifier;
 import com.allspeak.tensorflow.Classifier.Recognition;
 import com.allspeak.tensorflow.Classifier;
 import java.util.List;
 import java.util.Locale;
+
 /*
 it sends the following messages to Plugin Activity:
 - data
@@ -164,7 +165,10 @@ public class TF
         float[][] contextedCepstra = null;
         
         if(cepstra[0].length != mTfParams.nInputParams)
-            contextedCepstra = getContextedFrames(cepstra, frames2recognize);  // [?][72] => [?][792]
+        {
+            MFCC.normalizeFrames(cepstra, frames2recognize);
+            contextedCepstra = MFCC.getContextedFrames(cepstra, frames2recognize, mTfParams.nContextFrames, mTfParams.nInputParams);  // [?][72] => [?][792]
+        }
         else
             contextedCepstra = cepstra;
         
@@ -192,15 +196,12 @@ public class TF
                 {
                     case ENUMS.TF_DATADEST_MODEL_FILE:
                     case ENUMS.TF_DATADEST_FILEONLY:
-                        String outfile      = "AllSpeak/audiofiles/temp/cepstra.dat";
-                        String outfile_ctx  = "AllSpeak/audiofiles/temp/ctx_cepstra.dat";
-                        
-//                        String scores = StringUtilities.exportArray2String(cepstra, "%.4f", frames2recognize);
-//                        FileUtilities.writeStringToFile(outfile, scores, true);
-                        
-                        FileUtilities.write2DArrayToFile(cepstra, frames2recognize, outfile, "%.4f", true);
-                        FileUtilities.write2DArrayToFile(contextedCepstra, frames2recognize, outfile_ctx, "%.4f", true);
-                        break;
+//                        String outfile      = "AllSpeak/audiofiles/temp/cepstra_live.dat";
+//                        String outfile_ctx  = "AllSpeak/audiofiles/temp/ctx_cepstra_live.dat";
+//                        
+//                        FileUtilities.write2DArrayToFile(cepstra, frames2recognize, outfile, "%.4f", true);
+////                        FileUtilities.write2DArrayToFile(contextedCepstra, frames2recognize, outfile_ctx, "%.4f", true);
+//                        break;
                 }
             }
             catch(Exception e)
@@ -221,67 +222,6 @@ public class TF
         FileUtilities.writeStringToFile(filename, str_cepstra, true);        
         return true;
     }
-    
-    private float[][] getContextedFrames(float[][] cepstra, int frames2recognize)    // cepstra = [?][72]
-    {
-        int ncepstra                    = cepstra[0].length;
-        float[][] contextedCepstra      = new float[frames2recognize][mTfParams.nInputParams];
-        int startId, endId, cnt,corr_pf = 0;
-        
-        int preFrames  = (int)Math.floor((double)(mTfParams.nContextFrames*1.0)/2);
-        // append Context frames (from 72 => 792 = tfParams.nInputParam)
-        for (int f=0; f<frames2recognize; f++)
-        {
-            if(f<preFrames)
-            {
-                startId = f - preFrames;
-                endId   = f + preFrames;  
-                cnt     = 0;
-                for(int pf=startId; pf<endId; pf++)
-                {
-                    if(pf < 0) corr_pf = 0;
-                    for(int ff=0; ff<ncepstra; ff++)
-                    {
-                        contextedCepstra[f][cnt] = cepstra[corr_pf][ff];                
-                        cnt++;
-                    }
-                }
-            }
-            else if(f > (frames2recognize-preFrames-1))
-            {
-                startId = f - preFrames;
-                endId   = f + preFrames;  
-                cnt     = 0;
-                for(int pf=startId; pf<endId; pf++)
-                {
-                    if(pf > (frames2recognize-1)) corr_pf = frames2recognize-1;
-                    for(int ff=0; ff<ncepstra; ff++)
-                    {
-                        contextedCepstra[f][cnt] = cepstra[corr_pf][ff];                
-                        cnt++;
-                    }
-                }                
-            }
-            else
-            {
-                startId = f - preFrames;
-                endId   = f + preFrames;  
-                cnt     = 0;
-                for(int pf=startId; pf<endId; pf++)
-                {
-                    for(int ff=0; ff<ncepstra; ff++)
-                    {
-                        contextedCepstra[f][cnt] = cepstra[pf][ff];                
-                        cnt++;
-                    }
-                }
-            }
-        }
-        return contextedCepstra;
-    } 
-    
-    
-
     //======================================================================================    
 }
 
