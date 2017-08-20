@@ -33,57 +33,54 @@ public class MFCCCalcJAudio
 
     private static final String TAG = "MFCCCalcJAudio";
     
-       //parameter USEPOWER in HTK, where default is false
+    // parameter USEPOWER in HTK, where default is false
     private static final boolean m_ousePowerInsteadOfMagnitude = false;
 
-    /**Number of MFCCs per speech frame.
-     */
+    // Number of MFCCs per speech frame.
     private final int m_nnumberOfParameters;
-    /**Sampling frequency.
-     */
+    
+    // Sampling frequency.
     private final double m_dSamplingFrequency;
-    /**Number of filter in mel filter bank.
-     */
+    
+    // Number of filter in mel filter bank.
     private final int m_nnumberOfFilters;
-    /**Number of FFT points.
-     */
+
+    // Number of FFT points.
     private final int m_nFFTLength;
+
     /**Coefficient of filtering performing in cepstral domain
      * (called 'liftering' operation). It is not used if
-     * m_bIsLifteringEnabled  is false.
-     */
-    
+     * m_bIsLifteringEnabled  is false.*/
     private final int m_nLifteringCoefficient;
-    /**True enables liftering.
-     */
+    
+    //True enables liftering.
     private final boolean m_bIsLifteringEnabled ;
+    
     /**Minimum value of filter output, otherwise the log is not calculated
      * and m_dlogFilterOutputFloor is adopted.
      * ISIP implementation assumes m_dminimumFilterOutput = 1 and this value is used
-     * here.
-     */
+     * here. */
     private final double m_dminimumFilterOutput = 1.0;
 
-    /**True if the zero'th MFCC should be calculated.
-     */
+    //True if the zero'th MFCC should be calculated.
     private final boolean m_bCalculate0ThCoeff ;
 
     /**Floor value for filter output in log domain.
      * ISIP implementation assumes m_dlogFilterOutputFloor = 0 and this value is used
-     * here.
-     */
+     * here.  */
     private final double m_dlogFilterOutputFloor = 0.0;
-    private int[][] m_nboundariesDFTBins;
-    private double[][] m_dweights;
+    
     private FFT m_fft;
-    private double[][] m_ddCTMatrix;
 
     private double[] m_ffilterOutput;
     private final double[] m_nlifteringMultiplicationFactor;
 
     //things to be calculated just once:
     private final double m_dscalingFactor;
-
+    private double[][] m_ddCTMatrix;
+    private double[][] m_dweights;
+    private int[][] m_nboundariesDFTBins;
+    
     //-------------------------------------------------------------------------
     // NEW SECTION: manage framing, default cepstra calculated and spectral derivatives
     //-------------------------------------------------------------------------

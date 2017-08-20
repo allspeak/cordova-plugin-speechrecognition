@@ -60,14 +60,17 @@
         <source-file src="src/android/com/allspeak/tensorflow/TFParams.java" target-dir="src/com/allspeak/tensorflow" />
         <source-file src="src/android/com/allspeak/tensorflow/Classifier.java" target-dir="src/com/allspeak/tensorflow" />
         <source-file src="src/android/com/allspeak/tensorflow/TensorFlowSpeechClassifier.java" target-dir="src/com/allspeak/tensorflow" />
-        <source-file src="src/android/tf_libs/libandroid_tensorflow_inference_java.jar" target-dir="libs" />
-        <source-file src="src/android/tf_libs/armeabi-v7a/libtensorflow_inference.so" target-dir="libs/armeabi" />        
         <source-file src="src/android/com/allspeak/utility/Messaging.java" target-dir="src/com/allspeak/utility/" />   
         <source-file src="src/android/com/allspeak/utility/StringUtilities.java" target-dir="src/com/allspeak/utility/" />   
         <source-file src="src/android/com/allspeak/utility/FileUtilities.java" target-dir="src/com/allspeak/utility/" />   
         <source-file src="src/android/com/allspeak/utility/TrackPerformance.java" target-dir="src/com/allspeak/utility/" />  
         <source-file src="src/android/com/allspeak/utility/AudioDevicesManager.java" target-dir="src/com/allspeak/utility/" />  
         <source-file src="src/android/com/allspeak/utility/ArrayList2d.java" target-dir="src/com/allspeak/utility/" />  
+        
+        <source-file src="src/android/tf_libs/libandroid_tensorflow_inference_java.jar" target-dir="libs" />
+        <source-file src="src/android/tf_libs/armeabi-v7a/libtensorflow_inference.so" target-dir="libs/armeabi" />        
+<!--        <source-file src="src/android/com/allspeak/audioprocessing/HelloJni.java" target-dir="src/android/com/allspeak/audioprocessing/" />
+        <source-file src="src/android/libs/armeabi-v7a/libhello-jni.so" target-dir="libs/armeabi/" />        -->
     </platform>
 
     <!-- ios -->

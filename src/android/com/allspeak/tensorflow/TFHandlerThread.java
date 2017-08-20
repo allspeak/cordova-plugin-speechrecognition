@@ -14,6 +14,9 @@ import com.allspeak.ERRORS;
 import com.allspeak.utility.Messaging;
 import com.allspeak.utility.FileUtilities;
 
+import com.allspeak.audioprocessing.mfcc.MFCC;
+import com.allspeak.audioprocessing.mfcc.Framing;
+
 // not necessary
 import com.allspeak.tensorflow.TFParams;
 import com.allspeak.tensorflow.TF;
@@ -205,69 +208,80 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
     @Override
     public boolean handleMessage(Message msg) 
     {
-        Bundle bundle = msg.getData();
-        int nframes;
-        float[] data = null;
-        float[][] cepstra = null;
-        switch((int)msg.what)
+        
+        try
         {
-            case ENUMS.TF_CMD_CLEAR:  
-                int row,col;
-                if(msg.arg1 != 0 && msg.arg2 != 0)
-                {
-                    row = msg.arg1;
-                    col = msg.arg2;
-                }
-                else
-                {
-                    row = nMaxSpeechLengthFrames;
-                    col = nColumns;                    
-                }    
-                clearData(row, col);
-                break;
-                
-            case ENUMS.TF_CMD_RECOGNIZE:  
-                nframes             = bundle.getInt("nframes");
-                boolean res         = checkData(nframes);
-                if(true)            tf.doRecognize(faCalculatedCepstra, nProcessedFrames);// TODO: decide what to do whether the frames do not correspond
-                break;
-                
-            case ENUMS.TF_CMD_RECOGNIZE_FILE:  
-                String cepstra_file = bundle.getString("file");
-                try
-                {
-                    cepstra             = FileUtilities.read2DArrayFromFile(cepstra_file);
-                    if(true)            tf.doRecognize(cepstra, cepstra.length);// TODO: decide what to do whether the frames do not correspond                    
-                }
-                catch(Exception e)
-                {
-                    e.printStackTrace();
-                }  
-                break;
-                
-            case ENUMS.TF_CMD_LOADMODEL:  
-                tf.loadModel();
-                break;
-                
-            case ENUMS.TF_CMD_NEWCEPSTRA:  
-                    
-                data                = bundle.getFloatArray("data");
-                nframes             = bundle.getInt("nframes");
-                int nparams         = bundle.getInt("nparams");
-                cepstra             = Messaging.deFlattenArray(data, nframes, nparams);
-                
-                // store calculated cepstra in its buffer
-                for(int f=0; f<nframes; f++) System.arraycopy(cepstra[f], 0, faCalculatedCepstra[nProcessedFrames+f], 0, nparams);   
+            Bundle bundle = msg.getData();
+            int nframes;
+            float[] data = null;
+            float[][] cepstra = null;
+            switch((int)msg.what)
+            {
+                case ENUMS.TF_CMD_CLEAR:  // frequently called by VAD ht & on TF HT init
+                    int row,col;
+                    row                     = nMaxSpeechLengthFrames;
+                    col                     = nColumns;                   
 
-//                try{
-//                String outfile      = "AllSpeak/audiofiles/temp/cepstra.dat";
-//                FileUtilities.write2DArrayToFile(cepstra, nframes, outfile, "%.4f", true);
-//                }catch(Exception e){e.printStackTrace();};
-                
+                    if(msg.arg1 != 0)   row = msg.arg1;
+                    if(msg.arg2 != 0)   col = msg.arg2;
+
+                    clearData(row, col);
+                    break;
+
+                case ENUMS.TF_CMD_RECOGNIZE:  
+                    nframes             = bundle.getInt("nframes");
+                    boolean res         = checkData(nframes);
+                    if(true)    // TODO: decide what to do whether the frames do not correspond
+                    {
+    //                    float[][] final_data = new float[nProcessedFrames][nColumns];
+    //                    for(int f=0; f<nProcessedFrames; f++)
+    //                        System.arraycopy(faCalculatedCepstra[f], 0, final_data[f], 0, nColumns);
+
+                        Framing.normalizeFrames(faCalculatedCepstra, nProcessedFrames);                    
+
+//                        String outfile      = "AllSpeak/audiofiles/temp/cepstra_live.dat";  FileUtilities.write2DArrayToFile(faCalculatedCepstra, nProcessedFrames, outfile, "%.4f", true);                    
+                        tf.doRecognize(faCalculatedCepstra, nProcessedFrames);
+                    }
+                    break;
+
+                case ENUMS.TF_CMD_RECOGNIZE_FILE:  
+                    String cepstra_file = bundle.getString("file");
+                    try
+                    {
+                        cepstra             = FileUtilities.read2DArrayFromFile(cepstra_file);
+                        if(true)            tf.doRecognize(cepstra, cepstra.length);// TODO: decide what to do whether the frames do not correspond                    
+                    }
+                    catch(Exception e)
+                    {
+                        e.printStackTrace();
+                    }  
+                    break;
+
+                case ENUMS.TF_CMD_LOADMODEL:  
+                    tf.loadModel();
+                    break;
+
+                case ENUMS.TF_CMD_NEWCEPSTRA:  
+
+                    data                = bundle.getFloatArray("data");
+                    nframes             = bundle.getInt("nframes");
+                    int nparams         = bundle.getInt("nparams");
+                    cepstra             = Messaging.deFlattenArray(data, nframes, nparams);
+
+                    // store calculated cepstra in its buffer
+                    for(int f=0; f<nframes; f++) System.arraycopy(cepstra[f], 0, faCalculatedCepstra[nProcessedFrames+f], 0, nparams);   
                     nProcessedFrames += nframes;
-                break;
+                   break;
+            }
+            return true;
         }
-        return true;
+        catch(Exception e)
+        {
+            e.printStackTrace();                  
+            Log.e(LOG_TAG, e.getMessage(), e);
+            Messaging.sendErrorString2Web(mWlCb, e.getMessage(), ERRORS.TF_ERROR, true);            
+            return false;
+        }
     }    
     @Override
     protected void onLooperPrepared() 

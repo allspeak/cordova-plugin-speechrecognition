@@ -23,7 +23,9 @@ public class ENUMS
     public static final int MFCC_CMD_GETFOLDER          = 37; //
     public static final int MFCC_CMD_CLEAR              = 38; //
     public static final int MFCC_CMD_SENDDATA           = 39; //
-    public static final int MFCC_RESULT                 = 40; //
+    public static final int MFCC_CMD_FINALIZEDATA       = 40; //  during capturing, onStopCapture => close file calculation, normalize data (& contexting?)
+    public static final int MFCC_CMD_INITDATA           = 41; //
+    public static final int MFCC_RESULT                 = 42; //
     
     public static final int TF_STATUS_MODEL_LOADED      = 50; // recognizing process started
     public static final int TF_STATUS_PROCESS_STARTED   = 51; // recognizing process started

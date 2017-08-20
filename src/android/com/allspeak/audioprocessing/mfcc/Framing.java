@@ -67,5 +67,149 @@ public class Framing
             return frames;
         }
     }    
+    
+    /**
+     * performs Hamming Window<br>
+     * calls: none<br>
+     * called by: featureExtraction
+     * @param frame A frame
+     * @return Processed frame with hamming window applied to it
+     */
+    public static void hammingWindow(float[][] frames, float[] hammWnd)
+    {
+        int frameLength = frames[0].length; 
+        for (int f = 0; f < frames.length; f++){
+            for (int s = 0; s < frameLength; s++){
+                frames[f][s] *= hammWnd[s];
+            }
+        }
+    }
+    
+    
+    public static float[] initHamming(int frame_length)
+    {
+        float w[] = new float[frame_length];
+        for (int n = 0; n < frame_length; n++)   w[n] = (float)(0.54 - 0.46 * Math.cos((2*Math.PI*n)/(frame_length - 1)));
+        return w;
+    }
+    public static float[][] preProcessing(float[] inputSignal, int fwidth, int fdistance, float alpha, float[] hammWnd)
+    {
+//        float[] data        = preEmphasis(inputSignal, alpha);
+        float[][] frames    = frameVector(inputSignal, fwidth, fdistance);
+//        hammingWindow(frames, hammWnd);
+        return frames;
+    }
+    /**
+     * perform pre-emphasis to equalize amplitude of high and low frequency<br>
+     * calls: none<br>
+     * called by: featureExtraction
+     * @param inputSignal Speech Signal (16 bit integer data)
+     * @return Speech signal after pre-emphasis (16 bit integer data)
+     */
+    public static float[] preEmphasis(float inputSignal[], float alpha)
+     {
+        float outputSignal[] = new float[inputSignal.length];
+        
+        // apply pre-emphasis to each sample
+        for (int n = 1; n < inputSignal.length; n++)  outputSignal[n] = inputSignal[n] - alpha*inputSignal[n - 1];
+        return outputSignal;
+    }    
+    
+    public static void normalizeFrames(float[][] cepstra)
+    {
+        normalizeFrames(cepstra, cepstra.length);
+    }
+    
+    public static void normalizeFrames(float[][] cepstra, int frames2recognize)
+    {
+        int nscores         = cepstra[0].length;
+        float[] means       = new float[nscores];
+        float[] sd          = new float[nscores];
+        
+        // means
+        for(int sc=0; sc<nscores; sc++)
+        {
+            for(int f=0; f<frames2recognize; f++)
+                means[sc] += cepstra[f][sc]; 
+            means[sc] /= frames2recognize;
+        }
+
+        // standard Deviations
+        float variance=0;
+        for(int sc=0; sc<nscores; sc++)
+        {
+            variance=0;
+            for(int f=0; f<frames2recognize; f++)
+                variance += (cepstra[f][sc] - means[sc])*(cepstra[f][sc] - means[sc]); 
+            variance   /= frames2recognize;
+            sd[sc]      = (float)Math.sqrt(variance);
+        }        
+        
+        // normalize data
+        for(int sc=0; sc<nscores; sc++)
+        {
+            if(sd[sc] == 0)
+                for(int f=0; f<frames2recognize; f++)
+                    cepstra[f][sc] = 0;                 
+            else
+                for(int f=0; f<frames2recognize; f++)
+                    cepstra[f][sc] = (cepstra[f][sc] - means[sc])/sd[sc]; 
+        }
+    }  
+    
+    public static float[][] getContextedFrames(float[][] cepstra, int nctxframes, int noutparams)    // cepstra = [:][72] => [:][792] 
+    {
+        return getContextedFrames(cepstra, nctxframes, noutparams, cepstra.length);
+    }
+
+    // cepstra can be only partially filled, thus I process up to frames2recognize
+    public static float[][] getContextedFrames(float[][] cepstra, int nctxframes, int noutparams, int frames2recognize)    // cepstra = [:][72] => [:][792] 
+    {
+        int ncepstra                    = cepstra[0].length;
+        float[][] contextedCepstra      = new float[frames2recognize][noutparams];
+        int startId, endId, cnt,corr_pf = 0;
+        
+        int preFrames  = (int)Math.floor((double)(nctxframes*1.0)/2);
+        // append Context frames (from 72 => 792 = tfParams.nInputParam)
+        for (int f=0; f<frames2recognize; f++)
+        {
+            startId = f - preFrames;
+            endId   = f + preFrames + 1; // won't be included in the for...
+            cnt     = 0;
+            
+            if(f < (frames2recognize-preFrames))
+            {
+                // from frames = [0 : frames2recognize-preFrames-1]
+                for(int pf=startId; pf<endId; pf++)
+                {
+                    if(pf < 0)  corr_pf = 0;
+                    else        corr_pf = pf;
+                    for(int ff=0; ff<ncepstra; ff++)
+                    {
+                        contextedCepstra[f][cnt] = cepstra[corr_pf][ff];                
+                        cnt++;
+                    }
+                }                
+            }
+            else
+            {
+                // from frames = [frames2recognize-preFrames : frames2recognize-1]
+                for(int pf=startId; pf<endId; pf++)
+                {
+                    if(pf > (frames2recognize-1))   corr_pf = frames2recognize-1;
+                    else                            corr_pf = pf;
+                    
+                    for(int ff=0; ff<ncepstra; ff++)
+                    {
+                        contextedCepstra[f][cnt] = cepstra[corr_pf][ff];                
+                        cnt++;
+                    }
+                }                
+            }
+        }
+        return contextedCepstra;
+    }      
+   
+    
     // =======================================================================================================
 }

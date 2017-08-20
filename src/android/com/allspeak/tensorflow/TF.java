@@ -25,7 +25,7 @@ import com.allspeak.utility.FileUtilities;
 import com.allspeak.utility.TrackPerformance;
 import com.allspeak.utility.Messaging;
 
-import com.allspeak.audioprocessing.mfcc.MFCC;
+import com.allspeak.audioprocessing.mfcc.Framing;
         
 import com.allspeak.tensorflow.TensorFlowSpeechClassifier;
 import com.allspeak.tensorflow.Classifier.Recognition;
@@ -166,8 +166,8 @@ public class TF
         
         if(cepstra[0].length != mTfParams.nInputParams)
         {
-            MFCC.normalizeFrames(cepstra, frames2recognize);
-            contextedCepstra = MFCC.getContextedFrames(cepstra, frames2recognize, mTfParams.nContextFrames, mTfParams.nInputParams);  // [?][72] => [?][792]
+            Framing.normalizeFrames(cepstra, frames2recognize);
+            contextedCepstra = Framing.getContextedFrames(cepstra, mTfParams.nContextFrames, mTfParams.nInputParams, frames2recognize);  // [?][72] => [?][792]
         }
         else
             contextedCepstra = cepstra;

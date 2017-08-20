@@ -24,7 +24,7 @@ speechrecognition.ENUM.PLUGIN   =
     SPEECH_STATUS_MAX_LENGTH        : 23,
     SPEECH_STATUS_MIN_LENGTH        : 24,
     
-    MFCC_RESULT                     : 40, //
+    MFCC_RESULT                     : 42, //
     MFCC_STATUS_PROGRESS_DATA       : 31, //
     MFCC_STATUS_PROGRESS_FILE       : 32, //
     MFCC_STATUS_PROGRESS_FOLDER     : 33, //   suspended for a bug
@@ -43,13 +43,13 @@ speechrecognition.ENUM.PLUGIN   =
     CAPTURE_DATADEST_FILE_JS_RAWDB  : 207,    
     
     MFCC_DATADEST_NOCALC            : 230,    // DO NOT CALCULATE MFCC during capture
-    MFCC_DATADEST_NONE              : 231,    // data(float[][])=> PLUGIN
-    MFCC_DATADEST_JSPROGRESS        : 232,    // data=> PLUGIN + progress(filename)=> WEB
-    MFCC_DATADEST_JSDATA            : 233,    // data=> PLUGIN + progress(filename) + data(JSONArray)=> WEB
-    MFCC_DATADEST_JSDATAWEB         : 234,    // data(JSONArray)=> WEB
-    MFCC_DATADEST_FILE              : 235,    // progress(filename)=> PLUGIN + data(String)=> FILE
-    MFCC_DATADEST_FILEWEB           : 236,    // progress(filename)=> PLUGIN + data(String)=> FILE + data(JSONArray)=> WEB
-    MFCC_DATADEST_ALL               : 237,    // data=> PLUGIN + data(String)=> FILE + data(JSONArray)=> WEB
+    MFCC_DATADEST_NONE              : 231,    // data(float[][])    => SERVICE
+    MFCC_DATADEST_JSPROGRESS        : 232,    // data               => SERVICE + progress(filename) => WEB
+    MFCC_DATADEST_JSDATA            : 233,    // data               => SERVICE + progress(filename) + data(JSONArray) => WEB
+    MFCC_DATADEST_JSDATAWEB         : 234,    // data(JSONArray)    => WEB
+    MFCC_DATADEST_FILE              : 235,    // progress(filename) => SERVICE + data(String) => FILE
+    MFCC_DATADEST_FILEWEB           : 236,    // progress(filename) => SERVICE + data(String) => FILE + data(JSONArray) => WEB
+    MFCC_DATADEST_ALL               : 237,    // data               => SERVICE + data(String) => FILE + data(JSONArray) => WEB
     
     MFCC_DATAORIGIN_JSONDATA        : 240,
     MFCC_DATAORIGIN_FILE            : 241,

@@ -71,6 +71,7 @@ public class MFCC
     private int[] indicesout;
     private int nDerivDenom;
     
+    public float[] hammingWnd = null;
 //    private float[][] mDerivativesQueue = null;  // store the last nDeltaWindow-samples to calculate derivatives 
     
     //================================================================================================================
@@ -127,6 +128,8 @@ public class MFCC
                                         mfccParams.nDataType,
                                         nScores,
                                         mfccParams.nDeltaWindow); 
+        
+        hammingWnd = Framing.initHamming(mfccParams.nWindowLength);
     }   
     
     public void setWlCb(CallbackContext wlcb)
@@ -136,9 +139,7 @@ public class MFCC
     
     public void setCallbacks(Handler cb)
     {
-        mStatusCallback = cb;
-        mCommandCallback = cb;
-        mResultCallback = cb;
+        setCallbacks(cb, cb, cb);
     }    
     
     public void setCallbacks(Handler scb, Handler ccb, Handler rcb)
@@ -147,16 +148,14 @@ public class MFCC
         mCommandCallback    = ccb;
         mResultCallback     = rcb;
     }    
-    
-
     //================================================================================================================
     //================================================================================================================
     //=================================================================================================================
     // COMMANDS
     //=================================================================================================================
     //=================================================================================================================
-
-
+    // FILE processing :  MFCC -> derivatives -> normalize -> contexting
+    // LIVE processing :  MFCC -> derivatives 
     //=================================================================================================================
     // ONE SHOT PROCESSING, e.g. file/folder,
     //=================================================================================================================
@@ -169,15 +168,15 @@ public class MFCC
         {
 //            tp                  = new TrackPerformance(5); // I want to monitor : wav read (if applicable), params calculation, data export(if applicable), data write(if applicable), data json packaging(if applicable)
             mfccParams.sOutputPath  = StringUtilities.removeExtension(input_file_noext);
-            String sAudiofile       = mfccParams.sOutputPath + ".wav";
-            float[] data            = WavFile.getWavData(Environment.getExternalStorageDirectory() + "/" + sAudiofile);  
-            
-            int nframes             = Framing.getFrames(data.length, mfccParams.nWindowLength, mfccParams.nWindowDistance);
-            
+            String audio_relfile    = mfccParams.sOutputPath + ".wav";
             String mfcc_relfile     = mfccParams.sOutputPath + "_scores.dat";
             
+            float[] data            = WavFile.getWavData(Environment.getExternalStorageDirectory() + "/" + audio_relfile);  
+            int nframes             = Framing.getFrames(data.length, mfccParams.nWindowLength, mfccParams.nWindowDistance);
+            
             // Since I write appending, I have to decide what to do with the existing files.
-            // 1) keep the existing file and skip or 2) delete it 
+            // 1) go on appending to the existing file and skip 
+            // 2) delete it 
             if(FileUtilities.existRelFile(mfcc_relfile))
             {
                 if(overwrite) FileUtilities.deleteExternalStorageFile(mfcc_relfile); 
@@ -191,14 +190,16 @@ public class MFCC
                         Messaging.sendMessageToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROGRESS_FILE, "progress_file", mfccParams.sOutputPath);                    
                         return;
                     }                        
-                    else    // the file exist but is corrupted...presumably a crash during processing
+                    else    // the file exist but is corrupted...presumably a crash during processing..I delete it
                         FileUtilities.deleteExternalStorageFile(mfcc_relfile); 
                 }
             }
             
 //            tp.addTimepoint(1);
-//            processFramesSpectral(Framing.frameVector(data, mfccParams.nWindowLength, mfccParams.nWindowDistance));
-            processFramesTemporal(Framing.frameVector(data, mfccParams.nWindowLength, mfccParams.nWindowDistance));
+            float[][] frames        = Framing.preProcessing(data, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.95f, hammingWnd); // pre-emphasis/framing/hamming-windowing
+            float[][] cepstra       = processFramesSpectral(frames);
+            exportData(cepstra);
+//            processFramesTemporal(Framing.frameVector(data, mfccParams.nWindowLength, mfccParams.nWindowDistance));
 //            tp.addTimepoint(2);   
             Messaging.sendMessageToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROGRESS_FILE, "progress_file", mfccParams.sOutputPath);
          }
@@ -247,52 +248,32 @@ public class MFCC
     // returns => [nframes][3*nscores]    
     public synchronized float[][] processFramesSpectral(float[][] frames)
     {
-        try
-        {
-            float[][] scores    = (mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? mfccCalc.getMFCC(frames) : mfccCalc.getMFFilters(frames)); 
-            nFrames             = scores.length;
+        float[][] scores    = (mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? mfccCalc.getMFCC(frames) : mfccCalc.getMFFilters(frames)); 
+        nFrames             = scores.length;
 
-            mfccCalc.addSpectralDerivatives(scores);      // writes [:][2*nscore:3*nscore]          
-            normalizeFrames(scores);
-//            float[][] ctx_scores = getContextedFrames(scores, 11, 792);
-            return exportData(scores);                
-        }
-        catch(Exception e)
-        {
-            e.printStackTrace();
-            Log.e(TAG, "processFile" + ": Error: " + e.toString());
-            Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
-            return null;
-        }    
+        mfccCalc.addSpectralDerivatives(scores);      // writes [:][2*nscore:3*nscore]          
+        Framing.normalizeFrames(scores);
+//            float[][] ctx_scores = getContextedFrames(scores, 11, 792);return exportData(ctx_scores);  
+        return scores;
     }
     // temporal derivatives
     // returns => [nframes][3*nscores]    
     public synchronized float[][] processFramesTemporal(float[][] frames)
     {
-        try
-        {
-            float[][] scores    = (mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? mfccCalc.getMFCC(frames) : mfccCalc.getMFFilters(frames)); 
-            nFrames             = scores.length;
+        float[][] scores    = (mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? mfccCalc.getMFCC(frames) : mfccCalc.getMFFilters(frames)); 
+        nFrames             = scores.length;
 
-            mfccCalc.addTemporalDerivatives(scores);                
-            normalizeFrames(scores);
-            return exportData(scores);                // return all the frames' scores
-        }
-        catch(Exception e)
-        {
-            e.printStackTrace();
-            Log.e(TAG, "processFramesTemporal" + ": Error: " + e.toString());
-            Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
-            return null;
-        } 
+        mfccCalc.addTemporalDerivatives(scores);                
+        Framing.normalizeFrames(scores);
+        return scores;
     }
     //=================================================================================================================
-    // LIVE PROCESSING (normalization will be done when the sentences is complete)
+    // LIVE PROCESSING (normalization and contexting will be done when the sentences is complete)
     //=================================================================================================================
     // temporal derivatives
     // input:     frames = [nframes][nWindowLength], queue = [nframes][nscores]
     // returns => [nframes-nDeltaWindow][3*nscores]
-    public synchronized float[][] processFramesTemporal(float[][] frames, float[][] queue)
+    public synchronized float[][] processQueuedTemporal(float[][] frames, float[][] queue)
     {
         try
         {
@@ -306,8 +287,8 @@ public class MFCC
             float[][] validscores = new float[nFrames-mfccParams.nDeltaWindow][ncols];
             for(int f=0; f<nFrames-mfccParams.nDeltaWindow; f++)
                 validscores[f] = scores[f];
-            
-            return exportData(validscores);   
+            return validscores;
+//            return exportData(validscores);   
         }
         catch(Exception e)
         {
@@ -318,7 +299,7 @@ public class MFCC
         }        
     }            
     
-    public synchronized float[][] processFramesSpectral(float[][] frames, float[][] queue)
+    public synchronized float[][] processQueuedSpectral(float[][] frames, float[][] queue)
     {
         try
         {
@@ -332,8 +313,8 @@ public class MFCC
             float[][] validscores = new float[nFrames-mfccParams.nDeltaWindow][ncols];
             for(int f=0; f<nFrames-mfccParams.nDeltaWindow; f++)
                 validscores[f] = scores[f];
-            
-            return exportData(validscores);   
+            return validscores;
+//            return exportData(validscores);   
         }
         catch(Exception e)
         {
@@ -360,7 +341,16 @@ public class MFCC
     // P R I V A T E
     //======================================================================================
     //======================================================================================
-    private float[][] exportData(float[][] scores) 
+    // writes cepstra to file
+    // send cepstra to WebLayer
+    // send progress to SERVICE MAIN
+    // send cepstra to SERVICE MAIN
+    public float[][] exportData(float[][] scores)
+    {
+        return exportData(scores, true);
+    }
+    
+    public float[][] exportData(float[][] scores, boolean isFinal)
     {
         try
         {
@@ -368,19 +358,24 @@ public class MFCC
             res_jsonarray.put(0, "processed file:" + mfccParams.sOutputPath);
             String strscores                = "";
             int nValidFrames                = scores.length;
+            
             //------------------------------------------------------------------
             // write data to FILE
             //------------------------------------------------------------------
-            switch(mfccParams.nDataDest)
+            if(isFinal)
             {
-                case ENUMS.MFCC_DATADEST_FILE:
-                case ENUMS.MFCC_DATADEST_ALL:
-                case ENUMS.MFCC_DATADEST_FILEWEB:
-                    
-                    strscores   = StringUtilities.exportArray2String(scores, sOutputPrecision);
-                    boolean res = FileUtilities.writeStringToFile(mfccParams.sOutputPath + "_scores.dat", strscores, true);
-                    //                tp.addTimepoint(4);                
-                    break;
+                switch(mfccParams.nDataDest)
+                {
+                    case ENUMS.MFCC_DATADEST_FILE:
+                    case ENUMS.MFCC_DATADEST_FILEWEB:
+                    case ENUMS.MFCC_DATADEST_ALL:
+
+                        boolean res = FileUtilities.write2DArrayToFile(scores, nValidFrames, mfccParams.sOutputPath + "_scores.dat", sOutputPrecision, true);
+    //                    strscores   = StringUtilities.exportArray2String(scores, );
+    //                    boolean res = FileUtilities.writeStringToFile(mfccParams.sOutputPath + "_scores.dat", strscores, true);
+                        //                tp.addTimepoint(4);                
+                        break;
+                }
             }
             //------------------------------------------------------------------
             // send data to WEB LAYER
@@ -397,7 +392,7 @@ public class MFCC
                     break;                 
             }
             //------------------------------------------------------------------
-            // send progress to PLUGIN
+            // send progress to SERVICE MAIN
             //------------------------------------------------------------------
             switch(mfccParams.nDataDest)
             {
@@ -434,97 +429,130 @@ public class MFCC
     // S T A T I C 
     //======================================================================================
     //======================================================================================
-    public static void normalizeFrames(float[][] cepstra)
-    {
-        normalizeFrames(cepstra, cepstra.length);
-    }
     
-    public static void normalizeFrames(float[][] cepstra, int frames2recognize)
-    {
-        int nscores         = cepstra[0].length;
-        float[] means       = new float[nscores];
-        float[] sd          = new float[nscores];
-        
-        // means
-        for(int sc=0; sc<nscores; sc++)
-        {
-            for(int f=0; f<frames2recognize; f++)
-                means[sc] += cepstra[f][sc]; 
-            means[sc] /= frames2recognize;
-        }
-
-        // standard Deviations
-        float variance=0;
-        for(int sc=0; sc<nscores; sc++)
-        {
-            variance=0;
-            for(int f=0; f<frames2recognize; f++)
-                variance += (cepstra[f][sc] - means[sc])*(cepstra[f][sc] - means[sc]); 
-            variance /= frames2recognize;
-            sd[sc] = (float)Math.sqrt(variance);
-        }        
-        
-        // normalize data
-        for(int sc=0; sc<nscores; sc++)
-        {
-            if(sd[sc] == 0)
-                for(int f=0; f<frames2recognize; f++)
-                    cepstra[f][sc] = 0;                 
-            else
-                for(int f=0; f<frames2recognize; f++)
-                    cepstra[f][sc] = (cepstra[f][sc] - means[sc])/sd[sc]; 
-        }
-    }  
-    
-    public static float[][] getContextedFrames(float[][] cepstra, int nctxframes, int noutparams)    // cepstra = [:][72] => [:][792] 
-    {
-        return getContextedFrames(cepstra, nctxframes, noutparams, cepstra.length);
-    }
-
-    // cepstra can be only partially filled, thus I process up to frames2recognize
-    public static float[][] getContextedFrames(float[][] cepstra, int nctxframes, int noutparams, int frames2recognize)    // cepstra = [:][72] => [:][792] 
-    {
-        int ncepstra                    = cepstra[0].length;
-        float[][] contextedCepstra      = new float[frames2recognize][noutparams];
-        int startId, endId, cnt,corr_pf = 0;
-        
-        int preFrames  = (int)Math.floor((double)(nctxframes*1.0)/2);
-        // append Context frames (from 72 => 792 = tfParams.nInputParam)
-        for (int f=0; f<frames2recognize; f++)
-        {
-            startId = f - preFrames;
-            endId   = f + preFrames + 1; // won't be included in the for...
-            cnt     = 0;
-            
-            if(f < (frames2recognize-preFrames))
-            {
-                // from frames = [0 : frames2recognize-preFrames-1]
-                for(int pf=startId; pf<endId; pf++)
-                {
-                    if(pf < 0) corr_pf = 0;
-                    for(int ff=0; ff<ncepstra; ff++)
-                    {
-                        contextedCepstra[f][cnt] = cepstra[pf][ff];                
-                        cnt++;
-                    }
-                }                
-            }
-            else
-            {
-                // from frames = [frames2recognize-preFrames : frames2recognize-1]
-                for(int pf=startId; pf<endId; pf++)
-                {
-                    if(pf > (frames2recognize-1)) corr_pf = frames2recognize-1;
-                    for(int ff=0; ff<ncepstra; ff++)
-                    {
-                        contextedCepstra[f][cnt] = cepstra[corr_pf][ff];                
-                        cnt++;
-                    }
-                }                
-            }
-        }
-        return contextedCepstra;
-    } 
+//    public static float[] initHamming(int frame_length)
+//    {
+//        float w[] = new float[frame_length];
+//        for (int n = 0; n < frame_length; n++)   w[n] = (float)(0.54 - 0.46 * Math.cos((2*Math.PI*n)/(frame_length - 1)));
+//        return w;
+//    }
+//    public static float[][] preProcessing(float[] inputSignal, int fwidth, int fdistance, float alpha, float[] hammWnd)
+//    {
+//        float[] data        = preEmphasis(inputSignal, alpha);
+//        float[][] frames    = Framing.frameVector(data, fwidth, fdistance);
+//        Framing.hammingWindow(frames, hammWnd);
+//        return frames;
+//    }
+//    /**
+//     * perform pre-emphasis to equalize amplitude of high and low frequency<br>
+//     * calls: none<br>
+//     * called by: featureExtraction
+//     * @param inputSignal Speech Signal (16 bit integer data)
+//     * @return Speech signal after pre-emphasis (16 bit integer data)
+//     */
+//    public static float[] preEmphasis(float inputSignal[], float alpha)
+//     {
+//        float outputSignal[] = new float[inputSignal.length];
+//        
+//        // apply pre-emphasis to each sample
+//        for (int n = 1; n < inputSignal.length; n++)  outputSignal[n] = inputSignal[n] - alpha*inputSignal[n - 1];
+//        return outputSignal;
+//    }    
+//    
+//    public static void normalizeFrames(float[][] cepstra)
+//    {
+//        normalizeFrames(cepstra, cepstra.length);
+//    }
+//    
+//    public static void normalizeFrames(float[][] cepstra, int frames2recognize)
+//    {
+//        int nscores         = cepstra[0].length;
+//        float[] means       = new float[nscores];
+//        float[] sd          = new float[nscores];
+//        
+//        // means
+//        for(int sc=0; sc<nscores; sc++)
+//        {
+//            for(int f=0; f<frames2recognize; f++)
+//                means[sc] += cepstra[f][sc]; 
+//            means[sc] /= frames2recognize;
+//        }
+//
+//        // standard Deviations
+//        float variance=0;
+//        for(int sc=0; sc<nscores; sc++)
+//        {
+//            variance=0;
+//            for(int f=0; f<frames2recognize; f++)
+//                variance += (cepstra[f][sc] - means[sc])*(cepstra[f][sc] - means[sc]); 
+//            variance   /= frames2recognize;
+//            sd[sc]      = (float)Math.sqrt(variance);
+//        }        
+//        
+//        // normalize data
+//        for(int sc=0; sc<nscores; sc++)
+//        {
+//            if(sd[sc] == 0)
+//                for(int f=0; f<frames2recognize; f++)
+//                    cepstra[f][sc] = 0;                 
+//            else
+//                for(int f=0; f<frames2recognize; f++)
+//                    cepstra[f][sc] = (cepstra[f][sc] - means[sc])/sd[sc]; 
+//        }
+//    }  
+//    
+//    public static float[][] getContextedFrames(float[][] cepstra, int nctxframes, int noutparams)    // cepstra = [:][72] => [:][792] 
+//    {
+//        return getContextedFrames(cepstra, nctxframes, noutparams, cepstra.length);
+//    }
+//
+//    // cepstra can be only partially filled, thus I process up to frames2recognize
+//    public static float[][] getContextedFrames(float[][] cepstra, int nctxframes, int noutparams, int frames2recognize)    // cepstra = [:][72] => [:][792] 
+//    {
+//        int ncepstra                    = cepstra[0].length;
+//        float[][] contextedCepstra      = new float[frames2recognize][noutparams];
+//        int startId, endId, cnt,corr_pf = 0;
+//        
+//        int preFrames  = (int)Math.floor((double)(nctxframes*1.0)/2);
+//        // append Context frames (from 72 => 792 = tfParams.nInputParam)
+//        for (int f=0; f<frames2recognize; f++)
+//        {
+//            startId = f - preFrames;
+//            endId   = f + preFrames + 1; // won't be included in the for...
+//            cnt     = 0;
+//            
+//            if(f < (frames2recognize-preFrames))
+//            {
+//                // from frames = [0 : frames2recognize-preFrames-1]
+//                for(int pf=startId; pf<endId; pf++)
+//                {
+//                    if(pf < 0)  corr_pf = 0;
+//                    else        corr_pf = pf;
+//                    for(int ff=0; ff<ncepstra; ff++)
+//                    {
+//                        contextedCepstra[f][cnt] = cepstra[corr_pf][ff];                
+//                        cnt++;
+//                    }
+//                }                
+//            }
+//            else
+//            {
+//                // from frames = [frames2recognize-preFrames : frames2recognize-1]
+//                for(int pf=startId; pf<endId; pf++)
+//                {
+//                    if(pf > (frames2recognize-1))   corr_pf = frames2recognize-1;
+//                    else                            corr_pf = pf;
+//                    
+//                    for(int ff=0; ff<ncepstra; ff++)
+//                    {
+//                        contextedCepstra[f][cnt] = cepstra[corr_pf][ff];                
+//                        cnt++;
+//                    }
+//                }                
+//            }
+//        }
+//        return contextedCepstra;
+//    }  
     //======================================================================================
 }
 

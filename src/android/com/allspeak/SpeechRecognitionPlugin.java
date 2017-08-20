@@ -39,6 +39,7 @@ import com.allspeak.audiocapture.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+//import com.example.HelloCJni;
 
 
 import android.content.IntentFilter;
@@ -95,6 +96,9 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
 //            initBTConnection();
             mAudioDevicesManager = new AudioDevicesManager(mContext, mAudioManager);
             boolean conn = bindService();
+            
+//            int jniOutput = HelloCJni.calculate(2,5);
+//            int res = 2 + jniOutput;
 //            promptForDangerousPermissions();
 
         }
@@ -194,6 +198,7 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
                 }                
                 mCfgParams                       = new CaptureParams(new JSONObject((String)args.get(0))); 
                 if(!args.isNull(1))  mMfccParams = new MFCCParams(new JSONObject((String)args.get(1))); 
+                else                 mMfccParams = new MFCCParams();    
                 
                 mService.startCapture(mCfgParams, mMfccParams, callbackContext);
                 Messaging.sendNoResult2Web(callbackContext);

@@ -7,6 +7,7 @@ package com.allspeak.utility;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
@@ -114,7 +115,7 @@ public class Messaging
         
         Bundle b            = new Bundle();
         float[] mfcc        = flatten2DimArray(data);
-        
+
         b.putFloatArray("data",     mfcc);
         b.putInt("nframes", nDim1);
         b.putInt("nparams", nDim2);
@@ -146,26 +147,50 @@ public class Messaging
         return b;
     }  
     
-    public static float[] flatten2DimArray(float[][] input)
-    {
-        float[] output = new float[input.length * input[0].length];
-
-        for(int i = 0; i < input.length; i++)
-            for(int j = 0; j < input[i].length; j++)
-                output[i*j] = input[i][j];
-        return output;
-    }    
+//    public static float[] flatten2DimArray(float[][] input)
+//    {
+//        float[] output = new float[input.length * input[0].length];
+//
+//        for(int i = 0; i < input.length; i++)
+//            for(int j = 0; j < input[i].length; j++)
+//                output[i*j] = input[i][j];
+//        return output;
+//    }    
     
-    // used to convert a 1dim array to a 2dim array
-    public static float[][] deFlattenArray(float[] input, int dim1, int dim2)
+//    // 1dim array => 2dim array
+//    public static float[][] deFlattenArray(float[] input, int dim1, int dim2)
+//    {
+//        float[][] output = new float[dim1][dim2];        
+//
+//        for(int i = 0; i < input.length; i++){
+//            output[i/dim2][i % dim2] = input[i];
+//        }
+//        return output;        
+//    }    
+//    
+    
+    
+    public static float[][] deFlattenArray(final float[] array, final int rows, final int cols) 
     {
-        float[][] output = new float[dim1][dim2];        
+        if(array.length != (rows*cols)) throw new IllegalArgumentException("Invalid array length");
 
-        for(int i = 0; i < input.length; i++){
-            output[i/dim2][i % dim2] = input[i];
-        }
-        return output;        
-    }    
+        float[][] bidi = new float[rows][cols];
+        for(int i = 0; i < rows; i++)
+            System.arraycopy(array, (i*cols), bidi[i], 0, cols);
+
+        return bidi;
+    }
+
+    public static float[] flatten2DimArray(final float[][] array) 
+    {
+        int rows        = array.length, cols = array[0].length;
+        float[] mono    = new float[(rows*cols)];
+        for(int i = 0; i < rows; i++)
+            System.arraycopy(array[i], 0, mono, (i*cols), cols);    
+        return mono;
+    }
+    
+    
         
     //======================================================================================================================
     // MESSAGES TO WEB LAYER

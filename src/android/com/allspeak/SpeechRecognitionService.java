@@ -202,6 +202,7 @@ public class SpeechRecognitionService extends Service
             callbackContext = cb;
             mCaptureParams  = cfgParams;
             
+            // If I want to write the captured WAV, I create the buffer
             switch((int)mCaptureParams.nDataDest)
             {
                 case ENUMS.CAPTURE_DATADEST_FILE:
@@ -215,24 +216,27 @@ public class SpeechRecognitionService extends Service
                     faCapturedChunk = null;
                     break;
             } 
+
+            mMfccParams             = mfccParams; // it is alsway non-null if used by the js interface
+            nMFCCDataDest           = mMfccParams.nDataDest;
+            bIsCalculatingMFCC      = false;
             
-            if(mfccParams != null)
+            if(nMFCCDataDest > ENUMS.MFCC_DATADEST_NOCALC)
             {
-                mMfccParams             = mfccParams;
-                nMFCCDataDest           = mMfccParams.nDataDest;
-                mMfccHT.init(mMfccParams, mMfccServiceHandler);         // MFCC send commands, results , status here
-                mMfccHTLooper           = mMfccHT.getHandlerLooper();   // get the mfcc looper   
-                
-                bIsCalculatingMFCC      = false;
-                if(mMfccParams.nDataDest > ENUMS.MFCC_DATADEST_NOCALC) 
-                    bIsCalculatingMFCC  = true;
-                
+                // I get the length (in samples) of the longest allowed speech chunk. 
+                int nMaxSpeechLengthSample  = VAD.getMaxSpeechLengthSamples(mCaptureParams.nChunkMaxLengthMS, mCaptureParams.nSampleRate, mCaptureParams.nBufferSize);  
+
+                // I pass to MFCC to let him allocate the proper cepstra buffer
+                mMfccHT.init(mMfccParams, mMfccServiceHandler, mMfccServiceHandler, mMfccServiceHandler, nMaxSpeechLengthSample);       // MFCC send commands & results to TF, status here                
+                mMfccHT.initData();
+                mMfccHTLooper       = mMfccHT.getHandlerLooper();   // get the mfcc looper   
+                bIsCalculatingMFCC  = true;
+
                 if(mMfccParams.sOutputPath != "" && mMfccParams.nDataDest >= ENUMS.MFCC_DATADEST_FILE)
-                    FileUtilities.deleteExternalStorageFile(mMfccParams.sOutputPath + "_scores.dat");
+                     FileUtilities.deleteExternalStorageFile(mMfccParams.sOutputPath + "_scores.dat");
             }            
             aicCapture                  = new AudioInputCapture(mCaptureParams, mAicServiceHandler, null, mAicServiceHandler);
             nCapturedDataDest           = mCaptureParams.nDataDest;
-
         }
         catch (Exception e) 
         {
@@ -335,7 +339,7 @@ public class SpeechRecognitionService extends Service
             mTfHT.setParams(tfParams);
             mTfHT.setWlCb(callbackContext);
             mTfHT.setCallbacks(mTfHandler, null, mTfHandler);
-            mTfHT.setExtraParams(nMaxSpeechLengthFrames, nParams); // pass to TF to let him allocate the proper cepstra buffer
+            mTfHT.setExtraParams(nMaxSpeechLengthFrames, nParams); // pass data to TFHT that allocates its proper internal cepstra buffer
 
             aicCapture                  = new AudioInputCapture(mCaptureParams, mAicServiceHandler, null, vadHTLooper); // CAPTURE send data to VAD, status here
             aicCapture.start();
@@ -380,7 +384,6 @@ public class SpeechRecognitionService extends Service
         callbackContext             = cb;   
         mVadHT.adjustVADThreshold(newthreshold);
     }
-            
     
     public void recognizeCepstraFile(String cepstra_file_path, CallbackContext wlcb)
     {
@@ -395,10 +398,13 @@ public class SpeechRecognitionService extends Service
         return true;
     }    
   
-    
-    //=========================================================================================
+    //==================================================================================================================================================================================
+    //==================================================================================================================================================================================
+    //==================================================================================================================================================================================
     // callback called by handlers 
-    //=========================================================================================
+    //==================================================================================================================================================================================
+    //==================================================================================================================================================================================
+    //==================================================================================================================================================================================
     
     //------------------------------------------------------------------------------------------------
     // CAPTURE
@@ -412,13 +418,13 @@ public class SpeechRecognitionService extends Service
         float[] data    = b.getFloatArray("data");  
         
         nCapturedBlocks++;  
-        nCapturedBytes      += data.length;
-        nMFCCExpectedFrames = Framing.getFrames(nCapturedBytes, mMfccParams.nWindowLength, mMfccParams.nWindowDistance) - mMfccParams.nDeltaWindow;
+        nCapturedBytes += data.length;
 
         if(bIsCalculatingMFCC)
         {   
-            Message newmsg  = Message.obtain(msg);  // get a copy of the original message
-            newmsg.what     = ENUMS.CAPTURE_RESULT; // I rename the msg code in order to tell mfccHT that are captured data not to be sent to TF
+            nMFCCExpectedFrames = Framing.getFrames(nCapturedBytes, mMfccParams.nWindowLength, mMfccParams.nWindowDistance) - mMfccParams.nDeltaWindow;
+            Message newmsg      = Message.obtain(msg);  // get a copy of the original message
+            newmsg.what         = ENUMS.CAPTURE_RESULT; // I rename the msg code in order to tell mfccHT that are captured data not to be sent to TF
             mMfccHTLooper.sendMessage(newmsg); 
         }
            
@@ -505,12 +511,14 @@ public class SpeechRecognitionService extends Service
 
             bTriggerAction  = true;
 
+            // calculate how many frames must be still processed
             if(bIsCalculatingMFCC) 
             {
                 nMFCCExpectedFrames = Framing.getFrames(ntotalReadBytes, mMfccParams.nWindowLength, mMfccParams.nWindowDistance) - mMfccParams.nDeltaWindow;
                 nMFCCFrames2beProcessed = nMFCCExpectedFrames - nMFCCProcessedFrames;
             }     
             
+            // do I have to save the speech wav ?
             switch((int)mCaptureParams.nDataDest)
             {
                 case ENUMS.CAPTURE_DATADEST_FILE:
@@ -567,11 +575,12 @@ public class SpeechRecognitionService extends Service
         nMFCCProcessedBlocks    = nmfccblocks;
     }
     
-    public void onMFCCData(float[][] params, String source)
+    public void onMFCCData(float[][] cepstra, String source)
     {
-        onMFCCProgress(params.length);        
-        
-        // send raw data to Web Layer?
+        int nframes = cepstra.length;
+        onMFCCProgress(nframes);        // here I increment nMFCCProcessedFrames
+
+        // send MFCC data to Web Layer?
         JSONObject info = new JSONObject();
         try 
         {
@@ -580,7 +589,7 @@ public class SpeechRecognitionService extends Service
                 case ENUMS.MFCC_DATADEST_ALL:
                 case ENUMS.MFCC_DATADEST_JSDATA:        //   "" + send progress(filename) + data(JSONArray) to WEB
                     info.put("type", ENUMS.MFCC_RESULT);
-                    JSONArray data = new JSONArray(params);
+                    JSONArray data = new JSONArray(cepstra);
                     info.put("data", data);
                     info.put("progress", source);
                     Messaging.sendUpdate2Web(callbackContext, info, true);
@@ -610,16 +619,17 @@ public class SpeechRecognitionService extends Service
         Log.d(LOG_TAG, "onMFCCProgress : captured blocks: " + Integer.toString(nCapturedBlocks) + ", mfccprocessed blocks: " + Integer.toString(nMFCCProcessedBlocks));
         Log.d(LOG_TAG, "------");
         
+        
+        //check if this is the last cepstra packet (bTriggerAction=true has been set by onStopCapture)
         if(bTriggerAction && nMFCCExpectedFrames == nMFCCProcessedFrames)
         {
             Log.d(LOG_TAG, "@@@@@@@@@@@@@@@ F I N I S H E D   M F C C   C A L C @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
-            bTriggerAction = false;
-            bIsCalculatingMFCC = false;
+            bTriggerAction      = false;
+            bIsCalculatingMFCC  = false;
+            Messaging.sendDataToHandler(mMfccHTLooper, ENUMS.MFCC_CMD_FINALIZEDATA);
             resetDataCounters();
-            
-        }
+        }          
     }
-    
     //------------------------------------------------------------------------------------------------
     // ON ERRORS
     //------------------------------------------------------------------------------------------------

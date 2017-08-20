@@ -43,7 +43,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
     private MFCC mfcc                       = null;
     private MFCCParams mfccParams           = null;
     
-    private int nScores                     = 0;                // indicates the number of reconstructed scores (22 for filters)...]
+    private int nScores                     = 0;                // indicates the number of reconstructed scores (24 for filters)...]
     private int nMaxSpeechLengthFrames      = 0;                // max speech length in frames
 
     // manage MFCC queue
@@ -54,6 +54,8 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
     private float[][] mScoresQueue          = null;             // store the last nDeltaWindow-cepstra to calculate, on the next packet, the derivatives of the first frames
     private float[][] mFramesQueue          = null;             // store the last nDeltaWindow-frames that will be processed with the next packet
     
+    private float[][] faCalculatedCepstra   = null;             // contains (MAXnframes, numparams) calculated FilterBanks...array storing the calculated cepstra
+
     private int nArrivedSamples             = 0;                // samples arrived from VHT or Service
     private int nProcessedSamples           = 0;                // samples used to calculate cepstra from nArrivedSamples    
     private int nProcessingOperations       = 0;                // number of data packets received from VadHandlerThread/SpeechRecognitionService    
@@ -209,6 +211,18 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
         mInternalHandler.sendMessage(message);
     }     
     
+    public void initData()
+    {
+        bundle          = new Bundle();
+        bundle.putInt("nframes", nMaxSpeechLengthFrames);
+        
+        Message message = mInternalHandler.obtainMessage();
+        message.what    = ENUMS.MFCC_CMD_INITDATA;
+        message.setData(bundle);
+        mInternalHandler.sendMessage(message);
+    }     
+    //===============================================================================================
+    // run on handlerThread
     //===============================================================================================
     private void clearData()
     {
@@ -220,6 +234,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
         nProcessedFrames            = 0;            
         
         mScoresQueue                = null;
+        faCalculatedCepstra         = null;
         mfcc.clearData();
         Messaging.sendMessageToHandler(mCommandCallback, ENUMS.TF_CMD_CLEAR);
     }    
@@ -315,49 +330,66 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
         return Framing.frameVector(faData2Process, mfccParams.nWindowLength, mfccParams.nWindowDistance);
     }
     
-
     //================================================================================================================
     @Override
     public boolean handleMessage(Message msg) 
     {
         Bundle bundle = msg.getData();
         float[] data;
+        float[][] cepstra;
         boolean overwrite;
         switch((int)msg.what)
         {                       
+            case ENUMS.MFCC_CMD_INITDATA:   
+                
+                mScoresQueue        = new float[mfccParams.nDeltaWindow][3*nScores];
+                faCalculatedCepstra = new float[nMaxSpeechLengthFrames][3*nScores];
+                break;
+                
             case ENUMS.MFCC_CMD_GETQDATA:   //  to process (real-time) data sent here by other handlerThread (e.g. VAD), usually for speech recognition
             case ENUMS.CAPTURE_RESULT:      //  to process real-time data captured by the AudioInputReceiver thread, usually for recording/feature extract ops
                     
                 data                = bundle.getFloatArray("data");
-                nArrivedSamples     += data.length;
+                nArrivedSamples    += data.length;
                 nProcessingOperations++;
                 
                 // takes new data : assemble the to-be-processed vector (queue + part of new data),..
                 float[][] frames2beprocessed    = getQueuedFrames(data);  // return [nframes][mfccParams.nWindowLength]
                 int nframes                     = frames2beprocessed.length;
-               
                 Messaging.sendDataToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROCESS_STARTED, nframes, nProcessingOperations);
-                float[][] cepstra   = mfcc.processFramesTemporal(frames2beprocessed, mScoresQueue); //cepstra will be [nframes-nDeltaWindow][nscores*3]
-//                float[][] cepstra   = mfcc.processFramesSpectral(frames2beprocessed, null); //cepstra will be [nframes-nDeltaWindow][nscores*3]
-                int newframes       = cepstra.length;
-                if(newframes != (nframes-mfccParams.nDeltaWindow))
+                //------------------------------------------------------------------------------------------------------------------------------
+                cepstra         = mfcc.processQueuedSpectral(frames2beprocessed, null); //cepstra will be [nframes-nDeltaWindow][nscores*3] //                cepstra   = mfcc.processQueuedTemporal(frames2beprocessed, mScoresQueue); 
+                //------------------------------------------------------------------------------------------------------------------------------
+                
+                // check calculated ceptras
+                int validframes = cepstra.length;
+                if(validframes != (nframes-mfccParams.nDeltaWindow))
                 {
                     Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", "MFCCHandlerThread::handleMessage::MFCC_CMD_GETQDATA");
                     return false;
                 }
-                nProcessedFrames    += newframes;
                 
-                // first cycle & after clearData()
-                if(mScoresQueue == null)    mScoresQueue = new float[mfccParams.nDeltaWindow][nScores];
+                // manage cepstras' queue
+                if(mScoresQueue == null)  // after clearData()                
+                    mScoresQueue = new float[mfccParams.nDeltaWindow][nScores*3];
                 for(int dw=0; dw<mfccParams.nDeltaWindow; dw++)
-                    mScoresQueue[dw] = cepstra[newframes - mfccParams.nDeltaWindow + dw];
-                
+                    System.arraycopy(cepstra[validframes - mfccParams.nDeltaWindow + dw],0, mScoresQueue[dw], 0, nScores*3); 
+
+                // what to do with the calculated cepstra ?
                 if((int)msg.what == ENUMS.MFCC_CMD_GETQDATA) 
                 {
-                    float [][] cepstracopy = new float[newframes][nScores*3];
-                    for(int f=0; f<newframes; f++)  System.arraycopy(cepstra[f],0, cepstracopy, 0, nScores*3);                    
-                    Messaging.sendDataToHandler(mResultCallback, ENUMS.TF_CMD_NEWCEPSTRA, cepstracopy, newframes, nScores*3); // last params indicate how many frames must overwrite... mfccParams.nDeltaWindow);
+                    // send to TF
+                    float [][] cepstracopy = new float[validframes][nScores*3];
+                    for(int f=0; f<validframes; f++)  System.arraycopy(cepstra[f],0, cepstracopy[f], 0, nScores*3);                    
+                    Messaging.sendDataToHandler(mResultCallback, ENUMS.TF_CMD_NEWCEPSTRA, cepstracopy, validframes, nScores*3);
                 }
+                else
+                {
+                    // store calculated cepstra in its buffer (only after, update nProcessedFrames)
+                    for(int f=0; f<validframes; f++) System.arraycopy(cepstra[f], 0, faCalculatedCepstra[nProcessedFrames + f], 0, 3*nScores);                 
+                    mfcc.exportData(cepstra, false);    // false says that they are not final data => do not write them
+                }  
+                nProcessedFrames += validframes;
                 break;
                 
             case ENUMS.MFCC_CMD_GETFILE:
@@ -378,7 +410,8 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
                 data                = bundle.getFloatArray("data");
                 if(bundle.getString("source") != null)
                     sSource         = bundle.getString("source");
-                mfcc.processFramesTemporal(Framing.frameVector(data, mfccParams.nWindowLength, mfccParams.nWindowDistance));
+                cepstra = mfcc.processFramesSpectral(Framing.frameVector(data, mfccParams.nWindowLength, mfccParams.nWindowDistance));
+                mfcc.exportData(cepstra);
                 break;
 
             case ENUMS.MFCC_CMD_CLEAR:  // called by VAD or during this::init to delete all the stored CEPSTRA
@@ -388,6 +421,17 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
             case ENUMS.MFCC_CMD_SENDDATA: // VAD says that a new sentence has been detected. I send a command to TF handlerThread 
                 int sentSamples = bundle.getInt("info");
                 sendRecognizeCMD2TF(sentSamples);
+                break;
+                
+            case ENUMS.MFCC_CMD_FINALIZEDATA: // onStopCapture says that I can close file's MFCC calculation. normalize
+                float[][] final_data = new float[nProcessedFrames][3*nScores];
+                for(int f=0; f<nProcessedFrames; f++)
+                    System.arraycopy(faCalculatedCepstra[f], 0, final_data[f], 0, 3*nScores);
+                
+                Framing.normalizeFrames(final_data);
+                mfcc.exportData(final_data);
+//                int sentSamples = bundle.getInt("info");
+//                sendRecognizeCMD2TF(sentSamples);
                 break;
         }
         return true;
