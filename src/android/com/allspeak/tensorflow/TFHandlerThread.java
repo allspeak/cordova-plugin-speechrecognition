@@ -76,10 +76,7 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
     }
     public void setCallbacks(Handler cb)
     {
-        mStatusCallback     = cb;        
-        mCommandCallback    = cb;        
-        mResultCallback     = cb;  
-        tf.setCallbacks(cb);
+        setCallbacks(cb, cb, cb);
     }
     public void setCallbacks(Handler scb, Handler ccb, Handler rcb)
     {
@@ -94,55 +91,46 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
         nColumns                = ncolumns;
         Messaging.sendDataToHandler(mInternalHandler, ENUMS.TF_CMD_CLEAR, nMaxSpeechLengthFrames, nColumns);
     }
-//--------------------------------------------------------------------------------------------------    
+    //========================================================================================================================
+    public void init(TFParams params, Handler scb, Handler ccb, Handler rcb, CallbackContext wlcb, int maxspeechframes, int ncolumns)
+    {
+        tfParams                = params;
+        mStatusCallback         = scb;        
+        mCommandCallback        = ccb;        
+        mResultCallback         = rcb;  
+        mWlCb                   = wlcb;
+        nMaxSpeechLengthFrames  = maxspeechframes;
+        nColumns                = ncolumns;        
+
+        tf                      = new TF(tfParams, scb, ccb, rcb, wlcb);
+        Messaging.sendDataToHandler(mInternalHandler, ENUMS.TF_CMD_CLEAR, nMaxSpeechLengthFrames, nColumns);
+    }      
+    // ----------------------------------------------------------------------------------------------------------------------
+    // overloads
+    // ----------------------------------------------------------------------------------------------------------------------
     public void init(TFParams params, Handler cb)
     {
-        tfParams            = params;
-        mStatusCallback     = cb;        
-        mCommandCallback    = cb;        
-        mResultCallback     = cb;  
-        init(params, cb, cb, cb);
-    }    
-    public void init(TFParams params, Handler cb, CallbackContext wlcb)
-    {
-        mWlCb       = wlcb; 
-        init(params, cb, wlcb);
+        init(params, cb, cb, cb, null, 0, 0);
     }    
     public void init(TFParams params, Handler scb, Handler ccb, Handler rcb)
     {
-        tfParams            = params;
-        mStatusCallback     = scb;        
-        mCommandCallback    = ccb;        
-        mResultCallback     = rcb;   
-        tf                  = new TF(tfParams, scb, ccb, rcb);
-    }
-    public void init(TFParams params, Handler scb, Handler ccb, Handler rcb, int maxspeechframes, int ncolumns)
-    {
-        init(params, scb, ccb, rcb);
-        nMaxSpeechLengthFrames  = maxspeechframes;
-        nColumns                = ncolumns;
-        Messaging.sendDataToHandler(mInternalHandler, ENUMS.TF_CMD_CLEAR, nMaxSpeechLengthFrames, nColumns);
+        init(params, scb, ccb, rcb, null, 0, 0);
     }
     public void init(TFParams params, Handler scb, Handler ccb, Handler rcb, CallbackContext wlcb)
     {
-        mWlCb               = wlcb;
-        tfParams            = params;
-        mStatusCallback     = scb;        
-        mCommandCallback    = ccb;        
-        mResultCallback     = rcb;   
-        tf                  = new TF(tfParams, scb, ccb, rcb, wlcb);
+        init(params, scb, ccb, rcb, wlcb, 0, 0);
     }        
-    public void init(TFParams params, Handler scb, Handler ccb, Handler rcb, CallbackContext wlcb, int maxspeechframes, int ncolumns)
+    public void init(TFParams params, Handler cb, CallbackContext wlcb)
     {
-        init(params, scb, ccb, rcb, wlcb);
-        nMaxSpeechLengthFrames  = maxspeechframes;
-        nColumns                = ncolumns;
-        Messaging.sendDataToHandler(mInternalHandler, ENUMS.TF_CMD_CLEAR, nMaxSpeechLengthFrames, nColumns);
-    }        
+        init(params, cb, cb, cb, wlcb, 0, 0);
+    }       
+    public void init(TFParams params, Handler scb, Handler ccb, Handler rcb, int maxspeechframes, int ncolumns)
+    {
+        init(params, scb, ccb, rcb, null, maxspeechframes, ncolumns);
+    }    
     //===============================================================================================
     // wrapper to thread execution 
     //===============================================================================================
-    // GET FROM folder or a file
     public void recognize(float[] data)
     {
         Bundle bundle  = new Bundle();
@@ -176,18 +164,18 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
         mInternalHandler.sendMessage(message);
         return true;        
     }    
-    //===============================================================================================
-    // INTERNAL PROCESSING
-    //===============================================================================================
 
-    private void clearData(int row, int col)
+    //===============================================================================================
+    // THREAD PROCESSING
+    //===============================================================================================
+    private void HTclearData(int row, int col)
     {
         nProcessedFrames    = 0;
         faCalculatedCepstra = new float[row][col];
     }    
 
     // check if the number of the here stored frames coincides with the number of frames passed from MFCCHT
-    private boolean checkData(int expectedFrames)
+    private boolean HTcheckData(int expectedFrames)
     {
         boolean res;
         String strmsg;
@@ -208,7 +196,6 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
     @Override
     public boolean handleMessage(Message msg) 
     {
-        
         try
         {
             Bundle bundle = msg.getData();
@@ -225,12 +212,12 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
                     if(msg.arg1 != 0)   row = msg.arg1;
                     if(msg.arg2 != 0)   col = msg.arg2;
 
-                    clearData(row, col);
+                    HTclearData(row, col);
                     break;
 
                 case ENUMS.TF_CMD_RECOGNIZE:  
                     nframes             = bundle.getInt("nframes");
-                    boolean res         = checkData(nframes);
+                    boolean res         = HTcheckData(nframes);
                     if(true)    // TODO: decide what to do whether the frames do not correspond
                     {
     //                    float[][] final_data = new float[nProcessedFrames][nColumns];
@@ -280,7 +267,7 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
             e.printStackTrace();                  
             Log.e(LOG_TAG, e.getMessage(), e);
             Messaging.sendErrorString2Web(mWlCb, e.getMessage(), ERRORS.TF_ERROR, true);            
-            return false;
+            return true;
         }
     }    
     @Override

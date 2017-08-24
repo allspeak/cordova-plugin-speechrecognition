@@ -55,62 +55,52 @@ public class TF
     private CallbackContext callbackContext     = null;
 
     private Classifier mClassifier              = null;
+
     //================================================================================================================
     // CONSTRUCTORS
     //================================================================================================================
-    // to be used with Thread implementation
-    public TF(TFParams params, Handler cb)
-    {
-        mStatusCallback     = cb;
-        mCommandCallback    = cb;
-        mResultCallback     = cb;
-        setParams(params);       
-    }
-    
-    public TF(TFParams params, Handler scb, Handler ccb, Handler rcb)
+    public TF(TFParams params, Handler scb, Handler ccb, Handler rcb, CallbackContext wlcallback)
     {
         mStatusCallback     = scb;
         mCommandCallback    = ccb;
         mResultCallback     = rcb;
-        setParams(params);       
+        callbackContext     = wlcallback;
+        setParams(params);    
     }
-    
-    // may also send results directly to Web Layer
-    public TF(TFParams params, Handler handl, CallbackContext wlcallback)
+    //-----------------------------------------------------------------------------------------------------    
+    // overloads
+    //-----------------------------------------------------------------------------------------------------    
+    public TF(TFParams params, Handler cb)
     {
-        this(params, handl);
-        callbackContext     = wlcallback;
-    }   
-    // may also send results directly to Web Layer
-    public TF(TFParams params, Handler scb, Handler ccb, Handler rcb, CallbackContext wlcallback)
+        init(params, cb, cb, cb, null);
+    }
+    public TF(TFParams params, Handler scb, Handler ccb, Handler rcb)
     {
-        this(params, scb, ccb, rcb);
-        callbackContext     = wlcallback;
+        init(params, scb, ccb, rcb, null);
+    }
+    public TF(TFParams params, Handler cb, CallbackContext wlcallback)
+    {
+        init(params, cb, cb, cb, wlcallback);
     }   
     //================================================================================================================
-    
+    //================================================================================================================
     public void setParams(TFParams params)
     {
         mTfParams = params;
     }   
-    
     public void setWlCb(CallbackContext wlcb)
     {
         callbackContext     = wlcb;
     }    
-    
-    public void setCallbacks(Handler cb)
-    {
-        mStatusCallback = cb;
-        mCommandCallback = cb;
-        mResultCallback = cb;
-    }    
-    
     public void setCallbacks(Handler scb, Handler ccb, Handler rcb)
     {
         mStatusCallback     = scb;
         mCommandCallback    = ccb;
         mResultCallback     = rcb;
+    } 
+    public void setCallbacks(Handler cb)
+    {
+        setCallbacks(cb, cb, cb);
     }    
     //=================================================================================================================
     // PUBLIC

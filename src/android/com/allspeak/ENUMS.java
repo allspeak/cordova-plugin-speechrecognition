@@ -17,15 +17,14 @@ public class ENUMS
     public static final int MFCC_STATUS_PROGRESS_DATA   = 31; //
     public static final int MFCC_STATUS_PROGRESS_FILE   = 32; //
     public static final int MFCC_STATUS_PROGRESS_FOLDER = 33; //
-    public static final int MFCC_CMD_GETDATA            = 34; //  when you provide a capture.DATADESTfloat[] to be processed alone(for post MFCC calculation)
+    public static final int MFCC_CMD_GETDATA            = 34; //  when you provide a float[] to be processed alone(for post MFCC calculation)
     public static final int MFCC_CMD_GETQDATA           = 35; //  when you provide a float[] to be processed with the existing queue (for realtime MFCC calculation)
     public static final int MFCC_CMD_GETFILE            = 36; //
     public static final int MFCC_CMD_GETFOLDER          = 37; //
     public static final int MFCC_CMD_CLEAR              = 38; //
     public static final int MFCC_CMD_SENDDATA           = 39; //
     public static final int MFCC_CMD_FINALIZEDATA       = 40; //  during capturing, onStopCapture => close file calculation, normalize data (& contexting?)
-    public static final int MFCC_CMD_INITDATA           = 41; //
-    public static final int MFCC_RESULT                 = 42; //
+    public static final int MFCC_RESULT                 = 41; //
     
     public static final int TF_STATUS_MODEL_LOADED      = 50; // recognizing process started
     public static final int TF_STATUS_PROCESS_STARTED   = 51; // recognizing process started

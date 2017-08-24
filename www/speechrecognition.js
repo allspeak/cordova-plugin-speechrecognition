@@ -24,7 +24,7 @@ speechrecognition.ENUM.PLUGIN   =
     SPEECH_STATUS_MAX_LENGTH        : 23,
     SPEECH_STATUS_MIN_LENGTH        : 24,
     
-    MFCC_RESULT                     : 42, //
+    MFCC_RESULT                     : 41, //
     MFCC_STATUS_PROGRESS_DATA       : 31, //
     MFCC_STATUS_PROGRESS_FILE       : 32, //
     MFCC_STATUS_PROGRESS_FOLDER     : 33, //   suspended for a bug

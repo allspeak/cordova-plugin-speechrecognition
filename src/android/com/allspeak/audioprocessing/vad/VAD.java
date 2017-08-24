@@ -95,10 +95,7 @@ public class VAD
     }
     public VAD(VADParams params, CaptureParams captureparams, Handler cb)
     {
-        setParams(params, captureparams);
-        mStatusCallback     = cb;
-        mCommandCallback    = cb;
-        mResultCallback     = cb;
+        this(params, captureparams, cb, cb, cb);
     }
     
     public void setParams(VADParams vadParams, CaptureParams captureparams)
@@ -108,26 +105,20 @@ public class VAD
         calculateTimePeriodsAnalysisBuffers(mCfgParams.nSampleRate, mCfgParams.nBufferSize);
         resetAll();       
     }
-    
     public void setWlCb(CallbackContext wlcb)
     {
         callbackContext     = wlcb;
     } 
-        
-    public void setCallbacks(Handler cb)
-    {
-        mStatusCallback     = cb;
-        mCommandCallback    = cb;
-        mResultCallback     = cb;
-    }    
-    
     public void setCallbacks(Handler scb, Handler ccb, Handler rcb)
     {
         mStatusCallback     = scb;
         mCommandCallback    = ccb;
         mResultCallback     = rcb;
-    }      
-    
+    } 
+    public void setCallbacks(Handler cb)
+    {
+        setCallbacks(cb, cb, cb);
+    }        
     //====================================================================================================================
     // PUBLIC INTERFACE
     //====================================================================================================================

@@ -228,7 +228,7 @@ public class SpeechRecognitionService extends Service
 
                 // I pass to MFCC to let him allocate the proper cepstra buffer
                 mMfccHT.init(mMfccParams, mMfccServiceHandler, mMfccServiceHandler, mMfccServiceHandler, nMaxSpeechLengthSample);       // MFCC send commands & results to TF, status here                
-                mMfccHT.initData();
+//                mMfccHT.initData();
                 mMfccHTLooper       = mMfccHT.getHandlerLooper();   // get the mfcc looper   
                 bIsCalculatingMFCC  = true;
 

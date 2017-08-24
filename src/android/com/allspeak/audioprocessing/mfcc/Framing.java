@@ -1,32 +1,36 @@
 package com.allspeak.audioprocessing.mfcc;
 
+import java.util.ArrayList;
+import java.util.List;
 
 public class Framing 
 {
-
     private static final String TAG = "Framing";
     
     // =======================================================================================================
-    // DATA FRAMING 
+    // SAMPLES FRAMING 
     // =======================================================================================================
     // returns the number of frames you can divide a vector into
     // first frame : 0=>windowLength, i+1 frame: then I need N steps to reach the remaining diff (inlen-windowLength) with steps of windowDistance
     public static int getFrames(int inlen, int windowLength, int windowDistance)
     {
-        return (1 + (int) Math.ceil((inlen-windowLength)/windowDistance));
+        if(inlen == 0)  return 0;
+        else            return (1 + (int) Math.ceil((inlen-windowLength)/windowDistance));
     }
     
     // returns how many samples constitutes n frames
     public static int getFramesWidth(int nframes, int windowLength, int windowDistance)
     {
         if(nframes == 0)    return 0;
-        return (windowLength + windowDistance*(nframes-1));
+        else                return (windowLength + windowDistance*(nframes-1));
     }
 
     // determines the maximum number of samples you can provide to MFCC analysis to get a clean number of frames
     // assuming I have 1024 samples, I can process 11 frames, consuming 1000 samples => I return 1000
     public static int getOptimalVectorLength(int inlen, int wlength, int wdist)
     {
+        if(inlen == 0)  return 0;
+        
         int nframes = (1 + (int) Math.floor((inlen-wlength)/wdist));
         return getFramesWidth(nframes, wlength, wdist);
     }    
@@ -36,6 +40,8 @@ public class Framing
     // not optimal  => return remaining samples
     public static int isOptimalVectorLength(int inlen, int wlength, int wdist)
     {
+        if(inlen == 0)  return 0;
+        
         int optimal_vlen = getOptimalVectorLength(inlen, wlength, wdist);
         return (optimal_vlen == inlen ? 0 : inlen-optimal_vlen);
     }    
@@ -68,6 +74,7 @@ public class Framing
         }
     }    
     
+    
     /**
      * performs Hamming Window<br>
      * calls: none<br>
@@ -85,20 +92,26 @@ public class Framing
         }
     }
     
-    
     public static float[] initHamming(int frame_length)
     {
         float w[] = new float[frame_length];
         for (int n = 0; n < frame_length; n++)   w[n] = (float)(0.54 - 0.46 * Math.cos((2*Math.PI*n)/(frame_length - 1)));
         return w;
     }
-    public static float[][] preProcessing(float[] inputSignal, int fwidth, int fdistance, float alpha, float[] hammWnd)
+        
+    // =======================================================================================================
+    // SAMPLES PROCESSING
+    // =======================================================================================================
+
+    public static float[][] samplesProcessing(float[] inputSignal, int fwidth, int fdistance, float alpha, float[] hammWnd)
     {
-//        float[] data        = preEmphasis(inputSignal, alpha);
-        float[][] frames    = frameVector(inputSignal, fwidth, fdistance);
-//        hammingWindow(frames, hammWnd);
+        float[]             data    = inputSignal;
+        if(alpha > 0)       data    = preEmphasis(inputSignal, alpha);
+        float[][]           frames  = frameVector(data, fwidth, fdistance);
+        if(hammWnd != null) hammingWindow(frames, hammWnd);
         return frames;
     }
+    
     /**
      * perform pre-emphasis to equalize amplitude of high and low frequency<br>
      * calls: none<br>
@@ -114,6 +127,37 @@ public class Framing
         for (int n = 1; n < inputSignal.length; n++)  outputSignal[n] = inputSignal[n] - alpha*inputSignal[n - 1];
         return outputSignal;
     }    
+
+    // =======================================================================================================
+    // CEPSTRA PROCESSING
+    // =======================================================================================================    
+    
+    public static float[][] getSuprathresholdFrames(float[][] cepstra, float threshold)
+    {
+        List<float[]> validcepstra = new ArrayList<float[]>();
+
+        int len = cepstra.length;
+        int col = cepstra[0].length;
+        for(int f = 0; f < len; f++)
+        {
+            boolean invalid = true;
+            for(int s = 0; s < col; s++)
+            {
+                // whether at least one score is > threshold, I add that frame
+                if(cepstra[f][s] > threshold)
+                {
+                    validcepstra.add(cepstra[f]);
+                    break;
+                }
+            }
+        }
+        // create return array
+        int lenvalid = validcepstra.size();
+        float[][] validframes = new float[lenvalid][col];
+        for(int f = 0; f < lenvalid; f++)  validframes[f] = validcepstra.get(f).clone();
+        
+        return validframes;
+    }
     
     public static void normalizeFrames(float[][] cepstra)
     {
@@ -209,7 +253,5 @@ public class Framing
         }
         return contextedCepstra;
     }      
-   
-    
     // =======================================================================================================
 }

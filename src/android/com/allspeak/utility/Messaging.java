@@ -146,30 +146,7 @@ public class Messaging
         handl.sendMessage(message);   
         return b;
     }  
-    
-//    public static float[] flatten2DimArray(float[][] input)
-//    {
-//        float[] output = new float[input.length * input[0].length];
-//
-//        for(int i = 0; i < input.length; i++)
-//            for(int j = 0; j < input[i].length; j++)
-//                output[i*j] = input[i][j];
-//        return output;
-//    }    
-    
-//    // 1dim array => 2dim array
-//    public static float[][] deFlattenArray(float[] input, int dim1, int dim2)
-//    {
-//        float[][] output = new float[dim1][dim2];        
-//
-//        for(int i = 0; i < input.length; i++){
-//            output[i/dim2][i % dim2] = input[i];
-//        }
-//        return output;        
-//    }    
-//    
-    
-    
+
     public static float[][] deFlattenArray(final float[] array, final int rows, final int cols) 
     {
         if(array.length != (rows*cols)) throw new IllegalArgumentException("Invalid array length");
@@ -189,9 +166,6 @@ public class Messaging
             System.arraycopy(array[i], 0, mono, (i*cols), cols);    
         return mono;
     }
-    
-    
-        
     //======================================================================================================================
     // MESSAGES TO WEB LAYER
     //======================================================================================================================
@@ -296,3 +270,26 @@ public class Messaging
     }     
     //======================================================================================================================
 }
+
+    
+//    public static float[] flatten2DimArray(float[][] input)
+//    {
+//        float[] output = new float[input.length * input[0].length];
+//
+//        for(int i = 0; i < input.length; i++)
+//            for(int j = 0; j < input[i].length; j++)
+//                output[i*j] = input[i][j];
+//        return output;
+//    }    
+    
+//    // 1dim array => 2dim array
+//    public static float[][] deFlattenArray(float[] input, int dim1, int dim2)
+//    {
+//        float[][] output = new float[dim1][dim2];        
+//
+//        for(int i = 0; i < input.length; i++){
+//            output[i/dim2][i % dim2] = input[i];
+//        }
+//        return output;        
+//    }    
+//    
