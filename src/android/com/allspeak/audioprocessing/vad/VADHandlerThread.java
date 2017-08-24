@@ -13,7 +13,7 @@ import org.json.JSONObject;
 
 
 import com.allspeak.utility.Messaging;
-import com.allspeak.audiocapture.CFGParams;
+import com.allspeak.audiocapture.CaptureParams;
 import com.allspeak.audiocapture.AudioInputCapture;
 import com.allspeak.audioprocessing.vad.VADParams;
 import com.allspeak.audioprocessing.vad.VAD;
@@ -47,11 +47,12 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
     private MFCCParams mMfccParams                  = null;
     private Handler mMfccHandler                    = null;
 
-    private CFGParams mCfgParams                    = null;
+    private CaptureParams mCfgParams                    = null;
     
     private boolean bIsCapturing                    = false;
  
   
+    //================================================================================================================
     //================================================================================================================
     public VADHandlerThread(String name)
     {
@@ -61,8 +62,37 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
     {
         super(name, priority);
     }    
-    //===============================================================================================
-    public void setParams(VADParams vadParams, CFGParams cfgParams, MFCCParams mfccParams)
+    //================================================================================================================
+    //================================================================================================================
+    public void init(VADParams vadParams, CaptureParams cfgParams, Handler scb, Handler ccb, Handler rcb, CallbackContext wlcb)
+    {
+        mVadParams          = vadParams;
+        mCfgParams          = cfgParams;  
+        mStatusCallback     = scb;        
+        mCommandCallback    = ccb;        
+        mResultCallback     = rcb; 
+        mWlCb               = wlcb;
+        vad                 = new VAD(mVadParams, mCfgParams, cb);
+        bIsCapturing        = true;
+    }    
+    // ----------------------------------------------------------------------------------------------------------------------
+    // overloads
+    // ----------------------------------------------------------------------------------------------------------------------
+    public void init(VADParams vadParams, CaptureParams cfgParams, Handler cb)
+    {
+        init(vadParams, cfgParams, cb, cb, cb, null);
+    }
+    public void init(VADParams vadParams, CaptureParams cfgParams, Handler cb, CallbackContext wlcb)
+    {
+        init(vadParams, cfgParams, cb, cb, cb, wlcb);
+    }
+    public void init(VADParams vadParams, CaptureParams cfgParams, Handler scb, Handler ccb, Handler rcb)
+    {
+        init(vadParams, cfgParams, scb, ccb, rcb, null);
+    }
+    //================================================================================================================    
+    //================================================================================================================        
+    public void setParams(VADParams vadParams, CaptureParams cfgParams, MFCCParams mfccParams)
     {
         mVadParams      = vadParams;
         mCfgParams      = cfgParams;
@@ -77,18 +107,13 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
         
         vad.setParams(mVadParams, mCfgParams);
     }
+    
     public void setWlCb(CallbackContext wlcb)
     {
         mWlCb = wlcb;        
 //        vad.setWlCb(wlcb);
     }
-    public void setCallbacks(Handler cb)
-    {
-        mStatusCallback = cb;        
-        mCommandCallback = cb;        
-        mResultCallback = cb;        
-        vad.setCallbacks(cb);
-    }
+
     public void setCallbacks(Handler scb, Handler ccb, Handler rcb)
     {
         mStatusCallback     = scb;        
@@ -96,41 +121,26 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
         mResultCallback     = rcb;        
         vad.setCallbacks(mStatusCallback, mCommandCallback, mResultCallback);
     }    
-//--------------------------------------------------------------------------------------------------
-    public void init(VADParams vadParams, CFGParams cfgParams, Handler cb)
+    public void setCallbacks(Handler cb)
     {
-        mVadParams          = vadParams;
-        mCfgParams          = cfgParams;  
-        mStatusCallback     = cb;        
-        mCommandCallback    = cb;        
-        mResultCallback     = cb; 
-        vad                 = new VAD(mVadParams, mCfgParams, cb);
-        bIsCapturing        = true;
-    }
-    public void init(VADParams vadParams, CFGParams cfgParams, Handler cb, CallbackContext wlcb)
-    {
-        init(vadParams, cfgParams, cb);
-        mWlCb = wlcb;
-    }
-    public void init(VADParams vadParams, CFGParams cfgParams, Handler scb, Handler ccb, Handler rcb)
-    {
-        mVadParams          = vadParams;
-        mCfgParams          = cfgParams;  
-        mStatusCallback     = scb;        
-        mCommandCallback    = ccb;        
-        mResultCallback     = rcb;   
-        vad                 = new VAD(mVadParams, mCfgParams, scb, ccb, rcb);
-        bIsCapturing        = true;
-    }
-    public void init(VADParams vadParams, CFGParams cfgParams, Handler scb, Handler ccb, Handler rcb, CallbackContext wlcb)
-    {
-        init(vadParams, cfgParams, scb, ccb, rcb);
-        mWlCb = wlcb;
-    }
-    
+        setCallbacks(cb, cb, cb);
+    }    
+
+    //============================================================================================================================================
     public int getMaxSpeechLengthSamples()
     {
         return vad.getMaxSpeechLengthSamples();
+    }
+    //================================================================================================================    
+    public void adjustVADThreshold(int newthreshold)
+    {
+        Bundle bundle          = new Bundle();
+        bundle.putInt("newthreshold", newthreshold);
+        
+        Message message = mInternalHandler.obtainMessage();
+        message.what    = ENUMS.VAD_CMD_ADJUST_THRESHOLD;
+        message.setData(bundle);
+        mInternalHandler.sendMessage(message);   
     }
     //================================================================================================================    
     public void stopSpeechRecognition(CallbackContext wlcb)
@@ -156,65 +166,87 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
     @Override
     public boolean handleMessage(Message msg) 
     {
-        Bundle b = msg.getData();
-        float[] data;
-        switch((int)msg.what)
-        {
-            case ENUMS.CAPTURE_RESULT:
-                if(bIsCapturing)
-                {
-                    data            = b.getFloatArray("data");
-                    vad.OnNewData(data);
-
-                    if(mCfgParams.nDataDest != ENUMS.CAPTURE_DATADEST_NONE)
+        try
+        {        
+            Bundle b = msg.getData();
+            float[] data;
+            switch((int)msg.what)
+            {
+                case ENUMS.CAPTURE_RESULT:
+                    if(bIsCapturing)
                     {
-                        try
+                        data            = b.getFloatArray("data");
+                        vad.OnNewData(data);
+
+                        if(mCfgParams.nDataDest != ENUMS.CAPTURE_DATADEST_NONE)
                         {
+
                             JSONObject info = new JSONObject(); 
                             info.put("data_type", mCfgParams.nDataDest); 
                             info.put("type", ENUMS.CAPTURE_RESULT);  
 
-                            switch(mCfgParams.nDataDest)
+                            String decoded;
+                            float rms, decibels, threshold;
+                            switch((int)mCfgParams.nDataDest)
                             {
                                 case ENUMS.CAPTURE_DATADEST_JS_RAW:
-                                    String decoded  = Arrays.toString(data);
+                                    decoded     = Arrays.toString(data);
                                     info.put("data", decoded);
                                     break;
-                                    
+
                                 case ENUMS.CAPTURE_DATADEST_JS_DB:
-                                    
-                                    float rms       = AudioInputCapture.getAudioLevels(data);
-                                    float decibels  = AudioInputCapture.getDecibelFromAmplitude(rms);
-                                    info.put("data", Float.toString(decibels));
+                                    rms         = AudioInputCapture.getAudioLevels(data);
+                                    decibels    = AudioInputCapture.getDecibelFromAmplitude(rms);
+                                    threshold   = vad.getCurrentThreshold();
+
+                                    info.put("decibels", Float.toString(decibels));
+                                    info.put("threshold", Float.toString(threshold));
                                     break;
+
+                                case ENUMS.CAPTURE_DATADEST_JS_RAWDB:
+                                    decoded     = Arrays.toString(data);
+                                    rms         = AudioInputCapture.getAudioLevels(data);
+                                    decibels    = AudioInputCapture.getDecibelFromAmplitude(rms);
+                                    threshold   = vad.getCurrentThreshold();
+
+                                    info.put("data", decoded);
+                                    info.put("decibels", decibels);
+                                    info.put("threshold", Float.toString(threshold));
+                                    break;                                    
                             }
                             Messaging.sendUpdate2Web(mWlCb, info, true);
                         }
-                        catch(JSONException e)
-                        {
-                            Messaging.sendErrorString2Web(mWlCb, e.getMessage(), ERRORS.CAPTURE_ERROR, true);              
-                        }                                    
                     }
-                }
-                break;
+                    break;
 
-            case ENUMS.CAPTURE_STATUS_STOPPED:
-                vad.stopCapture();
-                bIsCapturing = false;
-                break;
+                case ENUMS.CAPTURE_STATUS_STOPPED:
+                    vad.stopCapture();
+                    bIsCapturing = false;
+                    break;
 
-            case ERRORS.CAPTURE_ERROR:
-                onCaptureError(b.getString("error"));
-                break;
+                case ERRORS.CAPTURE_ERROR:
+                    onCaptureError(b.getString("error"));
+                    break;
 
-            case ENUMS.CAPTURE_STATUS_STARTED:
-                break;
+                case ENUMS.CAPTURE_STATUS_STARTED:
+                    break;
 
-            case ERRORS.MFCC_ERROR:
-                onMFCCError(b.getString("error"));     // is an error
-                break;
+                case ERRORS.MFCC_ERROR:
+                    onMFCCError(b.getString("error"));     // is an error
+                    break;
+
+                case ENUMS.VAD_CMD_ADJUST_THRESHOLD:
+                    int newthreshold = b.getInt("newthreshold");
+                    vad.adjustVADThreshold(newthreshold);
+                    break;
+            }
+            return true;
         }
-        return true;
+        catch(JSONException e)
+        {
+            Messaging.sendErrorString2Web(mWlCb, e.getMessage(), ERRORS.CAPTURE_ERROR, true); 
+            return true;
+        }                                    
     }    
 
     @Override

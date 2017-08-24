@@ -19,7 +19,7 @@ public class AudioInputCapture
     private AudioPlayback mPlayback             = null;
     private CordovaPlugin plugin                = null;
 
-    private CFGParams cfgParams                 = null;     // Capture parameters
+    private CaptureParams cfgParams                 = null;     // Capture parameters
 
     private int nMode                           = ENUMS.CAPTURE_MODE;
     
@@ -29,46 +29,46 @@ public class AudioInputCapture
     private Handler mCommandCallback            = null;   // destination handler of output command
     private CallbackContext mWlCb               = null;   // access to web layer 
     //======================================================================================================================
-    public AudioInputCapture(CFGParams params, Handler cb)
+    public AudioInputCapture(CaptureParams params, Handler cb)
     {
         cfgParams       = params;
         mStatusCallback     = cb;        
         mCommandCallback    = cb;        
         mResultCallback     = cb;  
     } 
-    public AudioInputCapture(CFGParams params, Handler scb, Handler ccb, Handler rcb)
+    public AudioInputCapture(CaptureParams params, Handler scb, Handler ccb, Handler rcb)
     {
         cfgParams       = params;
         mStatusCallback     = scb;        
         mCommandCallback    = ccb;        
         mResultCallback     = rcb;  
     } 
-    public AudioInputCapture(CFGParams params, Handler phandl, CordovaPlugin _plugin)
+    public AudioInputCapture(CaptureParams params, Handler phandl, CordovaPlugin _plugin)
     {
         this(params, phandl);
         plugin      = _plugin;
     }    
-    public AudioInputCapture(CFGParams params, Handler phandl, int mode)
+    public AudioInputCapture(CaptureParams params, Handler phandl, int mode)
     {
         this(params, phandl);
         nMode = mode;
     }     
-    public AudioInputCapture(CFGParams params, Handler phandl, CordovaPlugin _plugin, int mode)
+    public AudioInputCapture(CaptureParams params, Handler phandl, CordovaPlugin _plugin, int mode)
     {
         this(params, phandl, _plugin);
         nMode = mode;
     }     
-    public AudioInputCapture(CFGParams params, Handler scb, Handler ccb, Handler rcb, CordovaPlugin _plugin)
+    public AudioInputCapture(CaptureParams params, Handler scb, Handler ccb, Handler rcb, CordovaPlugin _plugin)
     {
         this(params, scb, ccb, rcb);
         plugin      = _plugin;
     }       
-    public AudioInputCapture(CFGParams params, Handler scb, Handler ccb, Handler rcb, int mode)
+    public AudioInputCapture(CaptureParams params, Handler scb, Handler ccb, Handler rcb, int mode)
     {
         this(params, scb, ccb, rcb);
         nMode = mode;
     }    
-    public AudioInputCapture(CFGParams params, Handler scb, Handler ccb, Handler rcb, CordovaPlugin _plugin, int mode)
+    public AudioInputCapture(CaptureParams params, Handler scb, Handler ccb, Handler rcb, CordovaPlugin _plugin, int mode)
     {
         this(params, scb, ccb, rcb, _plugin);
         nMode = mode;

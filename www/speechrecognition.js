@@ -24,27 +24,32 @@ speechrecognition.ENUM.PLUGIN   =
     SPEECH_STATUS_MAX_LENGTH        : 23,
     SPEECH_STATUS_MIN_LENGTH        : 24,
     
-    MFCC_RESULT                     : 40, //
+    MFCC_RESULT                     : 41, //
     MFCC_STATUS_PROGRESS_DATA       : 31, //
     MFCC_STATUS_PROGRESS_FILE       : 32, //
     MFCC_STATUS_PROGRESS_FOLDER     : 33, //   suspended for a bug
     
-    TF_STATUS_PROCESS_STARTED       : 50, //
-    TF_RESULT                       : 52, //
+    TF_STATUS_MODEL_LOADED          : 50, //
+    TF_STATUS_PROCESS_STARTED       : 51, //
+    TF_RESULT                       : 56, //
     
     CAPTURE_DATADEST_NONE           : 200,
     CAPTURE_DATADEST_JS_RAW         : 201,
     CAPTURE_DATADEST_JS_DB          : 202,    
     CAPTURE_DATADEST_JS_RAWDB       : 203,    
+    CAPTURE_DATADEST_FILE           : 204,    
+    CAPTURE_DATADEST_FILE_JS_RAW    : 205,    
+    CAPTURE_DATADEST_FILE_JS_DB     : 206,    
+    CAPTURE_DATADEST_FILE_JS_RAWDB  : 207,    
     
     MFCC_DATADEST_NOCALC            : 230,    // DO NOT CALCULATE MFCC during capture
-    MFCC_DATADEST_NONE              : 231,    // data(float[][])=> PLUGIN
-    MFCC_DATADEST_JSPROGRESS        : 232,    // data=> PLUGIN + progress(filename)=> WEB
-    MFCC_DATADEST_JSDATA            : 233,    // data=> PLUGIN + progress(filename) + data(JSONArray)=> WEB
-    MFCC_DATADEST_JSDATAWEB         : 234,    // data(JSONArray)=> WEB
-    MFCC_DATADEST_FILE              : 235,    // progress(filename)=> PLUGIN + data(String)=> FILE
-    MFCC_DATADEST_FILEWEB           : 236,    // progress(filename)=> PLUGIN + data(String)=> FILE + data(JSONArray)=> WEB
-    MFCC_DATADEST_ALL               : 237,    // data=> PLUGIN + data(String)=> FILE + data(JSONArray)=> WEB
+    MFCC_DATADEST_NONE              : 231,    // data(float[][])    => SERVICE
+    MFCC_DATADEST_JSPROGRESS        : 232,    // data               => SERVICE + progress(filename) => WEB
+    MFCC_DATADEST_JSDATA            : 233,    // data               => SERVICE + progress(filename) + data(JSONArray) => WEB
+    MFCC_DATADEST_JSDATAWEB         : 234,    // data(JSONArray)    => WEB
+    MFCC_DATADEST_FILE              : 235,    // progress(filename) => SERVICE + data(String) => FILE
+    MFCC_DATADEST_FILEWEB           : 236,    // progress(filename) => SERVICE + data(String) => FILE + data(JSONArray) => WEB
+    MFCC_DATADEST_ALL               : 237,    // data               => SERVICE + data(String) => FILE + data(JSONArray) => WEB
     
     MFCC_DATAORIGIN_JSONDATA        : 240,
     MFCC_DATAORIGIN_FILE            : 241,
@@ -54,9 +59,20 @@ speechrecognition.ENUM.PLUGIN   =
     MFCC_DATATYPE_MFPARAMETERS      : 250,
     MFCC_DATATYPE_MFFILTERS         : 251,
     
-    HEADSET_CONNECTED               : 260,
-    HEADSET_DISCONNECTED            : 261, 
-    HEADSET_CONNECTING              : 262     
+    VAD_RESULT_DETECTION_ONLY               : 260,      // just detect. no MFCC, no save, only callback to WL    
+    VAD_RESULT_SAVE_SENTENCE                : 261,      // save (natively) and/or send data to WL  
+    VAD_RESULT_PROCESS_DATA                 : 262,      // process sentence data (MFCC & TF)
+    VAD_RESULT_PROCESS_DATA_SAVE_SENTENCE   : 263,      // process sentence data (MFCC & TF)    
+    
+    TF_DATADEST_MODEL               : 270,      // sentence's cepstra are sent to TF model only
+    TF_DATADEST_FILEONLY            : 271,      // sentence's cepstra are written to a file only
+    TF_DATADEST_MODEL_FILE          : 272,      // sentence's cepstra are sent to TF model and written to a file    
+    
+    AUDIODEVICES_INFO               : 290, // 
+    HEADSET_CONNECTED               : 291,
+    HEADSET_DISCONNECTED            : 292, 
+    HEADSET_CONNECTING              : 293,     
+    HEADSET_DISCONNECTING           : 294     
 }; 
 
 // MUST MAP plugin's ERRORS.java
@@ -73,7 +89,8 @@ speechrecognition.ENUM.ERRORS   =
     SERVICE_INIT_CAPTURE            : 112, 
     PLUGIN_INIT_PLAYBACK            : 113,    
     SERVICE_INIT_PLAYBACK           : 114,    
-    CAPTURE_ALREADY_STARTED         : 115, 
+    SERVICE_INIT_TF_MODEL           : 115,    
+    CAPTURE_ALREADY_STARTED         : 116, 
     
     VAD_ERROR                       : 120,
     PLUGIN_INIT_RECOGNITION         : 121,
@@ -133,97 +150,33 @@ speechrecognition.ENUM.capture.AUDIOSOURCE_TYPE = {
     VOICE_COMMUNICATION : 7,
     VOICE_RECOGNITION   : 6
 };
-
-speechrecognition.ENUM.capture.DATADEST={
-    NONE        : 200,
-    JSDATA      : 201
-};
-
-speechrecognition.ENUM.capture.DATATYPE={
-    RAW         : 202,
-    DB          : 203
-};
-
-speechrecognition.ENUM.capture.ERROR_CODE = {
-    NO_ERROR                    : 0,
-    INVALID_PARAMETER           : 1,
-    MISSING_PARAMETER           : 2,
-    NO_WEB_AUDIO_SUPPORT        : 3,
-    CAPTURE_ALREADY_STARTED     : 4,
-    AUDIOINPUT_NOT_AVAILABLE    : 5,
-    UNSPECIFIED                 : 999
-};
 //-----------------------------------------------------------------------------------------------------
-speechrecognition.ENUM.mfcc.DATATYPE={
-    NONE        : 0,
-    FCC         : 1,
-    MFFILTERS   : 2
-};
-
-speechrecognition.ENUM.mfcc.DATAORIGIN={
-    JSONDATA    : 1,
-    FILE        : 2,
-    FOLDER      : 3,
-    RAWDATA     : 4
-};
-
-speechrecognition.ENUM.mfcc.DATADEST={
-    NONE        : 0,
-    JSPROGRESS  : 1,
-    JSDATA      : 2,
-    JSDATAWEB   : 3,    //   send progress(filename) + data(JSONArray) to WEB
-    FILE        : 4,
-    FILEWEB     : 5,    //   send progress(filename) + write data(String) to file
-    ALL         : 6
-};
-//-----------------------------------------------------------------------------------------------------
-speechrecognition.ENUM.vad.AUDIO_RESULT_TYPE = {
-    WAV_BLOB: 1,
-    WEBAUDIO_AUDIOBUFFER: 2,
-    RAW_DATA: 3,
-    DETECTION_ONLY: 4
-};
-
-speechrecognition.ENUM.vad.STATUS = {
-    SPEECH_STATUS_STARTED      : 1,
-    SPEECH_STATUS_STOPPED      : 2,
-    VAD_ERROR        : 3,
-//    CAPTURE_STATUS_STARTED     : 4,
-//    CAPTURE_STATUS_STOPPED     : 5,
-//    CAPTURE_ERROR       : 6,
-    ENCODING_ERROR      : 7,
-    SPEECH_STATUS_MAX_LENGTH   : 8,
-    SPEECH_STATUS_MIN_LENGTH   : 9
-};
 
 speechrecognition.ENUM.vad.MIN_ACL_MS = 32;
 speechrecognition.ENUM.vad.MIN_MXL_MS = 8000;   // minimun SPEECH_DETECTION_MAX_LENGTH
 speechrecognition.ENUM.vad.MIN_MIL_MS = 300;    // minimum SPEECH_DETECTION_MIN_LENGTH
 speechrecognition.ENUM.vad.MAX_MIL_MS = 1000;   // maximum SPEECH_DETECTION_MIN_LENGTH
-//-----------------------------------------------------------------------------------------------------
-speechrecognition.ENUM.tf = {};
 
 //=========================================================================================
 // DEFAULT
 //=========================================================================================
 // Default values
 speechrecognition.ENUM.capture.DEFAULT = {
-    SAMPLERATE              : speechrecognition.ENUM.capture.SAMPLERATE.TELEPHONE_8000Hz,
-    BUFFER_SIZE             : 1024,
-    CHANNELS                : speechrecognition.ENUM.capture.CHANNELS.MONO,
-    FORMAT                  : speechrecognition.ENUM.capture.FORMAT.PCM_16BIT,
-    NORMALIZE               : true,
-    NORMALIZATION_FACTOR    : 32767.0,
-    STREAM_TO_WEBAUDIO      : false,
-    CONCATENATE_MAX_CHUNKS  : 10,
-    AUDIOSOURCE_TYPE        : speechrecognition.ENUM.capture.AUDIOSOURCE_TYPE.DEFAULT,
-    START_MFCC              : false,
-    START_VAD               : false,
-    DATA_DEST               : speechrecognition.ENUM.capture.DATADEST.JSDATA
+    nSampleRate             : speechrecognition.ENUM.capture.SAMPLERATE.TELEPHONE_8000Hz,
+    nBufferSize             : 1024,
+    nChannels               : speechrecognition.ENUM.capture.CHANNELS.MONO,
+    sFormat                 : speechrecognition.ENUM.capture.FORMAT.PCM_16BIT,
+    nNormalize              : true,
+    fNormalizationFactor    : 32767.0,
+    nConcatenateMaxChunks   : 10,
+    nAudioSourceType        : speechrecognition.ENUM.capture.AUDIOSOURCE_TYPE.DEFAULT,
+    nDataDest               : speechrecognition.ENUM.PLUGIN.CAPTURE_DATADEST_JS_RAW,
+    nChunkMaxLengthMS       : 20000,
+    sOutputPath             : ""
 };
 
 speechrecognition.ENUM.mfcc.DEFAULT = {
-    nNumberOfMFCCParameters : 12,
+    nNumberOfMFCCParameters : 13,
     dSamplingFrequency      : 8000.0,
     nNumberofFilters        : 24,
     nFftLength              : 256,
@@ -232,43 +185,78 @@ speechrecognition.ENUM.mfcc.DEFAULT = {
     bCalculate0ThCoeff      : true,
     nWindowDistance         : 80,
     nWindowLength           : 200,
-    nDataType               : speechrecognition.ENUM.mfcc.DATATYPE.MFFILTERS,
-    nDataDest               : speechrecognition.ENUM.mfcc.DATADEST.NONE,
-    nDataOrig               : speechrecognition.ENUM.mfcc.DATAORIGIN.RAWDATA,
+    nDataType               : speechrecognition.ENUM.PLUGIN.MFCC_DATATYPE_MFFILTERS,
+    nDataDest               : speechrecognition.ENUM.PLUGIN.MFCC_DATADEST_NONE,
+    nDataOrig               : speechrecognition.ENUM.PLUGIN.MFCC_DATAORIGIN_RAWDATA,
     sOutputPath             : "",
-    nContextFrames          : 11
+    nDeltaWindow            : 2
 };
 
 speechrecognition.ENUM.vad.DEFAULT = {
-    SPEECH_DETECTION_THRESHOLD              : 15, // dB
-    SPEECH_DETECTION_ALLOWED_DELAY          : 384, // mS
-    SPEECH_DETECTION_MAX_LENGTH             : 10000, // mS
-    SPEECH_DETECTION_MIN_LENGTH             : 512, // mS
-    SPEECH_DETECTION_COMPRESS_PAUSES        : false,
-    SPEECH_DETECTION_ANALYSIS_CHUNK_LENGTH  : 64, // mS
-    AUDIO_RESULT_TYPE                       : 1,
-    DETECT_ONLY                             : false
+    nSpeechDetectionThreshold       : 15, // dB
+    nSpeechDetectionAllowedDelay    : 384, // mS
+    nSpeechDetectionMaximum         : 10000, // mS
+    nSpeechDetectionMinimum         : 512, // mS
+    bCompressPauses                 : false,
+    nAnalysisChunkLength            : 64, // mS
+    nAudioResultType                : speechrecognition.ENUM.PLUGIN.VAD_RESULT_PROCESS_DATA
 };
 
 speechrecognition.ENUM.tf.DEFAULT = {
-    NET_LAYERS : 20
+    nInputParams            : 792,        
+    nContextFrames          : 11,        
+    nItems2Recognize        : 25,
+    sModelFilePath          : "",         
+    sLabelFilePath          : "",          
+    sInputNodeName          : "inputs/I",          
+    sOutputNodeName         : "O",      
+    nDataDest               : speechrecognition.ENUM.PLUGIN.TF_DATADEST_MODEL,      
+    fRecognitionThreshold   : 0.1      
 };
 //=========================================================================================
 // CHECK INPUT PARAMS
 //=========================================================================================
 
-speechrecognition.mfcc = {};
-speechrecognition.mfcc.params = {};
+speechrecognition.mfcc              = {};
+speechrecognition.mfcc.params       = {};
 
-speechrecognition.capture = {};
-speechrecognition.capture.params = {};
+speechrecognition.capture           = {};
+speechrecognition.capture.params    = {};
 
-speechrecognition.vad = {};
-speechrecognition.vad.params = {};
+speechrecognition.vad               = {};
+speechrecognition.vad.params        = {};
 
-speechrecognition.tf = {};
-speechrecognition.tf.params = {};
+speechrecognition.tf                = {};
+speechrecognition.tf.params         = {};
 
+speechrecognition.checkCaptureParams = function(capture_params)
+{
+    speechrecognition.capture.params.nSampleRate                = capture_params.nSampleRate            || speechrecognition.ENUM.capture.DEFAULT.nSampleRate;
+    speechrecognition.capture.params.nBufferSize                = capture_params.nBufferSize            || speechrecognition.ENUM.capture.DEFAULT.nBufferSize;
+    speechrecognition.capture.params.nChannels                  = capture_params.nChannels              || speechrecognition.ENUM.capture.DEFAULT.nChannels;
+    speechrecognition.capture.params.sFormat                    = capture_params.sFormat                || speechrecognition.ENUM.capture.DEFAULT.sFormat;
+    speechrecognition.capture.params.nAudioSourceType           = capture_params.nAudioSourceType       || 0;
+    speechrecognition.capture.params.nNormalize                 = capture_params.nNormalize             || speechrecognition.ENUM.capture.DEFAULT.nNormalize;
+    speechrecognition.capture.params.fNormalizationFactor       = capture_params.fNormalizationFactor   || speechrecognition.ENUM.capture.DEFAULT.fNormalizationFactor;
+    speechrecognition.capture.params.nConcatenateMaxChunks      = capture_params.nConcatenateMaxChunks  || speechrecognition.ENUM.capture.DEFAULT.nConcatenateMaxChunks;
+    speechrecognition.capture.params.nDataDest                  = capture_params.nDataDest              || speechrecognition.ENUM.capture.DEFAULT.nDataDest;
+    speechrecognition.capture.params.nChunkMaxLengthMS          = capture_params.nChunkMaxLengthMS      || speechrecognition.ENUM.capture.DEFAULT.nChunkMaxLengthMS;
+    speechrecognition.capture.params.sOutputPath                = capture_params.sOutputPath            || speechrecognition.ENUM.capture.DEFAULT.sOutputPath;
+    
+    if (speechrecognition.capture.params.nChannels < 1 && speechrecognition.capture.params.nChannels > 2) 
+        throw "Invalid number of channels (" + speechrecognition.capture.params.nChannels + "). Only mono (1) and stereo (2) is" +" supported.";
+    
+    if (speechrecognition.capture.params.sFormat != "PCM_16BIT" && speechrecognition.capture.params.sFormat != "PCM_8BIT") 
+        throw "Invalid format (" + speechrecognition.capture.params.sFormat + "). Only 'PCM_8BIT' and 'PCM_16BIT' is" + " supported.";
+    
+    if (speechrecognition.capture.params.nBufferSize <= 0) 
+        throw "Invalid bufferSize (" + speechrecognition.capture.params.nBufferSize + "). Must be greater than zero.";
+    
+    if (speechrecognition.capture.params.nConcatenateMaxChunks <= 0)
+        throw "Invalid concatenateMaxChunks (" + speechrecognition.capture.params.nConcatenateMaxChunks + "). Must be greater than zero.";
+    
+    return JSON.stringify(speechrecognition.capture.params); 
+};
 
 speechrecognition.checkMfccParams = function(mfcc_params)
 {
@@ -285,60 +273,38 @@ speechrecognition.checkMfccParams = function(mfcc_params)
     speechrecognition.mfcc.params.nDataDest                    = mfcc_params.nDataDest                 || speechrecognition.ENUM.mfcc.DEFAULT.nDataDest;          
     speechrecognition.mfcc.params.nDataOrig                    = mfcc_params.nDataOrig                 || speechrecognition.ENUM.mfcc.DEFAULT.nDataOrig;          
     speechrecognition.mfcc.params.sOutputPath                  = mfcc_params.sOutputPath               || speechrecognition.ENUM.mfcc.DEFAULT.sOutputPath;          
-    speechrecognition.mfcc.params.nContextFrames               = mfcc_params.nContextFrames            || speechrecognition.ENUM.mfcc.DEFAULT.nContextFrames;          
+    speechrecognition.mfcc.params.nDeltaWindow                 = mfcc_params.nDeltaWindow              || speechrecognition.ENUM.mfcc.DEFAULT.nDeltaWindow;          
     
     return JSON.stringify(speechrecognition.mfcc.params); 
 };
 
-speechrecognition.checkCaptureParams = function(capture_params)
-{
-    speechrecognition.capture.params.nSampleRate                = capture_params.nSampleRate            || speechrecognition.ENUM.capture.DEFAULT.SAMPLERATE;
-    speechrecognition.capture.params.nBufferSize                = capture_params.nBufferSize            || speechrecognition.ENUM.capture.DEFAULT.BUFFER_SIZE;
-    speechrecognition.capture.params.nChannels                  = capture_params.nChannels              || speechrecognition.ENUM.capture.DEFAULT.CHANNELS;
-    speechrecognition.capture.params.sFormat                    = capture_params.sFormat                || speechrecognition.ENUM.capture.DEFAULT.FORMAT;
-    speechrecognition.capture.params.nAudioSourceType           = capture_params.nAudioSourceType       || 0;
-    speechrecognition.capture.params.nNormalize                 = typeof capture_params.nNormalize == 'boolean' ? speechrecognition.ENUM.capture.nNormalize : speechrecognition.ENUM.capture.DEFAULT.NORMALIZE;
-    speechrecognition.capture.params.fNormalizationFactor       = capture_params.fNormalizationFactor   || speechrecognition.ENUM.capture.DEFAULT.NORMALIZATION_FACTOR;
-    speechrecognition.capture.params.nConcatenateMaxChunks      = capture_params.nConcatenateMaxChunks  || speechrecognition.ENUM.capture.DEFAULT.CONCATENATE_MAX_CHUNKS;
-    speechrecognition.capture.params.nDataDest                  = capture_params.nDataDest              || speechrecognition.ENUM.capture.DEFAULT.DATA_DEST;
-    
-    if (speechrecognition.capture.params.nChannels < 1 && speechrecognition.capture.params.nChannels > 2) {
-        throw "Invalid number of channels (" + speechrecognition.capture.params.nChannels + "). Only mono (1) and stereo (2) is" +" supported.";
-    }
-    if (speechrecognition.capture.params.sFormat != "PCM_16BIT" && speechrecognition.capture.params.sFormat != "PCM_8BIT") {
-        throw "Invalid format (" + speechrecognition.capture.params.sFormat + "). Only 'PCM_8BIT' and 'PCM_16BIT' is" + " supported.";
-    }
-    if (speechrecognition.capture.params.nBufferSize <= 0) {
-        throw "Invalid bufferSize (" + speechrecognition.capture.params.nBufferSize + "). Must be greater than zero.";
-    }
-    if (speechrecognition.capture.params.nConcatenateMaxChunks <= 0) {
-        throw "Invalid concatenateMaxChunks (" + speechrecognition.capture.params.nConcatenateMaxChunks + "). Must be greater than zero.";
-    }
-    
-    return JSON.stringify(speechrecognition.capture.params); 
-};
-
 speechrecognition.checkVadParams = function(vad_params)
 {
-    speechrecognition.vad.params.nSpeechDetectionThreshold      = vad_params.nSpeechDetectionThreshold       || speechrecognition.ENUM.vad.DEFAULT.SPEECH_DETECTION_THRESHOLD;
-    speechrecognition.vad.params.nSpeechDetectionMinimum        = vad_params.nSpeechDetectionMinimum         || speechrecognition.ENUM.vad.DEFAULT.SPEECH_DETECTION_MIN_LENGTH;
-    speechrecognition.vad.params.nSpeechDetectionMaximum        = vad_params.nSpeechDetectionMaximum         || speechrecognition.ENUM.vad.DEFAULT.SPEECH_DETECTION_MAX_LENGTH;
-    speechrecognition.vad.params.nSpeechDetectionAllowedDelay   = vad_params.nSpeechDetectionAllowedDelay    || speechrecognition.ENUM.vad.DEFAULT.SPEECH_DETECTION_ALLOWED_DELAY;
-    speechrecognition.vad.params.audioResultType                = vad_params.audioResultType                 || speechrecognition.ENUM.vad.DEFAULT.AUDIO_RESULT_TYPE;
-    speechrecognition.vad.params.bCompressPauses                = vad_params.bCompressPauses                 || speechrecognition.ENUM.vad.DEFAULT.SPEECH_DETECTION_COMPRESS_PAUSES;
-    speechrecognition.vad.params.nAnalysisChunkLength           = vad_params.nAnalysisChunkLength            || speechrecognition.ENUM.vad.DEFAULT.SPEECH_DETECTION_ANALYSIS_CHUNK_LENGTH;
-    speechrecognition.vad.params.bDetectOnly                    = vad_params.bDetectOnly                     || speechrecognition.ENUM.vad.DEFAULT.DETECT_ONLY;
+    speechrecognition.vad.params.nSpeechDetectionThreshold      = vad_params.nSpeechDetectionThreshold       || speechrecognition.ENUM.vad.DEFAULT.nSpeechDetectionThreshold;
+    speechrecognition.vad.params.nSpeechDetectionMinimum        = vad_params.nSpeechDetectionMinimum         || speechrecognition.ENUM.vad.DEFAULT.nSpeechDetectionMinimum;
+    speechrecognition.vad.params.nSpeechDetectionMaximum        = vad_params.nSpeechDetectionMaximum         || speechrecognition.ENUM.vad.DEFAULT.nSpeechDetectionMaximum;
+    speechrecognition.vad.params.nSpeechDetectionAllowedDelay   = vad_params.nSpeechDetectionAllowedDelay    || speechrecognition.ENUM.vad.DEFAULT.nSpeechDetectionAllowedDelay;
+    speechrecognition.vad.params.nAudioResultType               = vad_params.nAudioResultType                || speechrecognition.ENUM.vad.DEFAULT.nAudioResultType;
+    speechrecognition.vad.params.bCompressPauses                = vad_params.bCompressPauses                 || speechrecognition.ENUM.vad.DEFAULT.bCompressPauses;
+    speechrecognition.vad.params.nAnalysisChunkLength           = vad_params.nAnalysisChunkLength            || speechrecognition.ENUM.vad.DEFAULT.nAnalysisChunkLength;
+    speechrecognition.vad.params.sDebugString                   = vad_params.sDebugString                    || "";
 
-    if (speechrecognition.vad.params.detectOnly) {
-        speechrecognition.vad.params.audioResultType = AUDIO_RESULT_TYPE.DETECTION_ONLY;
-    }
     return JSON.stringify(speechrecognition.vad.params); 
 };
 
 speechrecognition.checkTfParams = function(tf_params)
 {
-    speechrecognition.tf.params.nNetLayers                      = tf_params.nNetLayers                      || speechrecognition.ENUM.tf.DEFAULT.NET_LAYERS;
-   
+    speechrecognition.tf.params.nInputParams                    = tf_params.nInputParams                || speechrecognition.ENUM.tf.DEFAULT.nInputParams;          
+    speechrecognition.tf.params.nContextFrames                  = tf_params.nContextFrames              || speechrecognition.ENUM.tf.DEFAULT.nContextFrames;          
+    speechrecognition.tf.params.nItems2Recognize                = tf_params.nItems2Recognize            || speechrecognition.ENUM.tf.DEFAULT.nItems2Recognize;          
+    speechrecognition.tf.params.sModelFilePath                  = tf_params.sModelFilePath              || speechrecognition.ENUM.tf.DEFAULT.sModelFilePath;          
+    speechrecognition.tf.params.sLabelFilePath                  = tf_params.sLabelFilePath              || speechrecognition.ENUM.tf.DEFAULT.sLabelFilePath;          
+    speechrecognition.tf.params.sInputNodeName                  = tf_params.sInputNodeName              || speechrecognition.ENUM.tf.DEFAULT.sInputNodeName;          
+    speechrecognition.tf.params.sOutputNodeName                 = tf_params.sOutputNodeName             || speechrecognition.ENUM.tf.DEFAULT.sOutputNodeName;          
+    speechrecognition.tf.params.nDataDest                       = tf_params.nDataDest                   || speechrecognition.ENUM.tf.DEFAULT.nDataDest;
+    speechrecognition.tf.params.bLoaded                         = false;
+    speechrecognition.tf.params.fRecognitionThreshold           = tf_params.fRecognitionThreshold       || speechrecognition.ENUM.tf.DEFAULT.fRecognitionThreshold;
+       
     return JSON.stringify(speechrecognition.tf.params); 
 };
 
@@ -367,7 +333,45 @@ speechrecognition.isCapturing = function () {
 //=========================================================================================
 // PLUGIN CALLS (from JS => JAVA)
 //=========================================================================================
+//
 //=========================================================================================
+// PROMISES
+//=========================================================================================
+// doesn't return to _pluginEvent
+speechrecognition.getAudioDevices = function () 
+{
+    var promise = new Promise(function(resolve, reject) {
+        successCallback = resolve;
+        errorCallback = reject;
+    });
+    cordova.exec(successCallback, errorCallback,
+        speechrecognition.pluginName, "getAudioDevices", []);
+    return promise;  
+};
+
+speechrecognition.loadTFModel = function (mTfCfg) 
+{
+    var promise = new Promise(function(resolve, reject) {
+        successCallback = resolve;
+        errorCallback = reject;
+    });
+    
+    if(mTfCfg == null)     mTfCfg = {};
+        
+    // overwrite default params with exogenous ones
+    var json_tf_params = speechrecognition.checkTfParams(mTfCfg);    
+    exec(successCallback, errorCallback, speechrecognition.pluginName, "loadTFModel", [json_tf_params]);
+    
+    return promise;
+};
+
+//=========================================================================================
+// UNIFIED _PLUGINEVENT CALLBACK
+//=========================================================================================
+speechrecognition.startSCOConnection = function (start) {
+    exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, "startSCOConnection", [start]);
+};
+
 /**
  * Start capture of Audio input
  *
@@ -379,7 +383,6 @@ speechrecognition.isCapturing = function () {
  *  format ('PCM_8BIT' or 'PCM_16BIT'),
  *  normalize (true || false),
  *  normalizationFactor (create float data by dividing the audio data with this factor; default: 32767.0)
- *  streamToWebAudio (The plugin will handle all the conversion of raw data to audio)
  *  audioContext (If no audioContext is given, one will be created)
  *  concatenateMaxChunks (How many packets will be merged each time, low = low latency but can require more resources)
  *  audioSourceType (Use speechrecognition.AUDIOSOURCE_TYPE.)
@@ -427,67 +430,52 @@ speechrecognition.setPlayBackPercVol = function (perc) {
         exec(null, speechrecognition._pluginError, speechrecognition.pluginName, "setPlayBackPercVol", [perc]);
 };
 
-//---------------------------------------------------------------
-/**
- * Start calculating MFCC
- */
-speechrecognition.startMFCC = function () {
-    if (speechrecognition._capturing) 
-        exec(null, speechrecognition._pluginError, speechrecognition.pluginName, "stopMFCC", [speechrecognition.mfcc.params]);
-};
-
-/**
- * Stop calculating MFCC
- */
-speechrecognition.stopMFCC = function () {
-    if (speechrecognition._capturing) 
-        exec(null, speechrecognition._pluginError, speechrecognition.pluginName, "stopMFCC", []);
-};
-speechrecognition.getMFCC = function(mfcc_params, source, filepath_noext)
+speechrecognition.getMFCC = function(mfcc_params, source, overwrite, filepath_noext)
 {
+    if(overwrite == null)  overwrite = true;
+        
     var mfcc_json_params    = speechrecognition.checkMfccParams(mfcc_params);
     
     //check params consistency
     if(source == null || !source.length)
     {
-        errorCB("ERROR in mfccCalculation: source is empty")
+        alert("ERROR in mfccCalculation: source is empty")
         return false;
     }
-    else if(mfcc_params.nDataOrig == speechrecognition.ENUM.mfcc.DATAORIGIN.JSONDATA && source.constructor !== Array) 
+    else if(mfcc_params.nDataOrig == speechrecognition.ENUM.PLUGIN.MFCC_DATAORIGIN_JSONDATA && source.constructor !== Array) 
     {
-        errorCB("ERROR in mfccCalculation: you set data origin as data, but did not provide a data array");
+        alert("ERROR in mfccCalculation: you set data origin as data, but did not provide a data array");
         return false;
     }
-    else if ((mfcc_params.nDataOrig == speechrecognition.ENUM.mfcc.DATAORIGIN.FILE || mfcc_params.nDataOrig == speechrecognition.ENUM.mfcc.DATAORIGIN.FOLDER) && source.constructor !== String)        
+    else if ((mfcc_params.nDataOrig == speechrecognition.ENUM.PLUGIN.MFCC_DATAORIGIN_FILE || mfcc_params.nDataOrig == speechrecognition.ENUM.PLUGIN.MFCC_DATAORIGIN_FOLDER) && source.constructor !== String)        
     {
-        errorCB("ERROR in mfccCalculation: you set data origin as file/folder, but did not provide a string parameter");
+        alert("ERROR in mfccCalculation: you set data origin as file/folder, but did not provide a string parameter");
         return false;
     }
     
-    exec(speechrecognition.onMFCCSuccess, speechrecognition.onMFCCError, speechrecognition.pluginName, 'getMFCC', [mfcc_json_params, source, filepath_noext]);            
+    exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, 'getMFCC', [mfcc_json_params, source, overwrite, filepath_noext]);            
+    return true;
 };
-
-//---------------------------------------------------------------
 
 speechrecognition.startSpeechRecognition = function (captureCfg, vadCfg, mfccCfg, tfCfg) 
 {
     if (!speechrecognition._capturing) 
     {
         if(captureCfg == null)  captureCfg = {};
-        if(mfccCfg == null)     mfccCfg = {};
         if(vadCfg == null)      vadCfg = {};
+        if(mfccCfg == null)     mfccCfg = {};
         if(tfCfg == null)       tfCfg = {};
         
         // overwrite default params with exogenous ones
         var json_capture_params     = speechrecognition.checkCaptureParams(captureCfg);
-        var json_mfcc_params        = speechrecognition.checkMfccParams(mfccCfg);
         var json_vad_params         = speechrecognition.checkVadParams(vadCfg);
+        var json_mfcc_params        = speechrecognition.checkMfccParams(mfccCfg);
         var json_tf_params          = speechrecognition.checkTfParams(tfCfg);
         
         exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, "startSpeechRecognition",
             [json_capture_params,
-             json_mfcc_params,
              json_vad_params,
+             json_mfcc_params,
              json_tf_params]);
     }
     else {
@@ -503,6 +491,12 @@ speechrecognition.stopSpeechRecognition = function ()
     if (speechrecognition._capturing) exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, "stopSpeechRecognition", []);
 };
 
+speechrecognition.debugCall = function (obj) 
+{
+    var json_params = JSON.stringify(obj); 
+    exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, "debugCall", [json_params]);
+};
+
 //==================================================================================================================
 // PLUGIN CALLBACKS (from JAVA => JS)
 //==================================================================================================================
@@ -516,21 +510,48 @@ speechrecognition._pluginEvent = function (data) {
         switch(data.type)
         {
             case speechrecognition.ENUM.PLUGIN.CAPTURE_RESULT:
-                if(data.data_type == speechrecognition.ENUM.PLUGIN.CAPTURE_DATADEST_JS_RAW)
+                switch(data.data_type)
                 {
-                    if (data && data.data && data.data.length > 0) 
-                    {
-                        var audioData = JSON.parse(data.data);
-                        cordova.fireWindowEvent("audioinput", {data: audioData});
-                    }
-                    else if (data && data.error) {
-                        speechrecognition._captureErrorEvent(data.error);
-                    }
-                }
-                else
-                {
-                    //mean decibel
-                    cordova.fireWindowEvent("audiometer", {data: Math.round(JSON.parse(data.data))});
+                    case speechrecognition.ENUM.PLUGIN.CAPTURE_DATADEST_JS_RAW:
+                    case speechrecognition.ENUM.PLUGIN.CAPTURE_DATADEST_FILE_JS_RAW:
+                        if (data && data.data && data.data.length > 0) 
+                        {
+                            var audioData = JSON.parse(data.data);
+                            cordova.fireWindowEvent("audioinput", {data: audioData});
+                        }
+                        else if (data && data.error)
+                            speechrecognition._pluginError({message: "error in _pluginEvent: " + data.error.toString()});
+
+                        break;
+                        
+                    case speechrecognition.ENUM.PLUGIN.CAPTURE_DATADEST_JS_DB:
+                    case speechrecognition.ENUM.PLUGIN.CAPTURE_DATADEST_FILE_JS_DB:
+                        
+                        if(data.decibels == "-Infinity")    data.decibels = -1000;
+                        if(data.threshold != null)          
+                            cordova.fireWindowEvent("audiometer", {decibels: Math.round(JSON.parse(data.decibels)), threshold: Math.round(JSON.parse(data.threshold))});   //mean decibel & threshold
+                        else
+                            cordova.fireWindowEvent("audiometer", {decibels: Math.round(JSON.parse(data.decibels))});   //mean decibel & threshold
+                        break;
+                    
+                    case speechrecognition.ENUM.PLUGIN.CAPTURE_DATADEST_JS_RAWDB:
+                    case speechrecognition.ENUM.PLUGIN.CAPTURE_DATADEST_FILE_JS_RAWDB:
+  
+                        if(data.decibels == "-Infinity")    data.decibels = -1000;    
+                        
+                        if(data.threshold != null)          
+                            cordova.fireWindowEvent("audiometer", {decibels: Math.round(JSON.parse(data.decibels)), threshold: Math.round(JSON.parse(data.threshold))});   //mean decibel & threshold
+                        else
+                            cordova.fireWindowEvent("audiometer", {decibels: Math.round(JSON.parse(data.decibels))});   //mean decibel & threshold
+                    
+                        if (data && data.data && data.data.length > 0) 
+                        {
+                            var audioData = JSON.parse(data.data);
+                            cordova.fireWindowEvent("audioinput", {data: audioData});
+                        }
+                        else if (data && data.error) 
+                            speechrecognition._pluginError({message: "error in _pluginEvent: " + data.error.toString()});
+                        break;
                 }
                 break;
             
@@ -541,14 +562,14 @@ speechrecognition._pluginEvent = function (data) {
                 break;
                 
             case speechrecognition.ENUM.PLUGIN.CAPTURE_STATUS_STOPPED:
-                console.log("audioInputMfcc._stopaudioInputEvent: captured " + parseInt(data.bytesread) + "bytes, " + parseInt(data.datacaptured)*12 + " time windows, dataprocessed: " + parseInt(data.dataprocessed)*12);
+                console.log("audioInputMfcc._stopaudioInputEvent: captured " + parseInt(data.bytesread) + " bytes, " + parseInt(data.framesprocessed) + " processed frames, still " + parseInt(data.frames2beprocessed) + " to be processed, expected frames: " + parseInt(data.expectedframes));
                 cordova.fireWindowEvent("capturestopped", {data: data});
                 speechrecognition._capturing = false;                   
                 break;
                 
             case speechrecognition.ENUM.PLUGIN.MFCC_RESULT:
                 cordova.fireWindowEvent("mfccdata", {data: data});
-                break;
+                break;onMFCCSuccess
                 
             case speechrecognition.ENUM.PLUGIN.MFCC_STATUS_PROGRESS_DATA:
                 cordova.fireWindowEvent("mfccprogressdata", {data: data});
@@ -558,17 +579,35 @@ speechrecognition._pluginEvent = function (data) {
                 cordova.fireWindowEvent("mfccprogressfile", {data: data});
                 break;
                 
+            case speechrecognition.ENUM.PLUGIN.MFCC_STATUS_PROGRESS_FOLDER:
+                cordova.fireWindowEvent("mfccprogressfolder", {data: data});
+                break;
+                
             case speechrecognition.ENUM.PLUGIN.SPEECH_STATUS_STARTED:
             case speechrecognition.ENUM.PLUGIN.SPEECH_STATUS_STOPPED:
             case speechrecognition.ENUM.PLUGIN.SPEECH_STATUS_SENTENCE:
             case speechrecognition.ENUM.PLUGIN.SPEECH_STATUS_MAX_LENGTH:
             case speechrecognition.ENUM.PLUGIN.SPEECH_STATUS_MIN_LENGTH:
-                cordova.fireWindowEvent("speechstatus", {data: data.type});
+                cordova.fireWindowEvent("speechstatus", {datatype: data.type});
                 break;
+                
+            case speechrecognition.ENUM.PLUGIN.HEADSET_CONNECTED:
+            case speechrecognition.ENUM.PLUGIN.HEADSET_DISCONNECTED:
+                cordova.fireWindowEvent("headsetstatus", {datatype: itemsdata.type});
+                break;
+                
+            case speechrecognition.ENUM.PLUGIN.TF_RESULT:
+                cordova.fireWindowEvent("recognitionresult", {items:data.items});
+                break;
+            
+            // audiodevices info pass from a promise route    
+//            case speechrecognition.ENUM.PLUGIN.AUDIODEVICES_INFO:
+//                cordova.fireWindowEvent("audiodevicesinfo", {input: data.input, output: data.output});
+//                break;                
         }
     }
     catch (ex) {
-        speechrecognition._pluginError("speechrecognition._audioInputEvent ex: " + ex);
+        speechrecognition._pluginError({message: "error in _pluginEvent" + ex.message + ": data is" + data.toString()});
     }
 };
 
@@ -577,8 +616,9 @@ speechrecognition._pluginEvent = function (data) {
  * @private
  */
 // TODO : receive an error code from plugin
-speechrecognition._pluginError = function (error) {
-    speechrecognition._capturing = false;    
+speechrecognition._pluginError = function (error) 
+{
+    if(speechrecognition._capturing)       speechrecognition.stopCapture();
     cordova.fireWindowEvent("pluginError", {message: error.message, type:error.type});
 };
 

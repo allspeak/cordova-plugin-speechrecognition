@@ -4,21 +4,12 @@ import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CordovaWebView;
-import org.apache.cordova.PluginResult;
 import org.apache.cordova.PermissionHelper;
 
 
-import android.media.AudioDeviceInfo;
-import android.bluetooth.BluetoothAdapter;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.media.AudioManager;
-import android.os.CountDownTimer;
-import android.widget.Toast;
-
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -39,13 +30,22 @@ import com.allspeak.ENUMS;
 import com.allspeak.SpeechRecognitionService;
 import com.allspeak.SpeechRecognitionService.LocalBinder;
 import com.allspeak.utility.Messaging;
+import com.allspeak.utility.AudioDevicesManager;
 import com.allspeak.tensorflow.TFParams;
 import com.allspeak.audioprocessing.mfcc.MFCCParams;
 import com.allspeak.audioprocessing.vad.VADParams;
-import com.allspeak.audiocapture.CFGParams;
+import com.allspeak.audiocapture.CaptureParams;
 import com.allspeak.audiocapture.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 
+//import com.example.HelloCJni;
+
+
+import android.content.IntentFilter;
+import android.media.AudioDeviceInfo;
+import android.content.BroadcastReceiver;
+import android.media.AudioDeviceInfo;
 
 public class SpeechRecognitionPlugin extends CordovaPlugin
 {
@@ -59,20 +59,22 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     private CordovaInterface cordovaInterface   = null;
     
     //record permissions
-    public static String[]  permissions         = { Manifest.permission.RECORD_AUDIO };
+    public static String[]  permissions         = { Manifest.permission.RECORD_AUDIO, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE };
     public static int       RECORD_AUDIO        = 0;
     public static final int PERMISSION_DENIED_ERROR = 20;    
     boolean isCapturingAllowed                  = false;
     
+    AudioDevicesManager mAudioDevicesManager    = null;
     
     boolean isCapturing                         = false;
-    boolean isHeadSetConnected                  = false;
+    boolean bUseHeadSet                         = false;
+    boolean isHeadSetConnected                         = false;
     //-----------------------------------------------------------------------------------------------
     
     private SpeechRecognitionService mService   = null;
     private boolean mBound                      = false;
     
-    private CFGParams mCfgParams                = null;
+    private CaptureParams mCfgParams                = null;
     private MFCCParams mMfccParams              = null;
     private VADParams mVadParams                = null;
     private TFParams mTfParams                  = null;
@@ -91,11 +93,16 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
 
         try
         {
+//            initBTConnection();
+            mAudioDevicesManager = new AudioDevicesManager(mContext, mAudioManager);
             boolean conn = bindService();
-            promptForRecordPermissions();
+            
+//            int jniOutput = HelloCJni.calculate(2,5);
+//            int res = 2 + jniOutput;
+//            promptForDangerousPermissions();
 
         }
-        catch(SecurityException e)
+        catch(Exception e)
         {
             e.printStackTrace();                    
             Log.e(LOG_TAG, e.getMessage(), e);
@@ -137,13 +144,17 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     
     /**
      * @param action
-     *          startCapture:
-     *          stopCapture :
-     *          startVAD   :
-     *          stopVAD    :
-     *          startMFCC   :
-     *          stopMFCC    :
-     *          getMFCC     :
+     *          getAudioDevices
+     *          startCapture
+     *          startMicPlayback
+     *          setPlayBackPercVol
+     *          stopCapture
+     *          loadTFModel
+     *          startSpeechRecognition
+     *          stopSpeechRecognition
+     *          adjustVADThreshold
+     *          getMFCC
+     * 
      * @param args
      * @param _callbackContext
      * @return
@@ -153,17 +164,41 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     public boolean execute(String action, JSONArray args, CallbackContext _callbackContext) throws JSONException 
     {
         callbackContext = _callbackContext;
-        if (action.equals("startCapture")) 
+        
+        if(mService == null)
         {
-            if(mService.isCapturing())
+            Messaging.sendErrorString2Web(callbackContext, "Service not binded. FATAL ERROR", ERRORS.SERVICE_INIT, true);
+            return true;
+        }
+        
+        if (action.equals("getAudioDevices")) 
+        {
+            try
             {
-                Messaging.sendErrorString2Web(callbackContext, "SpeechRecognitionPlugin : plugin is already capturing.", ERRORS.CAPTURE_ALREADY_STARTED, true);
+                mAudioDevicesManager.setCallback(callbackContext);
+                JSONObject audiodevicesinfo = mAudioDevicesManager.exportAudioDevicesJSON();
+                Messaging.sendUpdate2Web(callbackContext, audiodevicesinfo, true);
                 return true;
             }
+            catch (Exception e)
+            {
+                Messaging.sendErrorString2Web(callbackContext, e.toString(), ERRORS.AUDIODEVICES_RETRIEVE, true);
+                callbackContext = null;
+                return true;                        
+            }
+        }
+        else if (action.equals("startCapture")) 
+        {
             try 
             {
-                mCfgParams                       = new CFGParams(new JSONObject((String)args.get(0))); 
+                if(mService.isCapturing())
+                {
+                    Messaging.sendErrorString2Web(callbackContext, "SpeechRecognitionPlugin : plugin is already capturing.", ERRORS.CAPTURE_ALREADY_STARTED, true);
+                    return true;
+                }                
+                mCfgParams                       = new CaptureParams(new JSONObject((String)args.get(0))); 
                 if(!args.isNull(1))  mMfccParams = new MFCCParams(new JSONObject((String)args.get(1))); 
+                else                 mMfccParams = new MFCCParams();    
                 
                 mService.startCapture(mCfgParams, mMfccParams, callbackContext);
                 Messaging.sendNoResult2Web(callbackContext);
@@ -178,14 +213,14 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
         }
         else if (action.equals("startMicPlayback")) 
         {
-            if(mService.isCapturing())
-            {
-                Messaging.sendErrorString2Web(callbackContext, "SpeechRecognitionPlugin : plugin is already capturing.", ERRORS.CAPTURE_ALREADY_STARTED, true);
-                return true;
-            }
             try 
             {
-                mCfgParams = new CFGParams(new JSONObject((String)args.get(0))); 
+                if(mService.isCapturing())
+                {
+                    Messaging.sendErrorString2Web(callbackContext, "SpeechRecognitionPlugin : plugin is already capturing.", ERRORS.CAPTURE_ALREADY_STARTED, true);
+                    return true;
+                }                
+                mCfgParams = new CaptureParams(new JSONObject((String)args.get(0))); 
                 
                 mService.startMicPlayback(mCfgParams, callbackContext);
                 Messaging.sendNoResult2Web(callbackContext);
@@ -218,7 +253,27 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
             Messaging.sendNoResult2Web(callbackContext);
             return true;
         }        
-        if (action.equals("startSpeechRecognition")) 
+        else if (action.equals("loadTFModel")) 
+        {
+            try 
+            {
+                mTfParams                       = new TFParams(new JSONObject((String)args.get(0))); 
+                mTfParams.mAssetManager         = mContext.getAssets();
+                
+                boolean loaded = mService.loadTFModel(mTfParams, callbackContext);
+                Messaging.sendNoResult2Web(callbackContext);
+
+//                callbackContext.success();
+                return true;
+            }
+            catch (Exception e) 
+            {
+                Messaging.sendErrorString2Web(callbackContext, e.toString(), ERRORS.PLUGIN_INIT_RECOGNITION, true);
+                callbackContext = null;
+                return true;
+            }
+        }
+        else if (action.equals("startSpeechRecognition")) 
         {
             if(mService.isCapturing())
             {
@@ -227,11 +282,12 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
             }
             try 
             {
-                mCfgParams                      = new CFGParams(new JSONObject((String)args.get(0))); 
+                mCfgParams                      = new CaptureParams(new JSONObject((String)args.get(0))); 
                 mVadParams                      = new VADParams(new JSONObject((String)args.get(1))); 
                 mMfccParams                     = new MFCCParams(new JSONObject((String)args.get(2))); 
                 mTfParams                       = new TFParams(new JSONObject((String)args.get(3))); 
                 
+                mTfParams.mAssetManager         = mContext.getAssets();                
                 mService.startSpeechRecognition(mCfgParams, mVadParams, mMfccParams, mTfParams, callbackContext);
                 Messaging.sendNoResult2Web(callbackContext);
                 return true;
@@ -250,16 +306,44 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
             Messaging.sendNoResult2Web(callbackContext);
             return true;
         } 
+        else if (action.equals("adjustVADThreshold")) 
+        {
+            // an interrupt command is sent to audioreceiver, when it exits from its last cycle, it sends an event here
+            int newthreshold   = args.getInt(0); 
+            
+            mService.adjustVADThreshold(newthreshold, callbackContext);
+            Messaging.sendNoResult2Web(callbackContext);
+            return true;
+        } 
+        else if (action.equals("startSCOConnection")) 
+        {
+            bUseHeadSet = (boolean)args.get(0);
+            
+            mAudioDevicesManager.startBTHSConnection(bUseHeadSet);
+            Messaging.sendNoResult2Web(callbackContext);
+            return true;
+        } 
         else if(action.equals("getMFCC")) 
         {            
+            // fcc_json_params, source (inputpathnoext or dataarray), overwrite, inputpathnoext (in case of dataarray)
             try 
             {               
                 // JS interface call params:     mfcc_json_params, source;  params have been validated in the js interface
                 // should have a nDataDest > 0  web,file,both
                 mMfccParams             = new MFCCParams(new JSONObject((String)args.get(0)));
-                String inputpathnoext   = args.getString(1); 
+                boolean overwrite       = true;
+                if(args.get(2) != null)
+                    overwrite = args.getBoolean(2); 
                 
-                mService.getMFCC(mMfccParams, inputpathnoext, callbackContext);
+                String inputpathnoext = "";
+                if(mMfccParams.nDataOrig == ENUMS.MFCC_DATAORIGIN_JSONDATA)
+                {
+                    Messaging.sendErrorString2Web(callbackContext, "getMFCC from a data array still not supported", ERRORS.PLUGIN_INIT_MFCC, true);
+                    return true;
+                }
+                else    inputpathnoext   = args.getString(1); 
+
+                mService.getMFCC(mMfccParams, inputpathnoext, overwrite, callbackContext);
                 Messaging.sendNoResult2Web(callbackContext);
                 return true;
             }
@@ -270,6 +354,19 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
                 return true;
             }            
         }    
+        else if(action.equals("recognizeCepstraFile")) 
+        {  
+            String cepstra_file_path = args.getString(0);
+            mService.recognizeCepstraFile(cepstra_file_path, callbackContext);
+            Messaging.sendNoResult2Web(callbackContext);
+            return true;
+        }    
+        else if(action.equals("debugCall")) 
+        {  
+//            if(args.get(0) != null)
+            mService.debugCall(args);     
+            return true;
+        }        
         return false;
     }
     
@@ -298,110 +395,39 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     @Override
     public void onPause(boolean multitasking)
     {
-        mContext.unregisterReceiver(mBluetoothScoReceiver);
-        mAudioManager.stopBluetoothSco();        
+        mAudioDevicesManager.onPause();
+//                mAudioManager.stopBluetoothSco();        
+
     }
     
     @Override
     public void onResume(boolean multitasking)
     {
-        initBTConnection();
+        mAudioDevicesManager.onResume();
+//        initBTConnection();
     }
         
 //    @Override
 //    public void onNewIntent(Intent intent) {
 //    }
-    //=================================================================================================
-    // BLUETOOTH HEADSET STATE CHANGES
-    //================================================================================================= 
-    private void initBTConnection()
-    {
-        IntentFilter intentFilter = new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED);
-        mContext.registerReceiver(mBluetoothScoReceiver, intentFilter);
 
-        
-        AudioDeviceInfo[] adIN  = new AudioDeviceInfo[10];
-        AudioDeviceInfo[] adOUT = new AudioDeviceInfo[10];
-        adIN                    = mAudioManager.getDevices(AudioManager.GET_DEVICES_INPUTS);
-        adOUT                   = mAudioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS);
-        
-        
-        mAudioManager.startBluetoothSco();          
-    }
-//    private class headsetIntentReceiver extends BroadcastReceiver 
-//    {
-//        @Override 
-//        public void onReceive(Context context, Intent intent) 
-//        {
-//            if (intent.getAction().equals(Intent.ACTION_HEADSET_PLUG)) {
-//                int state = intent.getIntExtra("state", -1);
-//                switch (state) {
-//                case 0:
-//                    Log.d(TAG, "Headset is unplugged");
-//                    break;
-//                case 1:
-//                    Log.d(TAG, "Headset is plugged");
-//                    break;
-//                default:
-//                    Log.d(TAG, "I have no idea what the headset state is");
-//                }
-//            }
-//        }
-//    }    
-    
-    private BroadcastReceiver mBluetoothScoReceiver = new BroadcastReceiver() 
-    {
-        @Override
-        public void onReceive(Context context, Intent intent) 
-        {
-            int state = intent.getIntExtra(AudioManager.EXTRA_SCO_AUDIO_STATE, -1);
-            
-            try
-            {
-                isHeadSetConnected  = false;
-                JSONObject info     = new JSONObject(); 
-                
-                if(state == AudioManager.SCO_AUDIO_STATE_ERROR)
-                    Messaging.sendErrorString2Web(callbackContext, "headset connection error", ERRORS.HEADSET_ERROR, true);
-                else
-                {
-                    switch (state)
-                    {
-                        case AudioManager.SCO_AUDIO_STATE_CONNECTED:
-                            info.put("type", ENUMS.HEADSET_CONNECTED);  
-                            isHeadSetConnected = true;
-                            break;
-
-                        case AudioManager.SCO_AUDIO_STATE_DISCONNECTED:
-                            info.put("type", ENUMS.HEADSET_DISCONNECTED);  
-                            isHeadSetConnected = false;
-                            break;
-
-                        case AudioManager.SCO_AUDIO_STATE_CONNECTING:
-                            info.put("type", ENUMS.HEADSET_CONNECTING);  
-                            isHeadSetConnected = false;
-                            break;
-                    }
-
-                    Messaging.sendUpdate2Web(callbackContext, info, true);
-                }
-            }
-            catch (JSONException e){e.printStackTrace();}              
-        }
-    };      
-    
-    
     //=================================================================================================
     // GET RECORDING PERMISSIONS
     //=================================================================================================        
      //Ensure that we have gotten record audio permission
-    private void promptForRecordPermissions() 
+    private void promptForDangerousPermissions() 
     {
-        if(PermissionHelper.hasPermission(this, permissions[RECORD_AUDIO])) 
-            isCapturingAllowed = true;
-        else
-            //Prompt user for record audio permission
-            PermissionHelper.requestPermission(this, RECORD_AUDIO, permissions[RECORD_AUDIO]);
+        ArrayList<String> permissions2Ask = new ArrayList<String>();
+    
+        for(int p=0; p < permissions.length; p++)
+            if(!PermissionHelper.hasPermission(this, permissions[p])) permissions2Ask.add(permissions[p]);
+        
+        if(!permissions2Ask.isEmpty())
+        {
+            Object[] objPerms = permissions2Ask.toArray();
+            String[] strPerms = Arrays.copyOf(objPerms, objPerms.length, String[].class);            
+            PermissionHelper.requestPermissions(this, RECORD_AUDIO, strPerms);
+        }
     }
 
     // Handle request permission result
@@ -422,33 +448,3 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     //=================================================================================================
 }
 
-
-
-
-//        else if (action.equals("startMFCC")) 
-//        {
-//            try 
-//            {        
-//                if(!args.isNull(0))
-//                {
-//                    MFCCParams mfccParams   = new MFCCParams(new JSONObject((String)args.get(0))); 
-//                    mfcc.setParams(mfccParams);
-//                    mfcc.setWlCb(callbackContext);
-//                    nMFCCDataDest           = mfccParams.nDataDest;
-//                }
-//                bIsCalculatingMFCC = true;
-//                sendNoResult2Web();
-//            }
-//            catch (Exception e) // !!!! I decide to stop capturing....
-//            {
-//                aicCapture.stop();
-//                callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, e.toString()));
-//                callbackContext = null;                
-//                return false;
-//            }                
-//        }
-//        else if (action.equals("stopMFCC")) 
-//        {
-//            bIsCalculatingMFCC = false;
-//            sendNoResult2Web();
-//        }

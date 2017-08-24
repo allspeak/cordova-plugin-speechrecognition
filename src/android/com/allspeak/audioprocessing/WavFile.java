@@ -53,6 +53,59 @@ public class WavFile
         buffer = new byte[BUFFER_SIZE];
     }
 
+    //======================================================================================================================================================================
+    //======================================================================================================================================================================
+    public static float[] getWavData(String filepath) throws Exception
+    {
+        try
+        {
+            File f          = new File(filepath);
+            // Open the wav file specified as the first argument
+            WavFile wavFile = WavFile.openWavFile(f);
+            int frames      = (int)wavFile.getNumFrames();
+            int numChannels = wavFile.getNumChannels();
+
+            if(numChannels > 1)
+                return null;           
+            // Create the buffer
+            float[] buffer = new float[frames * numChannels];
+            int framesRead  = wavFile.readFrames(buffer, frames);
+            
+            if(frames != framesRead)
+                return null;
+
+            // Close the wavFile
+            wavFile.close();  
+            return buffer;
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    public static boolean createWavFile(String filepath, int numChannels, float[] data, int validBits, long sampleRate, boolean overwrite) throws IOException, Exception
+    {
+        try
+        {           
+            File file       = new File(filepath);
+            if (file.exists() && overwrite)  file.delete();
+            int numFrames   = data.length; 
+            WavFile wf      = newWavFile(file, numChannels, (long)numFrames, validBits, sampleRate);
+            wf.writeFrames(data, numFrames);
+            wf.close();
+            return true;                                
+        }     
+        catch(Exception e)
+        {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+    //======================================================================================================================================================================
+    //======================================================================================================================================================================
+    
     public int getNumChannels()
     {
         return numChannels;
@@ -78,25 +131,8 @@ public class WavFile
         return validBits;
     }
 
-    public static boolean createWavFile(File file, int numChannels, float[] data, int validBits, long sampleRate) throws IOException, Exception
-    {
-        try
-        {           
-            int numFrames = data.length; 
-            
-            WavFile wf = newWavFile(file, numChannels, (long)numFrames, validBits, sampleRate);
-            wf.writeFrames(data, numFrames);
-            wf.close();
-            return true;                                
-        }     
-        catch(Exception e)
-        {
-            throw e;
-        }
-    }
-    
-    
-    public static WavFile newWavFile(File file, int numChannels, long numFrames, int validBits, long sampleRate) throws IOException, Exception
+    //==================================================================================================================================================
+    private static WavFile newWavFile(File file, int numChannels, long numFrames, int validBits, long sampleRate) throws IOException, Exception
     {
         // Instantiate new Wavfile and initialise
         WavFile wavFile         = new WavFile();
@@ -190,7 +226,7 @@ public class WavFile
         return wavFile;
     }
 
-    public static WavFile openWavFile(File file) throws IOException, Exception
+    private static WavFile openWavFile(File file) throws IOException, Exception
     {
         // Instantiate new Wavfile and store the file reference
         WavFile wavFile = new WavFile();

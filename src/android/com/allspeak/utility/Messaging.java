@@ -7,6 +7,7 @@ package com.allspeak.utility;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
@@ -114,7 +115,7 @@ public class Messaging
         
         Bundle b            = new Bundle();
         float[] mfcc        = flatten2DimArray(data);
-        
+
         b.putFloatArray("data",     mfcc);
         b.putInt("nframes", nDim1);
         b.putInt("nparams", nDim2);
@@ -126,27 +127,45 @@ public class Messaging
         return b;
     }  
     
-    public static float[] flatten2DimArray(float[][] input)
-    {
-        float[] output = new float[input.length * input[0].length];
-
-        for(int i = 0; i < input.length; i++)
-            for(int j = 0; j < input[i].length; j++)
-                output[i*j] = input[i][j];
-        return output;
-    }    
     
-    // used to convert a 1dim array to a 2dim array
-    public static float[][] deFlattenArray(float[] input, int dim1, int dim2)
+    public static Bundle sendDataToHandler(Handler handl, int action_code, float[][] data, int nDim1, int nDim2, int nShift)
     {
-        float[][] output = new float[dim1][dim2];        
-
-        for(int i = 0; i < input.length; i++){
-            output[i/dim2][i % dim2] = input[i];
-        }
-        return output;        
-    }    
+        if(handl == null) return null;
         
+        Bundle b            = new Bundle();
+        float[] mfcc        = flatten2DimArray(data);
+        
+        b.putFloatArray("data",     mfcc);
+        b.putInt("nframes", nDim1);
+        b.putInt("nparams", nDim2);
+        b.putInt("ndeltawindow", nShift);
+        
+        Message message     = handl.obtainMessage();
+        message.what        = action_code;
+        message.setData(b);
+        handl.sendMessage(message);   
+        return b;
+    }  
+
+    public static float[][] deFlattenArray(final float[] array, final int rows, final int cols) 
+    {
+        if(array.length != (rows*cols)) throw new IllegalArgumentException("Invalid array length");
+
+        float[][] bidi = new float[rows][cols];
+        for(int i = 0; i < rows; i++)
+            System.arraycopy(array, (i*cols), bidi[i], 0, cols);
+
+        return bidi;
+    }
+
+    public static float[] flatten2DimArray(final float[][] array) 
+    {
+        int rows        = array.length, cols = array[0].length;
+        float[] mono    = new float[(rows*cols)];
+        for(int i = 0; i < rows; i++)
+            System.arraycopy(array[i], 0, mono, (i*cols), cols);    
+        return mono;
+    }
     //======================================================================================================================
     // MESSAGES TO WEB LAYER
     //======================================================================================================================
@@ -180,10 +199,7 @@ public class Messaging
                 result.setKeepCallback(keepCallback);
                 callbackContext.sendPluginResult(result);
             }
-            catch(JSONException e)
-            {
-                e.printStackTrace();                  
-            }
+            catch(JSONException e) { e.printStackTrace(); }
         }
     }  
     
@@ -216,10 +232,7 @@ public class Messaging
                 result.setKeepCallback(keepCallback);
                 callbackContext.sendPluginResult(result);
             }
-            catch(JSONException e)
-            {
-                e.printStackTrace();                  
-            }
+            catch(JSONException e) { e.printStackTrace(); }
         }
     }      
     
@@ -239,10 +252,7 @@ public class Messaging
                 result.setKeepCallback(keepCallback);
                 callbackContext.sendPluginResult(result);
             }
-            catch(JSONException e)
-            {
-                e.printStackTrace();                  
-            }
+            catch(JSONException e) { e.printStackTrace(); }
         }
     }      
     
@@ -261,28 +271,25 @@ public class Messaging
     //======================================================================================================================
 }
 
-
-
-//    public static Bundle sendDataToHandler(Handler handl, int action_code, float[][] data, float[][][] derivatives, int nDim1, int nDim2, String source)
+    
+//    public static float[] flatten2DimArray(float[][] input)
 //    {
-//        if(handl == null) return null;
-//        
-//        Bundle b        = new Bundle();
-//        
-//        float[] mfcc        = flatten2DimArray(data);
-//        float[] mfcc_1st    = flatten2DimArray(derivatives[0]);
-//        float[] mfcc_2nd    = flatten2DimArray(derivatives[1]);
-//        
-//        b.putFloatArray("data",     mfcc);
-//        b.putFloatArray("data_1st", mfcc_1st);
-//        b.putFloatArray("data_2nd", mfcc_2nd);
-//        b.putInt("nframes", nDim1);
-//        b.putInt("nparams", nDim2);
-//        b.putString("source", source);
-//        
-//        Message message     = handl.obtainMessage();
-//        message.what        = action_code;
-//        message.setData(b);
-//        handl.sendMessage(message);   
-//        return b;
-//    }  
+//        float[] output = new float[input.length * input[0].length];
+//
+//        for(int i = 0; i < input.length; i++)
+//            for(int j = 0; j < input[i].length; j++)
+//                output[i*j] = input[i][j];
+//        return output;
+//    }    
+    
+//    // 1dim array => 2dim array
+//    public static float[][] deFlattenArray(float[] input, int dim1, int dim2)
+//    {
+//        float[][] output = new float[dim1][dim2];        
+//
+//        for(int i = 0; i < input.length; i++){
+//            output[i/dim2][i % dim2] = input[i];
+//        }
+//        return output;        
+//    }    
+//    
