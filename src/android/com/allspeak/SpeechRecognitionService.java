@@ -35,7 +35,7 @@ import com.allspeak.utility.Messaging;
 import com.allspeak.utility.FileUtilities;
 import com.allspeak.audioprocessing.mfcc.*;
 import com.allspeak.audioprocessing.mfcc.MFCCParams;
-import com.allspeak.audioprocessing.mfcc.Framing;
+import com.allspeak.audioprocessing.Framing;
 import com.allspeak.audioprocessing.vad.*;
 import com.allspeak.audiocapture.*;
 import com.allspeak.audiocapture.AudioInputCapture;

@@ -25,7 +25,7 @@ import com.allspeak.utility.FileUtilities;
 import com.allspeak.utility.TrackPerformance;
 import com.allspeak.utility.Messaging;
 
-import com.allspeak.audioprocessing.mfcc.Framing;
+import com.allspeak.audioprocessing.Framing;
         
 import com.allspeak.tensorflow.TensorFlowSpeechClassifier;
 import com.allspeak.tensorflow.Classifier.Recognition;
@@ -72,15 +72,15 @@ public class TF
     //-----------------------------------------------------------------------------------------------------    
     public TF(TFParams params, Handler cb)
     {
-        init(params, cb, cb, cb, null);
+        this(params, cb, cb, cb, null);
     }
     public TF(TFParams params, Handler scb, Handler ccb, Handler rcb)
     {
-        init(params, scb, ccb, rcb, null);
+        this(params, scb, ccb, rcb, null);
     }
     public TF(TFParams params, Handler cb, CallbackContext wlcallback)
     {
-        init(params, cb, cb, cb, wlcallback);
+        this(params, cb, cb, cb, wlcallback);
     }   
     //================================================================================================================
     //================================================================================================================

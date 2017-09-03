@@ -20,7 +20,7 @@ import android.os.ResultReceiver;
 
 import com.allspeak.ENUMS;
 import com.allspeak.ERRORS;
-import com.allspeak.audioprocessing.mfcc.Framing;
+import com.allspeak.audioprocessing.Framing;
 import com.allspeak.audioprocessing.WavFile;
 import com.allspeak.utility.StringUtilities;
 import com.allspeak.utility.Messaging;
@@ -225,8 +225,8 @@ public class MFCC
     //=================================================================================================================
     public synchronized float[][] getFeatures(float[] samples2beprocessed)
     {
-//        float[][] frames2beprocessed    = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.0f, null); // NO pre-emphasis, NO hamming-windowing
-         float[][] frames2beprocessed    = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.95f, hammingWnd); // pre-emphasis/framing/hamming-windowing
+        float[][] frames2beprocessed    = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.0f, null); // NO pre-emphasis, NO hamming-windowing
+//         float[][] frames2beprocessed    = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.95f, hammingWnd); // pre-emphasis/framing/hamming-windowing
         float[][] cepstra               = processSpectral(frames2beprocessed);
         int allframes                   = cepstra.length;
         float[][] validframes           = Framing.getSuprathresholdFrames(cepstra, 0.0f);

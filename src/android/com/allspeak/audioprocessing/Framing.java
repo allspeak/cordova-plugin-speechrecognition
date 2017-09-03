@@ -1,4 +1,4 @@
-package com.allspeak.audioprocessing.mfcc;
+package com.allspeak.audioprocessing;
 
 import java.util.ArrayList;
 import java.util.List;

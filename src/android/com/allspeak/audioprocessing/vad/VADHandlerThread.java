@@ -72,7 +72,7 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
         mCommandCallback    = ccb;        
         mResultCallback     = rcb; 
         mWlCb               = wlcb;
-        vad                 = new VAD(mVadParams, mCfgParams, cb);
+        vad                 = new VAD(mVadParams, mCfgParams, scb, ccb, rcb);
         bIsCapturing        = true;
     }    
     // ----------------------------------------------------------------------------------------------------------------------

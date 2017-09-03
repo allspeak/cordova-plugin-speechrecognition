@@ -16,7 +16,7 @@ import com.allspeak.utility.Messaging;
 // not necessary
 import com.allspeak.audioprocessing.mfcc.MFCCParams;
 import com.allspeak.audioprocessing.mfcc.MFCC;
-import com.allspeak.audioprocessing.mfcc.Framing;
+import com.allspeak.audioprocessing.Framing;
 
 
 
@@ -362,8 +362,9 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
                     if(mScoresQueue == null)  // after clearData()                
                         mScoresQueue = new float[mfccParams.nDeltaWindow][nScores*scoresMultFactor];
 
-                    for(int dw=0; dw<mfccParams.nDeltaWindow; dw++)
-                        System.arraycopy(cepstra[nvalidframes - mfccParams.nDeltaWindow + dw],0, mScoresQueue[dw], 0, nScores*scoresMultFactor); 
+                    if(nvalidframes >= mfccParams.nDeltaWindow)
+                        for(int dw=0; dw<mfccParams.nDeltaWindow; dw++)
+                            System.arraycopy(cepstra[nvalidframes - mfccParams.nDeltaWindow + dw],0, mScoresQueue[dw], 0, nScores*scoresMultFactor); 
 
                     // store calculated cepstra in its buffer (only after, I do update nProcessedFrames)
                     for(int f=0; f<nvalidframes; f++) System.arraycopy(cepstra[f], 0, faCalculatedCepstra[nProcessedFrames + f], 0, scoresMultFactor*nScores);                 

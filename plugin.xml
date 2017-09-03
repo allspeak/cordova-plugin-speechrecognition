@@ -51,7 +51,7 @@
         <source-file src="src/android/com/allspeak/audioprocessing/mfcc/MFCCHandlerThread.java" target-dir="src/com/allspeak/audioprocessing/mfcc" />
         <source-file src="src/android/com/allspeak/audioprocessing/mfcc/MFCCCalcJAudio.java" target-dir="src/com/allspeak/audioprocessing/mfcc" />
         <source-file src="src/android/com/allspeak/audioprocessing/mfcc/MFCCParams.java" target-dir="src/com/allspeak/audioprocessing/mfcc" />
-        <source-file src="src/android/com/allspeak/audioprocessing/mfcc/Framing.java" target-dir="src/com/allspeak/audioprocessing/mfcc" />
+        <source-file src="src/android/com/allspeak/audioprocessing/Framing.java" target-dir="src/com/allspeak/audioprocessing" />
         <source-file src="src/android/com/allspeak/audioprocessing/vad/VAD.java" target-dir="src/com/allspeak/audioprocessing/vad" />
         <source-file src="src/android/com/allspeak/audioprocessing/vad/VADParams.java" target-dir="src/com/allspeak/audioprocessing/vad" />
         <source-file src="src/android/com/allspeak/audioprocessing/vad/VADHandlerThread.java" target-dir="src/com/allspeak/audioprocessing/vad" />
