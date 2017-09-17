@@ -15,7 +15,7 @@ import com.allspeak.utility.Messaging;
 import com.allspeak.utility.FileUtilities;
 
 import com.allspeak.audioprocessing.mfcc.MFCC;
-import com.allspeak.audioprocessing.mfcc.Framing;
+import com.allspeak.audioprocessing.Framing;
 
 // not necessary
 import com.allspeak.tensorflow.TFParams;

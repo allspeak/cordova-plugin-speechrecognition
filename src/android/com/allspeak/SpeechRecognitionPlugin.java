@@ -306,6 +306,13 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
             Messaging.sendNoResult2Web(callbackContext);
             return true;
         } 
+        else if (action.equals("resumeSpeechRecognition")) 
+        {
+            // an interrupt command is sent to audioreceiver, when it exits from its last cycle, it sends an event here
+            mService.resumeSpeechRecognition(callbackContext);
+            Messaging.sendNoResult2Web(callbackContext);
+            return true;
+        } 
         else if (action.equals("adjustVADThreshold")) 
         {
             // an interrupt command is sent to audioreceiver, when it exits from its last cycle, it sends an event here

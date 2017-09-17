@@ -35,7 +35,7 @@ import com.allspeak.utility.Messaging;
 import com.allspeak.utility.FileUtilities;
 import com.allspeak.audioprocessing.mfcc.*;
 import com.allspeak.audioprocessing.mfcc.MFCCParams;
-import com.allspeak.audioprocessing.mfcc.Framing;
+import com.allspeak.audioprocessing.Framing;
 import com.allspeak.audioprocessing.vad.*;
 import com.allspeak.audiocapture.*;
 import com.allspeak.audiocapture.AudioInputCapture;
@@ -360,6 +360,13 @@ public class SpeechRecognitionService extends Service
         callbackContext = cb;      
         aicCapture.stop();
         mVadHT.stopSpeechRecognition(callbackContext);
+    }    
+    
+    // i decided to stop recognition immediately, not wait for AudioCapture callback
+    public void resumeSpeechRecognition(CallbackContext cb)
+    {
+        callbackContext = cb;      
+        mVadHT.resumeSpeechRecognition(callbackContext);
     }    
         
     public void getMFCC(MFCCParams mfccParams, String inputpathnoext, boolean overwrite, CallbackContext cb)

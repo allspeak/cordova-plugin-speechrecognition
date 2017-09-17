@@ -22,7 +22,7 @@
 package com.allspeak.audioprocessing.mfcc;
 
 import com.allspeak.audioprocessing.FFT;
-import com.allspeak.audioprocessing.mfcc.Framing;
+import com.allspeak.audioprocessing.Framing;
 
 // if m_bCalculate0ThCoeff  is true,
 // this class decrements m_nnumberOfParameters by 1 and

@@ -46,41 +46,45 @@ public class ENUMS
     public static final int CAPTURE_DATADEST_FILE_JS_DB     = 206;
     public static final int CAPTURE_DATADEST_FILE_JS_RAWDB  = 207;
     
-    public static final int CAPTURE_MODE                = 211;
-    public static final int PLAYBACK_MODE               = 212;
+    public static final int CAPTURE_MODE                    = 211;
+    public static final int PLAYBACK_MODE                   = 212;
 
-    public static final int MFCC_DATADEST_NOCALC        = 230;      // DO NOT CALCULATE MFCC during capture
-    public static final int MFCC_DATADEST_NONE          = 231;      // data(float[][])=> PLUGIN
-    public static final int MFCC_DATADEST_JSPROGRESS    = 232;      // data=> PLUGIN + progress(filename)=> WEB
-    public static final int MFCC_DATADEST_JSDATA        = 233;      // data=> PLUGIN + progress(filename) + data(JSONArray)=> WEB
-    public static final int MFCC_DATADEST_JSDATAWEB     = 234;      // data(JSONArray)=> WEB
-    public static final int MFCC_DATADEST_FILE          = 235;      // progress(filename)=> PLUGIN + data(String)=> FILE
-    public static final int MFCC_DATADEST_FILEWEB       = 236;      // progress(filename)=> PLUGIN + data(String)=> FILE + data(JSONArray)=> WEB
-    public static final int MFCC_DATADEST_ALL           = 237;      // data=> PLUGIN + data(String)=> FILE + data(JSONArray)=> WEB
+    public static final int MFCC_DATADEST_NOCALC            = 230;      // DO NOT CALCULATE MFCC during capture
+    public static final int MFCC_DATADEST_NONE              = 231;      // data(float[][])=> PLUGIN
+    public static final int MFCC_DATADEST_JSPROGRESS        = 232;      // data=> PLUGIN + progress(filename)=> WEB
+    public static final int MFCC_DATADEST_JSDATA            = 233;      // data=> PLUGIN + progress(filename) + data(JSONArray)=> WEB
+    public static final int MFCC_DATADEST_JSDATAWEB         = 234;      // data(JSONArray)=> WEB
+    public static final int MFCC_DATADEST_FILE              = 235;      // progress(filename)=> PLUGIN + data(String)=> FILE
+    public static final int MFCC_DATADEST_FILEWEB           = 236;      // progress(filename)=> PLUGIN + data(String)=> FILE + data(JSONArray)=> WEB
+    public static final int MFCC_DATADEST_ALL               = 237;      // data=> PLUGIN + data(String)=> FILE + data(JSONArray)=> WEB
     
-    public static final int MFCC_DATAORIGIN_JSONDATA    = 240;
-    public static final int MFCC_DATAORIGIN_FILE        = 241;
-    public static final int MFCC_DATAORIGIN_FOLDER      = 242;
-    public static final int MFCC_DATAORIGIN_RAWDATA     = 243;   
+    public static final int MFCC_DATAORIGIN_JSONDATA        = 240;
+    public static final int MFCC_DATAORIGIN_FILE            = 241;
+    public static final int MFCC_DATAORIGIN_FOLDER          = 242;
+    public static final int MFCC_DATAORIGIN_RAWDATA         = 243;   
     
-    public static final int MFCC_DATATYPE_MFPARAMETERS  = 250;
-    public static final int MFCC_DATATYPE_MFFILTERS     = 251;    
+    public static final int MFCC_DATATYPE_MFPARAMETERS      = 250;
+    public static final int MFCC_DATATYPE_MFFILTERS         = 251;   
+    public static final int MFCC_PROCSCHEME_F_S_CTX         = 252;      // FilterBanks, Spectral derivatives, Contexting
+    public static final int MFCC_PROCSCHEME_F_S_PP_CTX      = 253;      // FilterBanks, Spectral derivatives, Pre-processing, Contexting
+    public static final int MFCC_PROCSCHEME_F_T_CTX         = 254;      // FilterBanks, Temporal derivatives, Contexting
+    public static final int MFCC_PROCSCHEME_F_T_PP_CTX      = 255;      // FilterBanks, Temporal derivatives, Pre-processing, Contexting    
   
     public static final int VAD_RESULT_DETECTION_ONLY               = 260;      // just detect. no MFCC, no save, only callback to WL    
     public static final int VAD_RESULT_SAVE_SENTENCE                = 261;      // save (natively) and/or send data to WL  
     public static final int VAD_RESULT_PROCESS_DATA                 = 262;      // process sentence data (MFCC & TF)
     public static final int VAD_RESULT_PROCESS_DATA_SAVE_SENTENCE   = 263;      // process sentence data (MFCC & TF)
         
-    public static final int TF_DATADEST_MODEL           = 270;      // sentence's cepstra are sent to TF model only
-    public static final int TF_DATADEST_FILEONLY        = 271;      // sentence's cepstra are written to a file only
-    public static final int TF_DATADEST_MODEL_FILE      = 272;      // sentence's cepstra are sent to TF model and written to a file
+    public static final int TF_DATADEST_MODEL               = 270;      // sentence's cepstra are sent to TF model only
+    public static final int TF_DATADEST_FILEONLY            = 271;      // sentence's cepstra are written to a file only
+    public static final int TF_DATADEST_MODEL_FILE          = 272;      // sentence's cepstra are sent to TF model and written to a file
+
     
-    
-    public static final int AUDIODEVICES_INFO           = 290; // 
-    public static final int HEADSET_CONNECTED           = 291;
-    public static final int HEADSET_DISCONNECTED        = 292; // 
-    public static final int HEADSET_CONNECTING          = 293; // 
-    public static final int HEADSET_DISCONNECTING       = 294; // 
+    public static final int AUDIODEVICES_INFO               = 290; // 
+    public static final int HEADSET_CONNECTED               = 291;
+    public static final int HEADSET_DISCONNECTED            = 292; // 
+    public static final int HEADSET_CONNECTING              = 293; // 
+    public static final int HEADSET_DISCONNECTING           = 294; // 
     
     
 }   

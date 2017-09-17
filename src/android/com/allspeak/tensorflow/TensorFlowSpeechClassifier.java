@@ -33,7 +33,7 @@ import org.tensorflow.contrib.android.TensorFlowInferenceInterface;
 import com.allspeak.utility.FileUtilities;
 
 
-/** A classifier specialized to label images using TensorFlow. */
+/** A classifier specialized to label speech chunks using TensorFlow. */
 public class TensorFlowSpeechClassifier implements Classifier 
 {
     private static final String TAG = "TensorFlowSpeechClassifier";
