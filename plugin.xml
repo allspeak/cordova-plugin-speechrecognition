@@ -67,8 +67,9 @@
         <source-file src="src/android/com/allspeak/utility/AudioDevicesManager.java" target-dir="src/com/allspeak/utility/" />  
         <source-file src="src/android/com/allspeak/utility/ArrayList2d.java" target-dir="src/com/allspeak/utility/" />  
         
-        <source-file src="src/android/tf_libs/libandroid_tensorflow_inference_java.jar" target-dir="libs" />
-        <source-file src="src/android/tf_libs/armeabi-v7a/libtensorflow_inference.so" target-dir="libs/armeabi" />        
+        <source-file src="src/android/libs/libandroid_tensorflow_inference_java.jar" target-dir="libs" />
+        <source-file src="src/android/libs/armeabi-v7a/libtensorflow_inference.so" target-dir="libs/armeabi" />        
+        <!--<source-file src="src/android/libs/gson-2.3.jar" target-dir="libs" />-->        
 <!--        <source-file src="src/android/com/allspeak/audioprocessing/HelloJni.java" target-dir="src/android/com/allspeak/audioprocessing/" />
         <source-file src="src/android/libs/armeabi-v7a/libhello-jni.so" target-dir="libs/armeabi/" />        -->
     </platform>

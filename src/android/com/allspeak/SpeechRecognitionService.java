@@ -361,6 +361,13 @@ public class SpeechRecognitionService extends Service
         aicCapture.stop();
         mVadHT.stopSpeechRecognition(callbackContext);
     }    
+    
+    // i decided to stop recognition immediately, not wait for AudioCapture callback
+    public void resumeSpeechRecognition(CallbackContext cb)
+    {
+        callbackContext = cb;      
+        mVadHT.resumeSpeechRecognition(callbackContext);
+    }    
         
     public void getMFCC(MFCCParams mfccParams, String inputpathnoext, boolean overwrite, CallbackContext cb)
     {

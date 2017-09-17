@@ -30,7 +30,7 @@ public interface Classifier {
      * A unique identifier for what has been recognized. Specific to the class, not the instance of
      * the object.
      */
-    private final String id;
+    public final String id;
 
     /**
      * Display name for the recognition.

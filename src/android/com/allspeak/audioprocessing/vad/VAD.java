@@ -44,43 +44,44 @@ public class VAD
     private CaptureParams mCfgParams;
     private MFCCParams mMfccParams;
     
-    private Handler mStatusCallback             = null;     // Thread
-    private Handler mCommandCallback            = null;     // Thread
-    private Handler mResultCallback             = null;     // Thread
-    private CallbackContext callbackContext     = null;    
+    private Handler mStatusCallback                     = null;     // Thread
+    private Handler mCommandCallback                    = null;     // Thread
+    private Handler mResultCallback                     = null;     // Thread
+    private CallbackContext callbackContext             = null;    
 
     
-    private int         nSilentIterations = 50;
-    private int         nOfEventsContinue = 0;
-    private int         nOfEventsStart = 0;
-    private int         nOfEventsStop = 0;
-    private int         nOfEventsMax = 0;
-    private int         nOfEventsMin = 0;
+    private int         nSilentIterations               = 50;
+    private int         nOfEventsContinue               = 0;
+    private int         nOfEventsStart                  = 0;
+    private int         nOfEventsStop                   = 0;
+    private int         nOfEventsMax                    = 0;
+    private int         nOfEventsMin                    = 0;
 
-    private boolean     bCaptureRunning = false;
+    private boolean     bCaptureRunning                 = false;
 
-    private int         nMaxSpeechLengthSamples = 0; // determines faCurrentSpeech length
+    private int         nMaxSpeechLengthSamples         = 0; // determines faCurrentSpeech length
     private float[]     faCurrentSpeech;
-    private int         nCurrentSpeechLength = 0;  // incremented by appendSpeech, used as: if(nCurrentSpeechLength + 1 > nSpeechMaximumLengthChunks) maximumLengthSpeechEvent();
-    private int         nCurrentSpeechSamples = 0;  // incremented by appendSpeech when SAVE_DATA is requested
+    private int         nCurrentSpeechLength            = 0;  // incremented by appendSpeech, used as: if(nCurrentSpeechLength + 1 > nSpeechMaximumLengthChunks) maximumLengthSpeechEvent();
+    private int         nCurrentSpeechSamples           = 0;  // incremented by appendSpeech when SAVE_DATA is requested
 
-    private int         nAfterSpeechPeriod = 0;  // used as following: if (nAfterSpeechPeriod > nSpeechAllowedDelayChunks) stopSpeechEvent(); 
+    private int         nAfterSpeechPeriod              = 0;  // used as following: if (nAfterSpeechPeriod > nSpeechAllowedDelayChunks) stopSpeechEvent(); 
 
-    private float       fLastAudioLevel = -50; 
-    private float       fCurrentThreshold = 0;
-    private float       fAmbientTotal = 0;
-    private float       fAmbientAverageLevel = 0;
+    private float       fLastAudioLevel                 = -50; 
+    private float       fCurrentThreshold               = 0;
+    private float       fAmbientTotal                   = 0;
+    private float       fAmbientAverageLevel            = 0;
 
-    private int         nAnalysisBufferSize = 0;
-    private int         nOfAnalysisBuffersPerIteration = 0;
-    private float       fAnalysisBufferLengthInS = 0;
-    private float       fAnalysisBufferLengthInMs = 0;
+    private int         nAnalysisBufferSize             = 0;
+    private int         nOfAnalysisBuffersPerIteration  = 0;
+    private float       fAnalysisBufferLengthInS        = 0;
+    private float       fAnalysisBufferLengthInMs       = 0;
     
-    private int         nSpeechAllowedDelayChunks = 0;
-    private int         nSpeechMinimumLengthChunks = 0;
-    private int         nSpeechMaximumLengthChunks = 0;
+    private int         nSpeechAllowedDelayChunks       = 0;
+    private int         nSpeechMinimumLengthChunks      = 0;
+    private int         nSpeechMaximumLengthChunks      = 0;
     
-    private boolean     bSpeakingRightNow = false;
+    private boolean     bSpeakingRightNow               = false;
+    private boolean     bProcessData                    = true;
 
 
     //================================================================================================================
@@ -128,7 +129,7 @@ public class VAD
         bCaptureRunning = true;        
         try 
         {
-            if (audiodata != null && audiodata.length > 0)
+            if (audiodata != null && audiodata.length > 0 && bProcessData)
                 processData(audiodata);
         }
         catch (Exception e) 
@@ -428,6 +429,7 @@ public class VAD
                     Messaging.sendDataToHandler(mCommandCallback, ENUMS.MFCC_CMD_SENDDATA, "info", nCurrentSpeechSamples);
                     break;
             }
+            if((boolean)mVadParams.bAutoPause)   bProcessData = false;
             callSpeechStatusCB(ENUMS.SPEECH_STATUS_SENTENCE);   
         }
         catch (Exception e)
@@ -435,6 +437,11 @@ public class VAD
             e.printStackTrace();
         }
     }    
+    
+    public void resumeRecognition()
+    {
+        bProcessData = true;
+    }
     //===================================================================
     // RESET PARAMS
     //===================================================================    

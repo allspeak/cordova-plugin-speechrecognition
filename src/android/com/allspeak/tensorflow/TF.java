@@ -22,7 +22,7 @@ import com.allspeak.ERRORS;
 
 import com.allspeak.utility.StringUtilities;
 import com.allspeak.utility.FileUtilities;
-import com.allspeak.utility.TrackPerformance;
+//import com.allspeak.utility.TrackPerformance;
 import com.allspeak.utility.Messaging;
 
 import com.allspeak.audioprocessing.Framing;
@@ -166,6 +166,8 @@ public class TF
         {
             List<Recognition> results = mClassifier.recognizeSpeech(contextedCepstra, mTfParams.fRecognitionThreshold);
             
+            String recognizedWavPath = mTfParams.saAudioPath[Integer.parseInt(results.get(0).id)];
+            
             try
             {
                 JSONObject output       = new JSONObject();  
@@ -177,6 +179,7 @@ public class TF
                     JSONObject record   = new JSONObject();
                     record.put("title", result.getTitle());
                     record.put("confidence", String.format(Locale.US, "%.1f%%", result.getConfidence() * 100.0f)); 
+                    record.put("id", result.getId()); 
                     items.put(record);
                 } 
                 output.put("items", items);

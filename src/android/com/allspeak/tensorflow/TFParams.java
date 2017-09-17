@@ -9,6 +9,7 @@ import com.allspeak.ENUMS;
 
 public class TFParams
 {
+    // defined on config/json
     public int nInputParams             = DEFAULT.INPUT_PARAMS;
     public int nContextFrames           = DEFAULT.CONTEXT_FRAMES;   
     public int nItems2Recognize         = DEFAULT.ITEMS_TO_RECOGNIZE;   
@@ -16,11 +17,12 @@ public class TFParams
     public String sLabelFilePath        = DEFAULT.MODEL_LABELNAME;   
     public String sInputNodeName        = DEFAULT.INPUT_NODENAME;   
     public String sOutputNodeName       = DEFAULT.OUTPUT_NODENAME; 
-    public AssetManager mAssetManager   = null;
     public int nDataDest                = DEFAULT.OUTPUT_DATADEST; 
     public float fRecognitionThreshold  = DEFAULT.RECOGNITION_THRESHOLD; 
     
-    
+    // defined on runtime
+    public AssetManager mAssetManager   = null;
+    public String[] saAudioPath         = null;
     public boolean bLoaded              = DEFAULT.LOADED; 
     
     public TFParams(){}  
@@ -72,6 +74,14 @@ public class TFParams
                     case "fRecognitionThreshold":
                         fRecognitionThreshold = (float)init.getDouble(field);
                         break;
+                  
+                    case "saAudioPath":
+                        JSONArray arrJson   = init.getJSONArray("saAudioPath");
+                        saAudioPath         = new String[arrJson.length()];
+                        for(int s = 0; s < arrJson.length(); s++)
+                            saAudioPath[s]  = arrJson.getString(s);                        
+                        break;
+
                 }
             }
         }
@@ -83,15 +93,15 @@ public class TFParams
     
     private static class DEFAULT
     {
-        public static int INPUT_PARAMS          = 792;        
-        public static int CONTEXT_FRAMES        = 11;        
-        public static int ITEMS_TO_RECOGNIZE    = 25;        
-        public static String MODEL_FILENAME     = "trained";        
-        public static String MODEL_LABELNAME    = "trained";        
-        public static String INPUT_NODENAME     = "inputs/I";        
-        public static String OUTPUT_NODENAME    = "O";        
-        public static int OUTPUT_DATADEST       = ENUMS.TF_DATADEST_MODEL;        
-        public static float RECOGNITION_THRESHOLD = 0.1f;        
-        public static boolean LOADED            = false;        
+        public static int INPUT_PARAMS              = 792;        
+        public static int CONTEXT_FRAMES            = 11;        
+        public static int ITEMS_TO_RECOGNIZE        = 25;        
+        public static String MODEL_FILENAME         = "trained";        
+        public static String MODEL_LABELNAME        = "trained";        
+        public static String INPUT_NODENAME         = "inputs/I";        
+        public static String OUTPUT_NODENAME        = "O";        
+        public static int OUTPUT_DATADEST           = ENUMS.TF_DATADEST_MODEL;        
+        public static float RECOGNITION_THRESHOLD   = 0.1f;        
+        public static boolean LOADED                = false;        
     }    
 }

@@ -16,6 +16,7 @@ public class VADParams
     public boolean bCompressPauses          = DEFAULT.SPEECH_DETECTION_COMPRESS_PAUSES;
     public int nAnalysisChunkLength         = DEFAULT.SPEECH_DETECTION_ANALYSIS_CHUNK_LENGTH;
     public String sDebugString              = "";
+    public boolean bAutoPause               = DEFAULT.AUTO_PAUSE;
 
     public VADParams(JSONObject init)
     {
@@ -53,6 +54,9 @@ public class VADParams
                     case "sDebugString":
                         sDebugString                    = init.getString(field);
                         break;
+                    case "bAutoPause":
+                        bAutoPause                      = init.getBoolean(field);
+                        break;
                 }
             }
         }
@@ -70,5 +74,6 @@ public class VADParams
         public static final boolean SPEECH_DETECTION_COMPRESS_PAUSES    = false;
         public static final int SPEECH_DETECTION_ANALYSIS_CHUNK_LENGTH  = 64; // mS
         public static final int AUDIO_RESULT_TYPE                       = 1;
+        public static final boolean AUTO_PAUSE                          = true;
     } 
 }

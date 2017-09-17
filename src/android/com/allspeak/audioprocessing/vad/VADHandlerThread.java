@@ -153,6 +153,11 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
         bIsCapturing = false;
     }
     
+    public void resumeSpeechRecognition(CallbackContext wlcb)
+    {
+        vad.resumeRecognition();
+    }
+    
     private void onCaptureError(String error)
     {
         

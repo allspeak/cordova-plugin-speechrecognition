@@ -189,7 +189,8 @@ speechrecognition.ENUM.mfcc.DEFAULT = {
     nDataDest               : speechrecognition.ENUM.PLUGIN.MFCC_DATADEST_NONE,
     nDataOrig               : speechrecognition.ENUM.PLUGIN.MFCC_DATAORIGIN_RAWDATA,
     sOutputPath             : "",
-    nDeltaWindow            : 2
+    nDeltaWindow            : 2,
+    nProcessingScheme       : 252
 };
 
 speechrecognition.ENUM.vad.DEFAULT = {
@@ -199,7 +200,8 @@ speechrecognition.ENUM.vad.DEFAULT = {
     nSpeechDetectionMinimum         : 512, // mS
     bCompressPauses                 : false,
     nAnalysisChunkLength            : 64, // mS
-    nAudioResultType                : speechrecognition.ENUM.PLUGIN.VAD_RESULT_PROCESS_DATA
+    nAudioResultType                : speechrecognition.ENUM.PLUGIN.VAD_RESULT_PROCESS_DATA,
+    bAutoPause                      : true
 };
 
 speechrecognition.ENUM.tf.DEFAULT = {
@@ -274,6 +276,7 @@ speechrecognition.checkMfccParams = function(mfcc_params)
     speechrecognition.mfcc.params.nDataOrig                    = mfcc_params.nDataOrig                 || speechrecognition.ENUM.mfcc.DEFAULT.nDataOrig;          
     speechrecognition.mfcc.params.sOutputPath                  = mfcc_params.sOutputPath               || speechrecognition.ENUM.mfcc.DEFAULT.sOutputPath;          
     speechrecognition.mfcc.params.nDeltaWindow                 = mfcc_params.nDeltaWindow              || speechrecognition.ENUM.mfcc.DEFAULT.nDeltaWindow;          
+    speechrecognition.mfcc.params.nProcessingScheme            = mfcc_params.nProcessingScheme         || speechrecognition.ENUM.mfcc.DEFAULT.nProcessingScheme;          
     
     return JSON.stringify(speechrecognition.mfcc.params); 
 };
@@ -288,6 +291,7 @@ speechrecognition.checkVadParams = function(vad_params)
     speechrecognition.vad.params.bCompressPauses                = vad_params.bCompressPauses                 || speechrecognition.ENUM.vad.DEFAULT.bCompressPauses;
     speechrecognition.vad.params.nAnalysisChunkLength           = vad_params.nAnalysisChunkLength            || speechrecognition.ENUM.vad.DEFAULT.nAnalysisChunkLength;
     speechrecognition.vad.params.sDebugString                   = vad_params.sDebugString                    || "";
+    speechrecognition.vad.params.bAutoPause                     = vad_params.bAutoPause                      || speechrecognition.ENUM.vad.DEFAULT.bAutoPause;
 
     return JSON.stringify(speechrecognition.vad.params); 
 };
@@ -304,6 +308,7 @@ speechrecognition.checkTfParams = function(tf_params)
     speechrecognition.tf.params.nDataDest                       = tf_params.nDataDest                   || speechrecognition.ENUM.tf.DEFAULT.nDataDest;
     speechrecognition.tf.params.bLoaded                         = false;
     speechrecognition.tf.params.fRecognitionThreshold           = tf_params.fRecognitionThreshold       || speechrecognition.ENUM.tf.DEFAULT.fRecognitionThreshold;
+    speechrecognition.tf.params.saAudioPath                     = tf_params.saAudioPath                 || [];
        
     return JSON.stringify(speechrecognition.tf.params); 
 };
@@ -484,11 +489,20 @@ speechrecognition.startSpeechRecognition = function (captureCfg, vadCfg, mfccCfg
 };
 
 /**
- * Stop capturing audio
+ * Stop recognizing speech
  */
 speechrecognition.stopSpeechRecognition = function () 
 {
     if (speechrecognition._capturing) exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, "stopSpeechRecognition", []);
+};
+
+/**
+ * Resume recognizing speech
+ * after recognized sentence has been playback, resume recognition (stopped internally in the VAD module
+ */
+speechrecognition.resumeSpeechRecognition = function () 
+{
+    if (speechrecognition._capturing) exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, "resumeSpeechRecognition", []);
 };
 
 speechrecognition.debugCall = function (obj) 
