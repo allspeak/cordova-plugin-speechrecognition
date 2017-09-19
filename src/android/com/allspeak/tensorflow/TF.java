@@ -110,7 +110,7 @@ public class TF
         try
         {
             String sModelFilePath = mTfParams.sModelFilePath.startsWith("file://") ? mTfParams.sModelFilePath.split("file://")[1] : mTfParams.sModelFilePath;
-            String sLabelFilePath = mTfParams.sLabelFilePath.startsWith("file://") ? mTfParams.sLabelFilePath.split("file://")[1] : mTfParams.sLabelFilePath;
+//            String sLabelFilePath = mTfParams.sLabelFilePath.startsWith("file://") ? mTfParams.sLabelFilePath.split("file://")[1] : mTfParams.sLabelFilePath;
         
             boolean exists = true;
             String err = "";
@@ -119,21 +119,21 @@ public class TF
                 exists = false;
                 err += (" " + sModelFilePath);
             }
-            if(!FileUtilities.existFile(sLabelFilePath))
-            {            
-                exists = false;
-                err += (" " + sLabelFilePath);               
-            }
+//            if(!FileUtilities.existFile(sLabelFilePath))
+//            {            
+//                exists = false;
+//                err += (" " + sLabelFilePath);               
+//            }
 
             if(exists)
             {
                 mClassifier = TensorFlowSpeechClassifier.create(
-                        mTfParams.mAssetManager,
-                        sModelFilePath,
-                        sLabelFilePath,
-                        mTfParams.nInputParams,
-                        mTfParams.sInputNodeName,
-                        mTfParams.sOutputNodeName);
+                                    mTfParams.mAssetManager,
+                                    sModelFilePath,
+                                    mTfParams.nInputParams,
+                                    mTfParams.sInputNodeName,
+                                    mTfParams.sOutputNodeName,
+                                    mTfParams.getTitles());
             
                 callbackContext.success(1);
             }
@@ -166,7 +166,7 @@ public class TF
         {
             List<Recognition> results = mClassifier.recognizeSpeech(contextedCepstra, mTfParams.fRecognitionThreshold);
             
-            String recognizedWavPath = mTfParams.saAudioPath[Integer.parseInt(results.get(0).id)];
+//            String recognizedWavPath = mTfParams.saAudioPath[Integer.parseInt(results.get(0).id)];
             
             try
             {

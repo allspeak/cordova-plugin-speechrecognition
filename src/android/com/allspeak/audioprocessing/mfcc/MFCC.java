@@ -225,8 +225,8 @@ public class MFCC
     //=================================================================================================================
     public synchronized float[][] getFeatures(float[] samples2beprocessed)
     {
-        float[][] frames2beprocessed;
-        float[][] cepstra;
+        float[][] frames2beprocessed = null;
+        float[][] cepstra = null;
         
         // preproc or not preproc
         switch((int)mfccParams.nProcessingScheme)
@@ -236,8 +236,8 @@ public class MFCC
                 frames2beprocessed = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.0f, null); // NO pre-emphasis, NO hamming-windowing
                 break;
                 
-            case ENUMS.MFCC_PROCSCHEME_F_S_CTX:
-            case ENUMS.MFCC_PROCSCHEME_F_T_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_S_PP_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_T_PP_CTX:
                 frames2beprocessed  = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.95f, hammingWnd); // pre-emphasis/framing/hamming-windowing
                 break;
         }
@@ -246,12 +246,12 @@ public class MFCC
         switch((int)mfccParams.nProcessingScheme)
         {
             case ENUMS.MFCC_PROCSCHEME_F_S_CTX:
-            case ENUMS.MFCC_PROCSCHEME_F_S_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_S_PP_CTX:
                 cepstra = processSpectral(frames2beprocessed);
                 break;
                 
             case ENUMS.MFCC_PROCSCHEME_F_T_CTX:
-            case ENUMS.MFCC_PROCSCHEME_F_T_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_T_PP_CTX:
                 cepstra = processTemporal(frames2beprocessed);
                 break;
         }
@@ -268,6 +268,8 @@ public class MFCC
     //=================================================================================================================
     public synchronized float[][] getFeaturesQueued(float[] samples2beprocessed, float[][] queuedcepstraframes)
     {
+        float[][] frames2beprocessed = null;
+        float[][] cepstra = null;        
         // preproc or not preproc
         switch((int)mfccParams.nProcessingScheme)
         {
@@ -287,13 +289,13 @@ public class MFCC
         switch((int)mfccParams.nProcessingScheme)
         {
             case ENUMS.MFCC_PROCSCHEME_F_S_CTX:
-            case ENUMS.MFCC_PROCSCHEME_F_S_CTX:
-                cepstra = processSpectral(frames2beprocessed, queuedcepstraframes);
+            case ENUMS.MFCC_PROCSCHEME_F_S_PP_CTX:
+                cepstra = processQueuedSpectral(frames2beprocessed, queuedcepstraframes);
                 break;
                 
             case ENUMS.MFCC_PROCSCHEME_F_T_CTX:
-            case ENUMS.MFCC_PROCSCHEME_F_T_CTX:
-                cepstra = processTemporal(frames2beprocessed, queuedcepstraframes);
+            case ENUMS.MFCC_PROCSCHEME_F_T_PP_CTX:
+                cepstra = processQueuedTemporal(frames2beprocessed, queuedcepstraframes);
                 break;
         }        
         nFrames                         = cepstra.length;

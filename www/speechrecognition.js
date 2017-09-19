@@ -58,6 +58,10 @@ speechrecognition.ENUM.PLUGIN   =
     
     MFCC_DATATYPE_MFPARAMETERS      : 250,
     MFCC_DATATYPE_MFFILTERS         : 251,
+    MFCC_PROCSCHEME_F_S_CTX         : 252,      // FilterBanks, Spectral derivatives, Contexting
+    MFCC_PROCSCHEME_F_S_PP_CTX      : 253,      // FilterBanks, Spectral derivatives, Pre-processing, Contexting
+    MFCC_PROCSCHEME_F_T_CTX         : 254,      // FilterBanks, Temporal derivatives, Contexting
+    MFCC_PROCSCHEME_F_T_PP_CTX      : 255,      // FilterBanks, Temporal derivatives, Pre-processing, Contexting      
     
     VAD_RESULT_DETECTION_ONLY               : 260,      // just detect. no MFCC, no save, only callback to WL    
     VAD_RESULT_SAVE_SENTENCE                : 261,      // save (natively) and/or send data to WL  
@@ -205,15 +209,18 @@ speechrecognition.ENUM.vad.DEFAULT = {
 };
 
 speechrecognition.ENUM.tf.DEFAULT = {
+    sLabel                  : "",        
     nInputParams            : 792,        
     nContextFrames          : 11,        
     nItems2Recognize        : 25,
     sModelFilePath          : "",         
-    sLabelFilePath          : "",          
+//    sLabelFilePath          : "",          
     sInputNodeName          : "inputs/I",          
     sOutputNodeName         : "O",      
     nDataDest               : speechrecognition.ENUM.PLUGIN.TF_DATADEST_MODEL,      
-    fRecognitionThreshold   : 0.1      
+    fRecognitionThreshold   : 0.1,      
+    sCreationTime           : "",      
+    nProcessingScheme       : 252      
 };
 //=========================================================================================
 // CHECK INPUT PARAMS
@@ -298,17 +305,20 @@ speechrecognition.checkVadParams = function(vad_params)
 
 speechrecognition.checkTfParams = function(tf_params)
 {
+    speechrecognition.tf.params.sLabel                          = tf_params.sLabel                      || "";          
     speechrecognition.tf.params.nInputParams                    = tf_params.nInputParams                || speechrecognition.ENUM.tf.DEFAULT.nInputParams;          
     speechrecognition.tf.params.nContextFrames                  = tf_params.nContextFrames              || speechrecognition.ENUM.tf.DEFAULT.nContextFrames;          
     speechrecognition.tf.params.nItems2Recognize                = tf_params.nItems2Recognize            || speechrecognition.ENUM.tf.DEFAULT.nItems2Recognize;          
     speechrecognition.tf.params.sModelFilePath                  = tf_params.sModelFilePath              || speechrecognition.ENUM.tf.DEFAULT.sModelFilePath;          
-    speechrecognition.tf.params.sLabelFilePath                  = tf_params.sLabelFilePath              || speechrecognition.ENUM.tf.DEFAULT.sLabelFilePath;          
+//    speechrecognition.tf.params.sLabelFilePath                  = tf_params.sLabelFilePath              || speechrecognition.ENUM.tf.DEFAULT.sLabelFilePath;          
     speechrecognition.tf.params.sInputNodeName                  = tf_params.sInputNodeName              || speechrecognition.ENUM.tf.DEFAULT.sInputNodeName;          
     speechrecognition.tf.params.sOutputNodeName                 = tf_params.sOutputNodeName             || speechrecognition.ENUM.tf.DEFAULT.sOutputNodeName;          
     speechrecognition.tf.params.nDataDest                       = tf_params.nDataDest                   || speechrecognition.ENUM.tf.DEFAULT.nDataDest;
     speechrecognition.tf.params.bLoaded                         = false;
     speechrecognition.tf.params.fRecognitionThreshold           = tf_params.fRecognitionThreshold       || speechrecognition.ENUM.tf.DEFAULT.fRecognitionThreshold;
-    speechrecognition.tf.params.saAudioPath                     = tf_params.saAudioPath                 || [];
+    speechrecognition.tf.params.sCreationTime                   = tf_params.sCreationTime               || "";
+    speechrecognition.tf.params.nProcessingScheme               = tf_params.nProcessingScheme           || speechrecognition.ENUM.mfcc.DEFAULT.nProcessingScheme;    
+    speechrecognition.tf.params.items                           = tf_params.items                       || [];
        
     return JSON.stringify(speechrecognition.tf.params); 
 };
