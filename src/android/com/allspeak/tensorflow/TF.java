@@ -135,7 +135,7 @@ public class TF
                                     mTfParams.sOutputNodeName,
                                     mTfParams.getTitles());
             
-                callbackContext.success(1);
+                callbackContext.success(mTfParams.sLabel);
             }
             else callbackContext.error("the following files are missing: " + err);
             

@@ -166,7 +166,7 @@ public class MFCC
             
             mfccParams.sOutputPath  = StringUtilities.removeExtension(input_file_noext);
             String audio_relfile    = mfccParams.sOutputPath + ".wav";
-            String mfcc_relfile     = mfccParams.sOutputPath + "_scores.dat";
+            String mfcc_relfile     = mfccParams.sOutputPath + ".dat";
             
             float[] data            = WavFile.getWavData(Environment.getExternalStorageDirectory() + "/" + audio_relfile);  
             int nframes             = Framing.getFrames(data.length, mfccParams.nWindowLength, mfccParams.nWindowDistance);
@@ -233,7 +233,7 @@ public class MFCC
         {
             case ENUMS.MFCC_PROCSCHEME_F_S_CTX:
             case ENUMS.MFCC_PROCSCHEME_F_T_CTX:
-                frames2beprocessed = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.0f, null); // NO pre-emphasis, NO hamming-windowing
+                frames2beprocessed = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.0f, null); // NO pre-emphasis, 
                 break;
                 
             case ENUMS.MFCC_PROCSCHEME_F_S_PP_CTX:
@@ -347,9 +347,9 @@ public class MFCC
                     case ENUMS.MFCC_DATADEST_FILEWEB:
                     case ENUMS.MFCC_DATADEST_ALL:
 
-                        boolean res = FileUtilities.write2DArrayToFile(scores, nValidFrames, mfccParams.sOutputPath + "_scores.dat", sOutputPrecision, true);
+                        boolean res = FileUtilities.write2DArrayToFile(scores, nValidFrames, mfccParams.sOutputPath + ".dat", sOutputPrecision, true);
     //                    strscores   = StringUtilities.exportArray2String(scores, );
-    //                    boolean res = FileUtilities.writeStringToFile(mfccParams.sOutputPath + "_scores.dat", strscores, true);
+    //                    boolean res = FileUtilities.writeStringToFile(mfccParams.sOutputPath + ".dat", strscores, true);
                         //                tp.addTimepoint(4);                
                         break;
                 }

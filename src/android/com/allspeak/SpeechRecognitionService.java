@@ -233,7 +233,7 @@ public class SpeechRecognitionService extends Service
                 bIsCalculatingMFCC  = true;
 
                 if(mMfccParams.sOutputPath != "" && mMfccParams.nDataDest >= ENUMS.MFCC_DATADEST_FILE)
-                     FileUtilities.deleteExternalStorageFile(mMfccParams.sOutputPath + "_scores.dat");
+                     FileUtilities.deleteExternalStorageFile(mMfccParams.sOutputPath + ".dat");
             }            
             aicCapture                  = new AudioInputCapture(mCaptureParams, mAicServiceHandler, null, mAicServiceHandler);
             nCapturedDataDest           = mCaptureParams.nDataDest;
