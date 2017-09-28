@@ -44,8 +44,12 @@ import java.util.Arrays;
 
 import android.content.IntentFilter;
 import android.media.AudioDeviceInfo;
-import android.content.BroadcastReceiver;
-import android.media.AudioDeviceInfo;
+//import android.content.BroadcastReceiver;
+
+
+import android.bluetooth.BluetoothAdapter;
+import android.content.Intent;
+
 
 public class SpeechRecognitionPlugin extends CordovaPlugin
 {
@@ -64,17 +68,17 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     public static final int PERMISSION_DENIED_ERROR = 20;    
     boolean isCapturingAllowed                  = false;
     
-    AudioDevicesManager mAudioDevicesManager    = null;
+    private AudioDevicesManager mAudioDevicesManager    = null;
     
-    boolean isCapturing                         = false;
-    boolean bUseHeadSet                         = false;
-    boolean isHeadSetConnected                         = false;
+    private boolean isCapturing                         = false;
+//    boolean bUseHeadSet                         = false;
+//    boolean isHeadSetConnected                  = false;
     //-----------------------------------------------------------------------------------------------
     
     private SpeechRecognitionService mService   = null;
     private boolean mBound                      = false;
     
-    private CaptureParams mCfgParams                = null;
+    private CaptureParams mCfgParams            = null;
     private MFCCParams mMfccParams              = null;
     private VADParams mVadParams                = null;
     private TFParams mTfParams                  = null;
@@ -97,8 +101,7 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
             mAudioDevicesManager = new AudioDevicesManager(mContext, mAudioManager);
             boolean conn = bindService();
             
-//            int jniOutput = HelloCJni.calculate(2,5);
-//            int res = 2 + jniOutput;
+//            int jniOutput = HelloCJni.calculate(2,5);  int res = 2 + jniOutput;
 //            promptForDangerousPermissions();
 
         }
@@ -109,6 +112,68 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
         }
         
     }
+    
+//    
+//    private void initBTConnection()
+//    {
+//        IntentFilter intentFilter = new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED);
+//        mContext.registerReceiver(mBluetoothScoReceiver, intentFilter);
+//
+//        
+////        AudioDeviceInfo[] adIN  = new AudioDeviceInfo[10];
+////        AudioDeviceInfo[] adOUT = new AudioDeviceInfo[10];
+////        adIN                    = mAudioManager.getDevices(AudioManager.GET_DEVICES_INPUTS);
+////        adOUT                   = mAudioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS);
+//        
+//        
+//        mAudioManager.startBluetoothSco();          
+//    }
+//    
+//    private BroadcastReceiver mBluetoothScoReceiver = new BroadcastReceiver() 
+//    {
+//        @Override
+//        public void onReceive(Context context, Intent intent) 
+//        {
+//            int state = intent.getIntExtra(AudioManager.EXTRA_SCO_AUDIO_STATE, -1);
+//            
+//            try
+//            {
+//                isHeadSetConnected  = false;
+//                JSONObject info     = new JSONObject(); 
+//                
+//                if(state == AudioManager.SCO_AUDIO_STATE_ERROR)
+//                    Messaging.sendErrorString2Web(callbackContext, "headset connection error", ERRORS.HEADSET_ERROR, true);
+//                else
+//                {
+//                    switch (state)
+//                    {
+//                        case AudioManager.SCO_AUDIO_STATE_CONNECTED:
+//                            info.put("type", ENUMS.HEADSET_CONNECTED);  
+//                            isHeadSetConnected = true;
+//                            break;
+//
+//                        case AudioManager.SCO_AUDIO_STATE_DISCONNECTED:
+//                            info.put("type", ENUMS.HEADSET_DISCONNECTED);  
+//                            isHeadSetConnected = false;
+//                            break;
+//
+//                        case AudioManager.SCO_AUDIO_STATE_CONNECTING:
+//                            info.put("type", ENUMS.HEADSET_CONNECTING);  
+//                            isHeadSetConnected = false;
+//                            break;
+//                    }
+//
+//                    Messaging.sendUpdate2Web(callbackContext, info, true);
+//                }
+//            }
+//            catch (JSONException e){e.printStackTrace();}              
+//        }
+//    };      
+//
+
+
+    
+    
     //======================================================================================================================
     //get Service interface    
     
@@ -153,6 +218,8 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
      *          startSpeechRecognition
      *          stopSpeechRecognition
      *          adjustVADThreshold
+     *          startSCOConnection
+     *          isBTHSconnected
      *          getMFCC
      * 
      * @param args
@@ -324,9 +391,16 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
         } 
         else if (action.equals("startSCOConnection")) 
         {
-            bUseHeadSet = (boolean)args.get(0);
+//            bUseHeadSet = (boolean)args.get(0);
             
-            mAudioDevicesManager.startBTHSConnection(bUseHeadSet);
+            mAudioDevicesManager.startBTHSConnection((boolean)args.get(0));
+            Messaging.sendNoResult2Web(callbackContext);
+            return true;
+        } 
+        else if (action.equals("isBTHSconnected")) 
+        {
+           
+            mAudioDevicesManager.isBTHSconnected();
             Messaging.sendNoResult2Web(callbackContext);
             return true;
         } 
@@ -403,7 +477,9 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     public void onPause(boolean multitasking)
     {
         mAudioDevicesManager.onPause();
-//                mAudioManager.stopBluetoothSco();        
+
+//        mContext.unregisterReceiver(mBluetoothScoReceiver);
+//        mAudioManager.stopBluetoothSco();        
 
     }
     

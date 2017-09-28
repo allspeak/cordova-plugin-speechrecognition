@@ -353,34 +353,40 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
                     int nframes                 = Framing.getFrames(samples2beprocessed.length, mfccParams.nWindowLength, mfccParams.nWindowDistance);
                     Messaging.sendDataToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROCESS_STARTED, nframes, nProcessingOperations);
                     // ------------------------------------------------------------------------------------------------------------------------------
+                    // process samples and return overthreshold frames....P.S: they can be zero.
                     cepstra                     = mfcc.getFeaturesQueued(samples2beprocessed, null); //cepstra will be [nframes-nDeltaWindow-invalidfr(?)][nscores*scoresMultFactor]
                     // ------------------------------------------------------------------------------------------------------------------------------
                     int nvalidframes            = cepstra.length;
                     nIgnoredFrames             += (nframes - nvalidframes - mfccParams.nDeltaWindow);
 
-                    // manage cepstras' queue
-                    if(mScoresQueue == null)  // after clearData()                
-                        mScoresQueue = new float[mfccParams.nDeltaWindow][nScores*scoresMultFactor];
-
-                    if(nvalidframes >= mfccParams.nDeltaWindow)
-                        for(int dw=0; dw<mfccParams.nDeltaWindow; dw++)
-                            System.arraycopy(cepstra[nvalidframes - mfccParams.nDeltaWindow + dw],0, mScoresQueue[dw], 0, nScores*scoresMultFactor); 
-
-                    // store calculated cepstra in its buffer (only after, I do update nProcessedFrames)
-                    for(int f=0; f<nvalidframes; f++) System.arraycopy(cepstra[f], 0, faCalculatedCepstra[nProcessedFrames + f], 0, scoresMultFactor*nScores);                 
-
-                    // what to do with the calculated cepstra ?
-                    if((int)msg.what == ENUMS.MFCC_CMD_GETQDATA) 
+                    //presently I add to the queue the last two valids, not the last two. using spectral derivatives it doesn't matter....
+                    // TODO : fix it soon, surely before using temporal ones
+                    if(nvalidframes > 0)
                     {
-                        // send to TF
-                        float [][] cepstracopy = new float[nvalidframes][nScores*scoresMultFactor];
-                        for(int f=0; f<nvalidframes; f++)  System.arraycopy(cepstra[f],0, cepstracopy[f], 0, nScores*scoresMultFactor);                    
-                        Messaging.sendDataToHandler(mResultCallback, ENUMS.TF_CMD_NEWCEPSTRA, cepstracopy, nvalidframes, nScores*scoresMultFactor);
-//                        Messaging.sendDataToHandler(mResultCallback, ENUMS.TF_CMD_NEWCEPSTRA, cepstra, nvalidframes, nScores*scoresMultFactor);
-                    }
-                    else mfcc.exportData(cepstra, false);    // false says that they are not final data => do not write them
+                        // manage cepstras' queue
+                        if(mScoresQueue == null)  // after clearData()                
+                            mScoresQueue = new float[mfccParams.nDeltaWindow][nScores*scoresMultFactor];
 
-                    nProcessedFrames += nvalidframes;
+                        if(nvalidframes >= mfccParams.nDeltaWindow)
+                            for(int dw=0; dw<mfccParams.nDeltaWindow; dw++)
+                                System.arraycopy(cepstra[nvalidframes - mfccParams.nDeltaWindow + dw],0, mScoresQueue[dw], 0, nScores*scoresMultFactor); 
+
+                        // store calculated cepstra in its buffer (only after, I do update nProcessedFrames)
+                        for(int f=0; f<nvalidframes; f++) System.arraycopy(cepstra[f], 0, faCalculatedCepstra[nProcessedFrames + f], 0, scoresMultFactor*nScores);                 
+
+                        // what to do with the calculated cepstra ?
+                        if((int)msg.what == ENUMS.MFCC_CMD_GETQDATA) 
+                        {
+                            // send to TF
+                            float [][] cepstracopy = new float[nvalidframes][nScores*scoresMultFactor];
+                            for(int f=0; f<nvalidframes; f++)  System.arraycopy(cepstra[f],0, cepstracopy[f], 0, nScores*scoresMultFactor);                    
+                            Messaging.sendDataToHandler(mResultCallback, ENUMS.TF_CMD_NEWCEPSTRA, cepstracopy, nvalidframes, nScores*scoresMultFactor);
+    //                        Messaging.sendDataToHandler(mResultCallback, ENUMS.TF_CMD_NEWCEPSTRA, cepstra, nvalidframes, nScores*scoresMultFactor);
+                        }
+                        else mfcc.exportData(cepstra, false);    // false says that they are not final data => do not write them
+
+                        nProcessedFrames += nvalidframes;
+                    }
                     break;
 
                 case ENUMS.MFCC_CMD_GETFILE:
