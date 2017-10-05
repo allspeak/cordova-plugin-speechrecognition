@@ -3,6 +3,9 @@ package com.allspeak;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
 
+import java.util.concurrent.ExecutorService;
+
+
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 
@@ -33,6 +36,7 @@ import com.allspeak.ENUMS;
 import com.allspeak.ERRORS;
 import com.allspeak.utility.Messaging;
 import com.allspeak.utility.FileUtilities;
+import com.allspeak.utility.ZipManager;
 import com.allspeak.audioprocessing.mfcc.*;
 import com.allspeak.audioprocessing.mfcc.MFCCParams;
 import com.allspeak.audioprocessing.Framing;
@@ -100,6 +104,7 @@ public class SpeechRecognitionService extends Service
     private TFHandlerThread mTfHT                       = null;        
     //-----------------------------------------------------------------------------------------------
     
+    private final GenericHandler mGenericHandler        = new GenericHandler(this);    
     //===============================================================================
     //binding
     public class LocalBinder extends Binder { SpeechRecognitionService getService() { return SpeechRecognitionService.this; } }
@@ -397,6 +402,55 @@ public class SpeechRecognitionService extends Service
         mTfHT.recognizeCepstraFile(cepstra_file_path, wlcb);
     }
             
+  
+    public void zipFolder(String infolder, String outfilename, String[] validext, ExecutorService execServ, CallbackContext wlcb)
+    {
+        ZipManager.zipFolder(infolder, outfilename, validext, execServ, wlcb);
+    }        
+        
+        
+//        String[] fileinfolder;
+//        
+//        String path             = Environment.getExternalStorageDirectory().toString() + "/" + infolder;    //  Log.d("Files", "Path: " + path);
+//        File directory          = new File(path);
+//        File[] files            = directory.listFiles();   // Log.d("Files", "Size: "+ files.length);
+//        int norigfiles          = files.length;
+//        String[] fileinfolder   = String[norigfiles];
+//        int nvalidfiles         = 0;
+//        
+//        if(ext != null)
+//        {
+//            // filter by extension
+//            for (int i = 0; i < norigfiles; i++)
+//            {
+//                String filename = files[i].getName();
+//                Log.d("Files", "FileName:" + files[i].getName());
+//                if(StringUtilities.removeExtension(filename) == "ext")
+//                {
+//                    fileinfolder[nvalidfiles] = path + "/" + filename;
+//                    nvalidfiles++;
+//                }
+//            }   
+//            String[] validfiles = new String[nvalidfiles];
+//            for(int f=0; f<nvalidfiles; f++) validfiles[f] = fileinfolder[f];                
+//        }
+//        else
+//        {
+//           String[] validfiles  = new String[norigfiles];
+//           for(int f=0; f<norigfiles; f++) validfiles[f] = path + "/" + files[f].getName(); 
+//        }
+//        
+//        cordova.getThreadPool().execute(new Runnable() 
+//        {
+//            public void run() 
+//            {        
+//               boolean res = ZipManager.zip(validfiles, outfilename);
+//               
+//               
+//            }
+//        }
+ 
+    
     public boolean isCapturing() {
         return bIsCapturing;
     }    
@@ -827,6 +881,37 @@ public class SpeechRecognitionService extends Service
         private final WeakReference<SpeechRecognitionService> mService;
 
         public TFHandler(SpeechRecognitionService service) {
+            mService = new WeakReference<SpeechRecognitionService>(service);
+        }
+
+        public void handleMessage(Message msg) 
+        {
+            SpeechRecognitionService service = mService.get();
+            if (service != null) 
+            {
+                try 
+                {
+                    //get message type
+                    JSONObject info = new JSONObject();
+                    Bundle b        = msg.getData();
+                    switch((int)msg.what) //get message type
+                    {
+                        case ENUMS.TF_STATUS_PROCESS_STARTED:
+                            break;                  
+                    }
+                }
+                catch (Exception e) {
+
+                }
+            }
+        }
+    }    
+    
+    private static class GenericHandler extends Handler 
+    {
+        private final WeakReference<SpeechRecognitionService> mService;
+
+        public GenericHandler(SpeechRecognitionService service) {
             mService = new WeakReference<SpeechRecognitionService>(service);
         }
 

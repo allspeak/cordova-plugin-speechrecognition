@@ -40,7 +40,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 //import com.example.HelloCJni;
-
+import java.util.concurrent.ExecutorService;
 
 import android.content.IntentFilter;
 import android.media.AudioDeviceInfo;
@@ -49,6 +49,7 @@ import android.media.AudioDeviceInfo;
 
 import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
+import com.google.gson.JsonArray;
 
 
 public class SpeechRecognitionPlugin extends CordovaPlugin
@@ -112,68 +113,6 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
         }
         
     }
-    
-//    
-//    private void initBTConnection()
-//    {
-//        IntentFilter intentFilter = new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED);
-//        mContext.registerReceiver(mBluetoothScoReceiver, intentFilter);
-//
-//        
-////        AudioDeviceInfo[] adIN  = new AudioDeviceInfo[10];
-////        AudioDeviceInfo[] adOUT = new AudioDeviceInfo[10];
-////        adIN                    = mAudioManager.getDevices(AudioManager.GET_DEVICES_INPUTS);
-////        adOUT                   = mAudioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS);
-//        
-//        
-//        mAudioManager.startBluetoothSco();          
-//    }
-//    
-//    private BroadcastReceiver mBluetoothScoReceiver = new BroadcastReceiver() 
-//    {
-//        @Override
-//        public void onReceive(Context context, Intent intent) 
-//        {
-//            int state = intent.getIntExtra(AudioManager.EXTRA_SCO_AUDIO_STATE, -1);
-//            
-//            try
-//            {
-//                isHeadSetConnected  = false;
-//                JSONObject info     = new JSONObject(); 
-//                
-//                if(state == AudioManager.SCO_AUDIO_STATE_ERROR)
-//                    Messaging.sendErrorString2Web(callbackContext, "headset connection error", ERRORS.HEADSET_ERROR, true);
-//                else
-//                {
-//                    switch (state)
-//                    {
-//                        case AudioManager.SCO_AUDIO_STATE_CONNECTED:
-//                            info.put("type", ENUMS.HEADSET_CONNECTED);  
-//                            isHeadSetConnected = true;
-//                            break;
-//
-//                        case AudioManager.SCO_AUDIO_STATE_DISCONNECTED:
-//                            info.put("type", ENUMS.HEADSET_DISCONNECTED);  
-//                            isHeadSetConnected = false;
-//                            break;
-//
-//                        case AudioManager.SCO_AUDIO_STATE_CONNECTING:
-//                            info.put("type", ENUMS.HEADSET_CONNECTING);  
-//                            isHeadSetConnected = false;
-//                            break;
-//                    }
-//
-//                    Messaging.sendUpdate2Web(callbackContext, info, true);
-//                }
-//            }
-//            catch (JSONException e){e.printStackTrace();}              
-//        }
-//    };      
-//
-
-
-    
-    
     //======================================================================================================================
     //get Service interface    
     
@@ -221,6 +160,9 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
      *          startSCOConnection
      *          isBTHSconnected
      *          getMFCC
+     *          zipFolder
+     *          recognizeCepstraFile
+     *          debugCall
      * 
      * @param args
      * @param _callbackContext
@@ -435,6 +377,26 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
                 return true;
             }            
         }    
+        else if(action.equals("zipFolder")) 
+        {  
+            String path         = args.getString(0);
+            String outzippath   = args.getString(1);
+            
+            String[] ext        = null;
+            if(args.get(2) != null)
+            {
+                JSONArray exts  = args.getJSONArray(2);
+                int len         = exts.length();
+                ext             = new String[len];
+                for(int e=0; e<len; e++)    ext[e] = exts.getString(e);
+            }
+            
+            ExecutorService execServ = cordova.getThreadPool();
+            
+            mService.zipFolder(path, outzippath, ext, execServ, callbackContext);
+            Messaging.sendNoResult2Web(callbackContext);
+            return true;            
+        }
         else if(action.equals("recognizeCepstraFile")) 
         {  
             String cepstra_file_path = args.getString(0);
@@ -531,3 +493,61 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     //=================================================================================================
 }
 
+    
+//    
+//    private void initBTConnection()
+//    {
+//        IntentFilter intentFilter = new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED);
+//        mContext.registerReceiver(mBluetoothScoReceiver, intentFilter);
+//
+//        
+////        AudioDeviceInfo[] adIN  = new AudioDeviceInfo[10];
+////        AudioDeviceInfo[] adOUT = new AudioDeviceInfo[10];
+////        adIN                    = mAudioManager.getDevices(AudioManager.GET_DEVICES_INPUTS);
+////        adOUT                   = mAudioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS);
+//        
+//        
+//        mAudioManager.startBluetoothSco();          
+//    }
+//    
+//    private BroadcastReceiver mBluetoothScoReceiver = new BroadcastReceiver() 
+//    {
+//        @Override
+//        public void onReceive(Context context, Intent intent) 
+//        {
+//            int state = intent.getIntExtra(AudioManager.EXTRA_SCO_AUDIO_STATE, -1);
+//            
+//            try
+//            {
+//                isHeadSetConnected  = false;
+//                JSONObject info     = new JSONObject(); 
+//                
+//                if(state == AudioManager.SCO_AUDIO_STATE_ERROR)
+//                    Messaging.sendErrorString2Web(callbackContext, "headset connection error", ERRORS.HEADSET_ERROR, true);
+//                else
+//                {
+//                    switch (state)
+//                    {
+//                        case AudioManager.SCO_AUDIO_STATE_CONNECTED:
+//                            info.put("type", ENUMS.HEADSET_CONNECTED);  
+//                            isHeadSetConnected = true;
+//                            break;
+//
+//                        case AudioManager.SCO_AUDIO_STATE_DISCONNECTED:
+//                            info.put("type", ENUMS.HEADSET_DISCONNECTED);  
+//                            isHeadSetConnected = false;
+//                            break;
+//
+//                        case AudioManager.SCO_AUDIO_STATE_CONNECTING:
+//                            info.put("type", ENUMS.HEADSET_CONNECTING);  
+//                            isHeadSetConnected = false;
+//                            break;
+//                    }
+//
+//                    Messaging.sendUpdate2Web(callbackContext, info, true);
+//                }
+//            }
+//            catch (JSONException e){e.printStackTrace();}              
+//        }
+//    };      
+//

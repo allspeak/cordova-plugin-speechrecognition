@@ -13,6 +13,12 @@ import java.io.LineNumberReader;
 import android.os.Environment;
 import java.util.Locale;
 
+import java.io.FileOutputStream;
+import java.io.FileInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedInputStream;
+
+import android.util.Log;
 
 public class FileUtilities 
 {
@@ -167,9 +173,7 @@ public class FileUtilities
         File f = new File(Environment.getExternalStorageDirectory(), name);
         return f.exists();
     }    
-
 }
-
 //
 //    public static boolean write2DArrayToFile2(float[][] scores, int rows, String filename, String precision) throws Exception
 //    {

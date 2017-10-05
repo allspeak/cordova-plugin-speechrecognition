@@ -37,5 +37,7 @@ public class ERRORS
 
     public static final int HEADSET_ERROR               = 160; // 
     
+    public static final int ZIP_ERROR                   = 170; // 
+    
     public static final int UNSPECIFIED                 = 999;    
 }

@@ -78,7 +78,11 @@ public class ENUMS
     public static final int TF_DATADEST_MODEL               = 270;      // sentence's cepstra are sent to TF model only
     public static final int TF_DATADEST_FILEONLY            = 271;      // sentence's cepstra are written to a file only
     public static final int TF_DATADEST_MODEL_FILE          = 272;      // sentence's cepstra are sent to TF model and written to a file
+    public static final int TF_MODELTYPE_COMMON             = 273;      // default NET made with a general population
+    public static final int TF_MODELTYPE_USER               = 274;      // user NET made only with user sentences
+    public static final int TF_MODELTYPE_USER_FT            = 275;      // fine-tuned NET made with user sentences
 
+    public static final int TRAIN_DATA_READY                = 280; // 
     
     public static final int AUDIODEVICES_INFO               = 290; // 
     public static final int HEADSET_CONNECTED               = 291;

@@ -71,6 +71,11 @@ speechrecognition.ENUM.PLUGIN   =
     TF_DATADEST_MODEL               : 270,      // sentence's cepstra are sent to TF model only
     TF_DATADEST_FILEONLY            : 271,      // sentence's cepstra are written to a file only
     TF_DATADEST_MODEL_FILE          : 272,      // sentence's cepstra are sent to TF model and written to a file    
+    TF_MODELTYPE_COMMON             : 273,      // default NET made with a general population
+    TF_MODELTYPE_USER               : 274,      // user NET made only with user sentences
+    TF_MODELTYPE_USER_FT            : 275,      // fine-tuned NET made with user sentences    
+    
+    TRAIN_DATA_READY                : 280,
     
     AUDIODEVICES_INFO               : 290, // 
     HEADSET_CONNECTED               : 291,
@@ -210,13 +215,13 @@ speechrecognition.ENUM.vad.DEFAULT = {
 
 speechrecognition.ENUM.tf.DEFAULT = {
     sLabel                  : "",        
+    nModelType              : speechrecognition.ENUM.PLUGIN.TF_MODELTYPE_COMMON,        
     nInputParams            : 792,        
-    nContextFrames          : 11,        
+    nContextFrames          : 5,        
     nItems2Recognize        : 25,
     sModelFilePath          : "",         
-//    sLabelFilePath          : "",          
     sInputNodeName          : "inputs/I",          
-    sOutputNodeName         : "O",      
+    sOutputNodeName         : "SMO",      
     nDataDest               : speechrecognition.ENUM.PLUGIN.TF_DATADEST_MODEL,      
     fRecognitionThreshold   : 0.1,      
     sCreationTime           : "",      
@@ -306,19 +311,19 @@ speechrecognition.checkVadParams = function(vad_params)
 speechrecognition.checkTfParams = function(tf_params)
 {
     speechrecognition.tf.params.sLabel                          = tf_params.sLabel                      || "";          
+    speechrecognition.tf.params.nModelType                      = tf_params.nModelType                  || speechrecognition.ENUM.tf.DEFAULT.nModelType;          
     speechrecognition.tf.params.nInputParams                    = tf_params.nInputParams                || speechrecognition.ENUM.tf.DEFAULT.nInputParams;          
     speechrecognition.tf.params.nContextFrames                  = tf_params.nContextFrames              || speechrecognition.ENUM.tf.DEFAULT.nContextFrames;          
     speechrecognition.tf.params.nItems2Recognize                = tf_params.nItems2Recognize            || speechrecognition.ENUM.tf.DEFAULT.nItems2Recognize;          
     speechrecognition.tf.params.sModelFilePath                  = tf_params.sModelFilePath              || speechrecognition.ENUM.tf.DEFAULT.sModelFilePath;          
-//    speechrecognition.tf.params.sLabelFilePath                  = tf_params.sLabelFilePath              || speechrecognition.ENUM.tf.DEFAULT.sLabelFilePath;          
     speechrecognition.tf.params.sInputNodeName                  = tf_params.sInputNodeName              || speechrecognition.ENUM.tf.DEFAULT.sInputNodeName;          
     speechrecognition.tf.params.sOutputNodeName                 = tf_params.sOutputNodeName             || speechrecognition.ENUM.tf.DEFAULT.sOutputNodeName;          
-    speechrecognition.tf.params.nDataDest                       = tf_params.nDataDest                   || speechrecognition.ENUM.tf.DEFAULT.nDataDest;
-    speechrecognition.tf.params.bLoaded                         = false;
     speechrecognition.tf.params.fRecognitionThreshold           = tf_params.fRecognitionThreshold       || speechrecognition.ENUM.tf.DEFAULT.fRecognitionThreshold;
     speechrecognition.tf.params.sCreationTime                   = tf_params.sCreationTime               || "";
     speechrecognition.tf.params.nProcessingScheme               = tf_params.nProcessingScheme           || speechrecognition.ENUM.mfcc.DEFAULT.nProcessingScheme;    
-    speechrecognition.tf.params.items                           = tf_params.items                       || [];
+    speechrecognition.tf.params.vocabulary                      = tf_params.vocabulary                  || [];
+    speechrecognition.tf.params.nDataDest                       = tf_params.nDataDest                   || speechrecognition.ENUM.tf.DEFAULT.nDataDest;
+    speechrecognition.tf.params.bLoaded                         = false;
        
     return JSON.stringify(speechrecognition.tf.params); 
 };
@@ -515,6 +520,15 @@ speechrecognition.resumeSpeechRecognition = function ()
     if (speechrecognition._capturing) exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, "resumeSpeechRecognition", []);
 };
 
+/**
+ * zipFolder
+ * 
+ */
+speechrecognition.zipFolder = function (infolder, outzippath, list_ext) 
+{
+    exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, "zipFolder", [infolder, outzippath, list_ext]);
+};
+
 speechrecognition.debugCall = function (obj) 
 {
     var json_params = JSON.stringify(obj); 
@@ -618,6 +632,10 @@ speechrecognition._pluginEvent = function (data) {
             case speechrecognition.ENUM.PLUGIN.HEADSET_CONNECTED:
             case speechrecognition.ENUM.PLUGIN.HEADSET_DISCONNECTED:
                 cordova.fireWindowEvent("headsetstatus", {datatype: itemsdata.type});
+                break;
+                
+            case speechrecognition.ENUM.PLUGIN.TRAIN_DATA_READY:
+                cordova.fireWindowEvent("traindataready", {items:data.items});
                 break;
                 
             case speechrecognition.ENUM.PLUGIN.TF_RESULT:

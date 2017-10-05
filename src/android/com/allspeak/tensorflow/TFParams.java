@@ -12,24 +12,25 @@ public class TFParams
 {
     // defined in config.json
     public String sLabel                = "";
+    public int nModelType               = DEFAULT.MODEL_TYPE;
     public int nInputParams             = DEFAULT.INPUT_PARAMS;
     public int nContextFrames           = DEFAULT.CONTEXT_FRAMES;   
     public int nItems2Recognize         = DEFAULT.ITEMS_TO_RECOGNIZE;   
     public String sModelFilePath        = DEFAULT.MODEL_FILENAME;   
-    public String sLabelFilePath        = DEFAULT.MODEL_LABELNAME;   //@@@@@@@@
     public String sInputNodeName        = DEFAULT.INPUT_NODENAME;   
     public String sOutputNodeName       = DEFAULT.OUTPUT_NODENAME; 
     public float fRecognitionThreshold  = DEFAULT.RECOGNITION_THRESHOLD; 
     public int nProcessingScheme        = DEFAULT.PROCESSING_SCHEME; 
     public String sCreationTime         = "";
-    public item[] items                 = null;
+    public item[] vocabulary            = null;
 
     // def in config.json, not in the model.json
     public int nDataDest                = DEFAULT.OUTPUT_DATADEST; 
     
     // defined on runtime
+    public boolean bLoaded              = DEFAULT.LOADED;
+    
     public AssetManager mAssetManager   = null;
-    public boolean bLoaded              = DEFAULT.LOADED; 
     
     public TFParams(){}  
     
@@ -46,51 +47,49 @@ public class TFParams
                 switch(field)
                 {
                     case "sLabel":
-                        sLabel              = init.getString(field);
+                        sLabel                  = init.getString(field);
+                        break;
+                    case "nModelType":
+                        nModelType              = init.getInt(field);
                         break;
                     case "nInputParams":
-                        nInputParams        = init.getInt(field);
+                        nInputParams            = init.getInt(field);
                         break;
                     case "nContextFrames":
-                        nContextFrames      = init.getInt(field);
+                        nContextFrames          = init.getInt(field);
                         break;
                     case "nItems2Recognize":
-                        nItems2Recognize    = init.getInt(field);
+                        nItems2Recognize        = init.getInt(field);
                         break;
                     case "sModelFilePath":
-                        sModelFilePath      = init.getString(field);
+                        sModelFilePath          = init.getString(field);
                         break;
-//                    case "sLabelFilePath":
-//                        sLabelFilePath      = init.getString(field);
-//                        break;
                     case "sInputNodeName":
-                        sInputNodeName      = init.getString(field);
+                        sInputNodeName          = init.getString(field);
                         break;
                     case "sOutputNodeName":
-                        sOutputNodeName     = init.getString(field);
+                        sOutputNodeName         = init.getString(field);
                         break;
                     case "nDataDest":
-                        nDataDest           = init.getInt(field);
+                        nDataDest               = init.getInt(field);
                         break;
                     case "fRecognitionThreshold":
-                        fRecognitionThreshold = (float)init.getDouble(field);
+                        fRecognitionThreshold   = (float)init.getDouble(field);
                         break;
                     case "nProcessingScheme":
-                        nProcessingScheme   = init.getInt(field);
+                        nProcessingScheme       = init.getInt(field);
                         break;
-                    case "items":
-                        JSONArray arrJson   = init.getJSONArray("items");
-                        items               = new item[arrJson.length()];
+                    case "vocabulary":
+                        JSONArray arrJson       = init.getJSONArray("vocabulary");
+                        vocabulary              = new item[arrJson.length()];
                         for(int s = 0; s < arrJson.length(); s++)
                         {
-                            JSONObject jitem = arrJson.getJSONObject(s);
-                            items[s]  = new item(jitem.getString("title"), jitem.getInt("id"));                        
+                            JSONObject jitem    = arrJson.getJSONObject(s);
+                            vocabulary[s]       = new item(jitem.getString("title"), jitem.getInt("id"));                        
                         }
                        break;
                 }
-                
-//                if(items.length != "nItems2Recognize")
-                    
+//                if(vocabulary.length != "nItems2Recognize")
             }
         }
         catch (JSONException e)
@@ -102,28 +101,27 @@ public class TFParams
     public Vector<String> getTitles()
     {
         Vector<String> labels = new Vector<String>();
-        for(int t=0; t<nItems2Recognize; t++)   labels.add(items[t].title);
+        for(int t=0; t<nItems2Recognize; t++)   labels.add(vocabulary[t].title);
         return labels;
     }
     
     public String getTitle(int index)
     {
-        return items[index].title;
+        return vocabulary[index].title;
     }
     
     public int[] getIDs()
     {
         int[] ids = new int[nItems2Recognize];
-        for(int t=0; t<nItems2Recognize; t++)   ids[t] = items[t].id;
+        for(int t=0; t<nItems2Recognize; t++)   ids[t] = vocabulary[t].id;
         return ids;
     }
     
     public int getID(int index)
     {
-        return items[index].id;
+        return vocabulary[index].id;
     }
-    
-    
+
     private class item
     {
         public String title;
@@ -138,11 +136,11 @@ public class TFParams
     
     private static class DEFAULT
     {
+        public static int MODEL_TYPE                = ENUMS.TF_MODELTYPE_COMMON;        
         public static int INPUT_PARAMS              = 792;        
-        public static int CONTEXT_FRAMES            = 11;        
+        public static int CONTEXT_FRAMES            = 5;        
         public static int ITEMS_TO_RECOGNIZE        = 25;        
         public static String MODEL_FILENAME         = "trained";        
-        public static String MODEL_LABELNAME        = "trained";        
         public static String INPUT_NODENAME         = "inputs/I";        
         public static String OUTPUT_NODENAME        = "O";        
         public static int OUTPUT_DATADEST           = ENUMS.TF_DATADEST_MODEL;        
