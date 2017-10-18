@@ -41,15 +41,7 @@ import java.util.Arrays;
 
 //import com.example.HelloCJni;
 import java.util.concurrent.ExecutorService;
-
-import android.content.IntentFilter;
-import android.media.AudioDeviceInfo;
-//import android.content.BroadcastReceiver;
-
-
-import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
-import com.google.gson.JsonArray;
 
 
 public class SpeechRecognitionPlugin extends CordovaPlugin
@@ -88,7 +80,7 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     public void initialize(CordovaInterface cordova, CordovaWebView webView) 
     {
         super.initialize(cordova, webView);
-        Log.d(LOG_TAG, "Initializing SpeechRecognitionPlugin");
+        if(BuildConfig.DEBUG) Log.d(LOG_TAG, "Initializing SpeechRecognitionPlugin");
 
         //get plugin context
         cordovaInterface        = cordova;
@@ -109,7 +101,7 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
         catch(Exception e)
         {
             e.printStackTrace();                    
-            Log.e(LOG_TAG, e.getMessage(), e);
+            if(BuildConfig.DEBUG) Log.e(LOG_TAG, e.getMessage(), e);
         }
         
     }
@@ -135,7 +127,7 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
             mService            = binder.getService();
             String res          = mService.initService();  // if(res != "ok") dont' know how to inform web layer
             mBound              = true;
-            Log.d(LOG_TAG, "========> Service Bounded <=========");
+            if(BuildConfig.DEBUG) Log.d(LOG_TAG, "========> Service Bounded <=========");
         }
 
         @Override

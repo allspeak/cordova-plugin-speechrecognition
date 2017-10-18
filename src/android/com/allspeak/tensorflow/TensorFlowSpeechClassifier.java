@@ -18,6 +18,7 @@ package com.allspeak.tensorflow;
 import android.content.res.AssetManager;
 import android.os.Trace;
 import android.util.Log;
+import com.allspeak.BuildConfig;
 import java.io.FileInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -93,7 +94,7 @@ public class TensorFlowSpeechClassifier implements Classifier
 //        if (operation == null)          throw new RuntimeException("Node '" + outputName + "' does not exist in model '" + modelFilename + "'");
 //    
 //        c.nOutputClasses                = (int)operation.output(0).shape().size(1);
-//        Log.i(TAG, "Read " + c.labels.size() + " labels, output layer size is " + c.nOutputClasses);
+//        if(BuildConfig.DEBUG) Log.i(TAG, "Read " + c.labels.size() + " labels, output layer size is " + c.nOutputClasses);
 //
 //        // Pre-allocate buffers.
 //        c.outputNames   = new String[] {outputName};
@@ -126,7 +127,7 @@ public class TensorFlowSpeechClassifier implements Classifier
         if (operation == null)          throw new RuntimeException("Node '" + outputName + "' does not exist in model '" + modelFilename + "'");
     
         c.nOutputClasses                = (int)operation.output(0).shape().size(1);
-        Log.i(TAG, "Read " + c.labels.size() + " labels, output layer size is " + c.nOutputClasses);
+        if(BuildConfig.DEBUG) Log.i(TAG, "Read " + c.labels.size() + " labels, output layer size is " + c.nOutputClasses);
 
         // Pre-allocate buffers.
         c.outputNames   = new String[] {outputName};
@@ -141,7 +142,7 @@ public class TensorFlowSpeechClassifier implements Classifier
 //        // TODO(andrewharp): make this handle non-assets.
 //        boolean hasAssetPrefix = labelFilename.startsWith("file:///android_asset/");
 //        String actualFilename = hasAssetPrefix ? labelFilename.split("file:///android_asset/")[1] : labelFilename;
-//        Log.i(TAG, "Reading labels from: " + actualFilename);
+//        if(BuildConfig.DEBUG) Log.i(TAG, "Reading labels from: " + actualFilename);
 //        BufferedReader br = null;
 //        try 
 //        {
@@ -178,7 +179,7 @@ public class TensorFlowSpeechClassifier implements Classifier
     @Override
     public List<Recognition> recognizeSpeech(final float[][] framesCepstra, float threshold) 
     {
-        // Log this method so that it can be analyzed with systrace.
+        // if(BuildConfig.DEBUG) Log this method so that it can be analyzed with systrace.
         Trace.beginSection("recognizeSpeech"); 
         
         nFrames = framesCepstra.length;
@@ -246,7 +247,7 @@ public class TensorFlowSpeechClassifier implements Classifier
     public float[] recognizeFrame(float[] frameCepstra) 
     {
         float[] confidences = new float[nOutputClasses];
-        // Log this method so that it can be analyzed with systrace.
+        // if(BuildConfig.DEBUG) Log this method so that it can be analyzed with systrace.
         Trace.beginSection("recognizeFrame");
 
         // Copy the input data into TensorFlow.

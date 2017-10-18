@@ -14,6 +14,7 @@ import java.io.File;
 
 import android.os.Environment;
 import android.util.Log;
+import com.allspeak.BuildConfig;
 import java.io.FilenameFilter;
 
 import android.os.ResultReceiver;
@@ -183,7 +184,7 @@ public class MFCC
         catch(Exception e)
         {
             e.printStackTrace();
-            Log.e(TAG, "processFile" + ": Error: " + e.toString());
+            if(BuildConfig.DEBUG) Log.e(TAG, "processFile" + ": Error: " + e.toString());
             Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
         }        
     }
@@ -215,7 +216,7 @@ public class MFCC
         catch(Exception e)
         {
             e.printStackTrace();
-            Log.e(TAG, "processFolder" + ": Error: " + e.toString());
+            if(BuildConfig.DEBUG) Log.e(TAG, "processFolder" + ": Error: " + e.toString());
             Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
         }    
     }
@@ -395,7 +396,7 @@ public class MFCC
         catch(Exception e)
         {
             e.printStackTrace();
-            Log.e(TAG, "exportData" + ": Error: " + e.toString());
+            if(BuildConfig.DEBUG) Log.e(TAG, "exportData" + ": Error: " + e.toString());
             Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
             return null;
         }
@@ -452,7 +453,7 @@ public class MFCC
         catch(Exception e)
         {
             e.printStackTrace();
-            Log.e(TAG, "processFramesTemporal" + ": Error: " + e.toString());
+            if(BuildConfig.DEBUG) Log.e(TAG, "processFramesTemporal" + ": Error: " + e.toString());
             Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
             return null;
         }        
@@ -477,7 +478,7 @@ public class MFCC
         catch(Exception e)
         {
             e.printStackTrace();
-            Log.e(TAG, "processFramesTemporal" + ": Error: " + e.toString());
+            if(BuildConfig.DEBUG) Log.e(TAG, "processFramesTemporal" + ": Error: " + e.toString());
             Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
             return null;
         }        

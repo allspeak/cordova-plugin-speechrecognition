@@ -21,6 +21,7 @@ import com.allspeak.audioprocessing.mfcc.MFCC;
 import com.allspeak.audioprocessing.mfcc.MFCCParams;
 import com.allspeak.ENUMS;
 import com.allspeak.ERRORS;
+import com.allspeak.BuildConfig;
 import java.util.Arrays;
 
 /*
@@ -262,7 +263,7 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
     
     public Handler getHandlerLooper()
     {
-        if(mInternalHandler == null)   Log.w(LOG_TAG, "VADHandlerThread mInternalHandler is NULL !!!!!!!!!!!!!!!!!");
+        if(mInternalHandler == null)   if(BuildConfig.DEBUG) Log.w(LOG_TAG, "VADHandlerThread mInternalHandler is NULL !!!!!!!!!!!!!!!!!");
         return mInternalHandler;
     }    
     //================================================================================================================

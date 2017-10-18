@@ -1,6 +1,7 @@
 package com.allspeak.utility;
 
 import android.util.Log;
+import com.allspeak.BuildConfig;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -119,7 +120,7 @@ public class AudioDevicesManager
             // STATE_DISCONNECTING	3
 
             state = mBluetoothHeadset.getConnectionState(device);
-            Log.d(AudioDevicesManager.class.getCanonicalName(), "State :" + state);
+            if(BuildConfig.DEBUG) Log.d(AudioDevicesManager.class.getCanonicalName(), "State :" + state);
         }
         else
         {
@@ -131,19 +132,19 @@ public class AudioDevicesManager
         {
             case 0:
             {
-                Log.d(AudioDevicesManager.class.getCanonicalName(), "isBluetoothA2dpOff()");
+                if(BuildConfig.DEBUG) Log.d(AudioDevicesManager.class.getCanonicalName(), "isBluetoothA2dpOff()");
 //				btheasetdmodel= new HeadSetModel().setState(0).setStateName("BluetoothA2dpOff");
                 break;
             }
             case 1:
             {
-                Log.d(AudioDevicesManager.class.getCanonicalName(), "isBluetoothA2dpOn()");
+                if(BuildConfig.DEBUG) Log.d(AudioDevicesManager.class.getCanonicalName(), "isBluetoothA2dpOn()");
 //				btheasetdmodel= new HeadSetModel().setState(1).setStateName("BluetoothA2dpOn");
                 break;
             }
             case 2:
             {
-                Log.d(AudioDevicesManager.class.getCanonicalName(), "isBluetoothA2dpOn()");
+                if(BuildConfig.DEBUG) Log.d(AudioDevicesManager.class.getCanonicalName(), "isBluetoothA2dpOn()");
 //				btheasetdmodel= new HeadSetModel().setState(1).setStateName("BluetoothA2dpOn");
                 break;
             }
@@ -339,25 +340,25 @@ public class AudioDevicesManager
                     case BluetoothProfile.STATE_CONNECTED:
                         info.put("type", ENUMS.HEADSET_CONNECTED);  
                         isHeadSetConnected = true;
-                        Log.d(LOG_TAG, "BT headset " + deviceName + " connected");
+                        if(BuildConfig.DEBUG) Log.d(LOG_TAG, "BT headset " + deviceName + " connected");
                         break;
 
                     case BluetoothProfile.STATE_DISCONNECTED:
                         info.put("type", ENUMS.HEADSET_DISCONNECTED);  
                         isHeadSetConnected = false;
-                        Log.d(LOG_TAG, "BT headset " + deviceName + " disconnected");
+                        if(BuildConfig.DEBUG) Log.d(LOG_TAG, "BT headset " + deviceName + " disconnected");
                         break;
 
                     case BluetoothProfile.STATE_CONNECTING:
                         info.put("type", ENUMS.HEADSET_CONNECTING);  
                         isHeadSetConnected = false;
-                        Log.d(LOG_TAG, "BT headset " + deviceName + " connecting");
+                        if(BuildConfig.DEBUG) Log.d(LOG_TAG, "BT headset " + deviceName + " connecting");
                         break;
 
                     case BluetoothProfile.STATE_DISCONNECTING:
                         info.put("type", ENUMS.HEADSET_DISCONNECTING);  
                         isHeadSetConnected = false;
-                        Log.d(LOG_TAG, "BT headset " + deviceName + " disconnecting");
+                        if(BuildConfig.DEBUG) Log.d(LOG_TAG, "BT headset " + deviceName + " disconnecting");
                         break;
                 }
 
@@ -389,13 +390,13 @@ public class AudioDevicesManager
                         case AudioManager.SCO_AUDIO_STATE_CONNECTED:
                             info.put("type", ENUMS.HEADSET_CONNECTED);  
                             isSCOEnabled = true;
-                            Log.d(LOG_TAG, "SCO connected");
+                            if(BuildConfig.DEBUG) Log.d(LOG_TAG, "SCO connected");
                             break;
 
                         case AudioManager.SCO_AUDIO_STATE_DISCONNECTED:
                             info.put("type", ENUMS.HEADSET_DISCONNECTED);  
                             isSCOEnabled = false;
-                            Log.d(LOG_TAG, "SCO disconnected");
+                            if(BuildConfig.DEBUG) Log.d(LOG_TAG, "SCO disconnected");
                             
                             break;
 
@@ -423,7 +424,7 @@ public class AudioDevicesManager
                 if(ad.isSink()) mAd.Add(ad, 1);
                 else            mAd.Add(ad, 0);
                 
-                Log.d(LOG_TAG, "added audio devices: " + addedDevices[d].getProductName().toString());
+                if(BuildConfig.DEBUG) Log.d(LOG_TAG, "added audio devices: " + addedDevices[d].getProductName().toString());
             }
         }
 
@@ -444,7 +445,7 @@ public class AudioDevicesManager
                     if(name == thisname)    mAd.remove(col, dd);
                 }
                 
-                Log.d(LOG_TAG, "removed audio devices: " + name);
+                if(BuildConfig.DEBUG) Log.d(LOG_TAG, "removed audio devices: " + name);
             }
         }
     }  

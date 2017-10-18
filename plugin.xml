@@ -5,10 +5,10 @@
         xmlns:android="http://schemas.android.com/apk/res/android">
 
     <name>Speech Recognition</name>
-    <description>This cordova plugin enables audio capture from the device microphone, by in (near) real-time forwarding raw audio data to the web layer of your web application.</description>
+    <description>This cordova plugin implements an Automatic Speech Recognition (ASR) Android Service based on TensorFlow Deep Neural Networks (DNN) engine. Performs audio capture from the device microphone and bluetooth headset, perform Voice Activity Detection, features extraction (MFCC FilterBanks and its derivatives) and make inference on a TensorFlow model.</description>
 	<author>Alberto Inuggi</author>
 	<license>MIT</license>
-    <keywords>cordova,phonegap,media,microphone,mic,input,audio,waapi,audionode,web,audio,api,audionode,capture,ios,android</keywords>
+    <keywords>cordova,speech,mfcc,vad,tensorflow,phonegap,media,microphone,mic,input,audio,waapi,audio,api,capture,android</keywords>
     <repo>https://gitlab.iit.it/AllSpeak/cordova-plugin-speechrecognition.git</repo>
     <issue>https://gitlab.iit.it/AllSpeak/cordova-plugin-speechrecognition/issues</issue>
 
@@ -71,29 +71,8 @@
         
         <source-file src="src/android/libs/libandroid_tensorflow_inference_java.jar" target-dir="libs" />
         <source-file src="src/android/libs/armeabi-v7a/libtensorflow_inference.so" target-dir="libs/armeabi" />        
-        <source-file src="src/android/libs/gson-2.6.2.jar" target-dir="libs" />        
+        <!--<source-file src="src/android/libs/gson-2.6.2.jar" target-dir="libs" />-->        
 <!--        <source-file src="src/android/com/allspeak/audioprocessing/HelloJni.java" target-dir="src/android/com/allspeak/audioprocessing/" />
         <source-file src="src/android/libs/armeabi-v7a/libhello-jni.so" target-dir="libs/armeabi/" />        -->
     </platform>
-
-    <!-- ios -->
-    <platform name="ios">
-
-        <config-file parent="/*" target="config.xml">
-            <feature name="AudioInputCapture">
-                <param name="ios-package" value="CDVAudioInputCapture" />
-            </feature>
-        </config-file>
-
-        <source-file src="src/ios/CDVAudioInputCapture.m" />
-        <source-file src="src/ios/AudioReceiver.h" />
-        <source-file src="src/ios/AudioReceiver.m" />
-
-        <framework src="Accelerate.framework" weak="true" />
-        <framework src="CoreAudio.framework" weak="true" />
-        <framework src="AudioToolbox.framework" weak="true" />
-        <framework src="AVFoundation.framework" weak="true" />
-
-    </platform>
-
 </plugin>

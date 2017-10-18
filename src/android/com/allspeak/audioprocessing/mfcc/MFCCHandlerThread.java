@@ -7,6 +7,7 @@ import android.os.Bundle;
 
 import org.apache.cordova.CallbackContext;
 import android.util.Log;
+import com.allspeak.BuildConfig;
 
 import com.allspeak.ENUMS;
 import com.allspeak.ERRORS;
@@ -274,7 +275,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
 //            strmsg  = "CMD_SENDDATA: sample ERROR, frames: " + String.valueOf(nProcessedFrames) + " expected2bemanipulated: " + String.valueOf(manipulatedSamples) + ", manipulated: " + String.valueOf(nProcessedSamples);
 //            res     = false;
 //        }
-        Log.d(LOG_TAG, strmsg);         
+        if(BuildConfig.DEBUG) Log.d(LOG_TAG, strmsg);         
         return res;
     }
 
@@ -432,7 +433,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
         catch(Exception e)
         {
             e.printStackTrace();                  
-            Log.e(LOG_TAG, e.getMessage(), e);
+            if(BuildConfig.DEBUG) Log.e(LOG_TAG, e.getMessage(), e);
             Messaging.sendErrorString2Web(mWlCb, e.getMessage(), ERRORS.MFCC_ERROR, true);            
             return false;            
         }
@@ -446,7 +447,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
    
     public Handler getHandlerLooper()
     {
-        if(mInternalHandler == null)   Log.w(LOG_TAG, "MFCCHandlerThread mInternalHandler is NULL !!!!!!!!!!!!!!!!!");
+        if(mInternalHandler == null)   if(BuildConfig.DEBUG) Log.w(LOG_TAG, "MFCCHandlerThread mInternalHandler is NULL !!!!!!!!!!!!!!!!!");
         return mInternalHandler;
     }        
     //================================================================================================================

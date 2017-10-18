@@ -142,7 +142,7 @@ public class SpeechRecognitionService extends Service
             mTfHT           = new TFHandlerThread("TFHandlerThread", Process.THREAD_PRIORITY_MORE_FAVORABLE);
             mTfHT.start();   
 
-            Log.d(LOG_TAG, "========> initService() <========="); 
+            if(BuildConfig.DEBUG) Log.d(LOG_TAG, "========> initService() <========="); 
             return "ok";
         }
         catch (Exception e) 
@@ -176,7 +176,7 @@ public class SpeechRecognitionService extends Service
                 mTfHT.quit();
                 mTfHT.interrupt();
             }
-            Log.d(LOG_TAG, "========> unbindService() <========="); 
+            if(BuildConfig.DEBUG) Log.d(LOG_TAG, "========> unbindService() <========="); 
         }
         catch (Exception e) 
         {
@@ -411,9 +411,9 @@ public class SpeechRecognitionService extends Service
         
 //        String[] fileinfolder;
 //        
-//        String path             = Environment.getExternalStorageDirectory().toString() + "/" + infolder;    //  Log.d("Files", "Path: " + path);
+//        String path             = Environment.getExternalStorageDirectory().toString() + "/" + infolder;    //  if(BuildConfig.DEBUG) Log.d("Files", "Path: " + path);
 //        File directory          = new File(path);
-//        File[] files            = directory.listFiles();   // Log.d("Files", "Size: "+ files.length);
+//        File[] files            = directory.listFiles();   // if(BuildConfig.DEBUG) Log.d("Files", "Size: "+ files.length);
 //        int norigfiles          = files.length;
 //        String[] fileinfolder   = String[norigfiles];
 //        int nvalidfiles         = 0;
@@ -424,7 +424,7 @@ public class SpeechRecognitionService extends Service
 //            for (int i = 0; i < norigfiles; i++)
 //            {
 //                String filename = files[i].getName();
-//                Log.d("Files", "FileName:" + files[i].getName());
+//                if(BuildConfig.DEBUG) Log.d("Files", "FileName:" + files[i].getName());
 //                if(StringUtilities.removeExtension(filename) == "ext")
 //                {
 //                    fileinfolder[nvalidfiles] = path + "/" + filename;
@@ -543,7 +543,7 @@ public class SpeechRecognitionService extends Service
             catch(JSONException e)
             {
                 e.printStackTrace();                  
-                Log.e(LOG_TAG, e.getMessage(), e);
+                if(BuildConfig.DEBUG) Log.e(LOG_TAG, e.getMessage(), e);
                 onCaptureError(e.getMessage());            
             }                         
         }
@@ -568,7 +568,7 @@ public class SpeechRecognitionService extends Service
         {
             int ntotalReadBytes = Integer.parseInt(totalReadBytes);
             if(nCapturedBytes != ntotalReadBytes)    
-                Log.w(LOG_TAG, "onCaptureStop: read by AIReceiver: " + totalReadBytes + "bytes, internal count " + Integer.toString(nCapturedBytes));            
+                if(BuildConfig.DEBUG) Log.w(LOG_TAG, "onCaptureStop: read by AIReceiver: " + totalReadBytes + "bytes, internal count " + Integer.toString(nCapturedBytes));            
 
             bTriggerAction  = true;
 
@@ -631,7 +631,7 @@ public class SpeechRecognitionService extends Service
     // called by MFCC class when sending frames to be processed
     public void onMFCCStartProcessing(int nframes, int nmfccblocks)
     {
-//        Log.d(LOG_TAG, "start to process: " + Integer.toString(nframes));
+//        if(BuildConfig.DEBUG) Log.d(LOG_TAG, "start to process: " + Integer.toString(nframes));
         nMFCCFrames2beProcessed += nframes;
         nMFCCProcessedBlocks    = nmfccblocks;
     }
@@ -666,7 +666,7 @@ public class SpeechRecognitionService extends Service
         catch (JSONException e) 
         {
             e.printStackTrace();                  
-            Log.e(LOG_TAG, e.getMessage(), e);
+            if(BuildConfig.DEBUG) Log.e(LOG_TAG, e.getMessage(), e);
             onMFCCError(e.toString());
         }
      }   
@@ -676,15 +676,15 @@ public class SpeechRecognitionService extends Service
         nMFCCProcessedFrames    += frames;
         nMFCCFrames2beProcessed = nMFCCExpectedFrames - nMFCCProcessedFrames;
         
-        Log.d(LOG_TAG, "onMFCCProgress : expected frames : " + nMFCCExpectedFrames  + ", processed frames : " + Integer.toString(nMFCCProcessedFrames) +  ", still to be processed: " + Integer.toString(nMFCCFrames2beProcessed));
-        Log.d(LOG_TAG, "onMFCCProgress : captured blocks: " + Integer.toString(nCapturedBlocks) + ", mfccprocessed blocks: " + Integer.toString(nMFCCProcessedBlocks));
-        Log.d(LOG_TAG, "------");
+        if(BuildConfig.DEBUG) Log.d(LOG_TAG, "onMFCCProgress : expected frames : " + nMFCCExpectedFrames  + ", processed frames : " + Integer.toString(nMFCCProcessedFrames) +  ", still to be processed: " + Integer.toString(nMFCCFrames2beProcessed));
+        if(BuildConfig.DEBUG) Log.d(LOG_TAG, "onMFCCProgress : captured blocks: " + Integer.toString(nCapturedBlocks) + ", mfccprocessed blocks: " + Integer.toString(nMFCCProcessedBlocks));
+        if(BuildConfig.DEBUG) Log.d(LOG_TAG, "------");
         
         
         //check if this is the last cepstra packet (bTriggerAction=true has been set by onStopCapture)
         if(bTriggerAction && nMFCCExpectedFrames == nMFCCProcessedFrames)
         {
-            Log.d(LOG_TAG, "@@@@@@@@@@@@@@@ F I N I S H E D   M F C C   C A L C @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+            if(BuildConfig.DEBUG) Log.d(LOG_TAG, "@@@@@@@@@@@@@@@ F I N I S H E D   M F C C   C A L C @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
             bTriggerAction      = false;
             bIsCalculatingMFCC  = false;
             Messaging.sendDataToHandler(mMfccHTLooper, ENUMS.MFCC_CMD_FINALIZEDATA);
@@ -771,7 +771,7 @@ public class SpeechRecognitionService extends Service
                 catch (Exception e) 
                 {
                     e.printStackTrace();                      
-                    Log.e(LOG_TAG, e.getMessage(), e);
+                    if(BuildConfig.DEBUG) Log.e(LOG_TAG, e.getMessage(), e);
                     service.onCaptureError(e.toString());
                 }
             }
@@ -842,7 +842,7 @@ public class SpeechRecognitionService extends Service
                 catch (JSONException e) 
                 {
                     e.printStackTrace();                    
-                    Log.e(LOG_TAG, e.getMessage(), e);
+                    if(BuildConfig.DEBUG) Log.e(LOG_TAG, e.getMessage(), e);
                     service.onMFCCError(e.toString());
                 }
             }
@@ -870,7 +870,7 @@ public class SpeechRecognitionService extends Service
                 }
                 catch (Exception e) {
                     e.printStackTrace();                    
-                    Log.e(LOG_TAG, e.getMessage(), e);
+                    if(BuildConfig.DEBUG) Log.e(LOG_TAG, e.getMessage(), e);
                 }
             }
         }

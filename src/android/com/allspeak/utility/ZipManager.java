@@ -9,6 +9,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 import android.util.Log;
+import com.allspeak.BuildConfig;
 
 import java.util.concurrent.ExecutorService;
 import org.apache.cordova.CallbackContext;
@@ -26,11 +27,11 @@ public class ZipManager
 
     public static void zipFolder(String infolder, final String outfilename, String[] validext, ExecutorService execServ, final CallbackContext wlcb)
     {
-        String inpath           = Environment.getExternalStorageDirectory().toString() + "/" + infolder;    //  Log.d("Files", "Path: " + inpath);
-        final String outzip     = Environment.getExternalStorageDirectory().toString() + "/" + outfilename;    //  Log.d("Files", "Path: " + inpath);
+        String inpath           = Environment.getExternalStorageDirectory().toString() + "/" + infolder;    //  if(BuildConfig.DEBUG) Log.d("Files", "Path: " + inpath);
+        final String outzip     = Environment.getExternalStorageDirectory().toString() + "/" + outfilename;    //  if(BuildConfig.DEBUG) Log.d("Files", "Path: " + inpath);
         
         File directory          = new File(inpath);
-        File[] files            = directory.listFiles();   // Log.d("Files", "Size: "+ files.length);
+        File[] files            = directory.listFiles();   // if(BuildConfig.DEBUG) Log.d("Files", "Size: "+ files.length);
         int norigfiles          = files.length;
         String[] validfiles     = null;
         if(validext != null)
@@ -41,7 +42,7 @@ public class ZipManager
             for (int i = 0; i < norigfiles; i++)
             {
                 String filename = files[i].getName();
-                Log.d("Files", "FileName:" + files[i].getName());
+                if(BuildConfig.DEBUG) Log.d("Files", "FileName:" + files[i].getName());
                 String ext = StringUtilities.getExtension(filename);
                 for (int e = 0; e < validext.length; e++)
                 {                
@@ -83,7 +84,7 @@ public class ZipManager
 
             for (int i = 0; i < _files.length; i++) 
             {
-                Log.v("Compress", "Adding: " + _files[i]);
+                if(BuildConfig.DEBUG) Log.v("Compress", "Adding: " + _files[i]);
                 FileInputStream fi = new FileInputStream(_files[i]);
                 origin = new BufferedInputStream(fi, BUFFER);
 
