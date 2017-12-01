@@ -179,8 +179,8 @@ public class TensorFlowSpeechClassifier implements Classifier
     @Override
     public List<Recognition> recognizeSpeech(final float[][] framesCepstra, float threshold) 
     {
-        // if(BuildConfig.DEBUG) Log this method so that it can be analyzed with systrace.
-        Trace.beginSection("recognizeSpeech"); 
+        // Log this method so that it can be analyzed with systrace.
+        if(BuildConfig.DEBUG) Trace.beginSection("recognizeSpeech"); 
         
         nFrames = framesCepstra.length;
         outputs = new float[nOutputClasses];
@@ -240,7 +240,7 @@ public class TensorFlowSpeechClassifier implements Classifier
         }
         for (int i = 0; i < nReturnedElements; ++i) recognitions.add(pq.poll());
         
-        Trace.endSection(); // "recognizeSpeech"
+        if(BuildConfig.DEBUG) Trace.endSection(); // "recognizeSpeech"
         return recognitions;        
     }
     
@@ -248,24 +248,24 @@ public class TensorFlowSpeechClassifier implements Classifier
     {
         float[] confidences = new float[nOutputClasses];
         // if(BuildConfig.DEBUG) Log this method so that it can be analyzed with systrace.
-        Trace.beginSection("recognizeFrame");
+        if(BuildConfig.DEBUG) Trace.beginSection("recognizeFrame");
 
         // Copy the input data into TensorFlow.
-        Trace.beginSection("fillNodeFloat");
+        if(BuildConfig.DEBUG) Trace.beginSection("fillNodeFloat");
         inferenceInterface.fillNodeFloat(inputName, new int[] {1, inputSize}, frameCepstra);  //   << ===========  ????????????????????????
-        Trace.endSection();
+        if(BuildConfig.DEBUG) Trace.endSection();
 
         // Run the inference call.
-        Trace.beginSection("runInference");
+        if(BuildConfig.DEBUG) Trace.beginSection("runInference");
         inferenceInterface.runInference(outputNames);
-        Trace.endSection();
+        if(BuildConfig.DEBUG) Trace.endSection();
 
         // Copy the output Tensor back into the output array.
-        Trace.beginSection("readNodeFloat");
+        if(BuildConfig.DEBUG) Trace.beginSection("readNodeFloat");
         inferenceInterface.readNodeFloat(outputName, confidences);
-        Trace.endSection();
+        if(BuildConfig.DEBUG) Trace.endSection();
 
-        Trace.endSection(); // "recognizeFrame"
+        if(BuildConfig.DEBUG) Trace.endSection(); // "recognizeFrame"
 
 //        softmax(confidences);
         return confidences;

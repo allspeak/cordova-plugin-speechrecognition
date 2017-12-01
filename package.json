@@ -1,42 +1,38 @@
 {
-  "name": "cordova-plugin-audioinput-vad",
+  "name": "cordova-plugin-speechrecognition",
   "version": "0.3.0",
-  "description": "This cordova plugin enables audio capture from the device microphone, by in (near) real-time forwarding raw audio data to the web layer of your application.",
+  "description": "This cordova plugin implements an Automatic Speech Recognition (ASR) Android Service based on TensorFlow Deep Neural Networks (DNN) engine. Performs audio capture from the device microphone and bluetooth headset, perform Voice Activity Detection, features extraction (MFCC FilterBanks and its derivatives) and make inference on a TensorFlow model.",
   "cordova": {
-    "id": "cordova-plugin-audioinput-vad",
+    "id": "cordova-plugin-speechrecognition",
     "platforms": [
-      "android",
-      "ios"
+      "android"
     ]
   },
   "repository": {
     "type": "git",
-    "url": "git+https://gitlab.iit.it/AllSpeak/cordova-plugin-audioinput-vad.git"
+    "url": "git+https://gitlab.iit.it/AllSpeak/cordova-plugin-speechrecognition.git"
   },
   "keywords": [
     "ecosystem:cordova",
+    "speech",
+    "mfcc",
+    "vad",
+    "tensorflow",
     "cordova-android",
-    "cordova-ios",
     "cordova plugin",
-    "ios",
     "android",
     "cordova",
-    "web-audio-api",
-    "web audio api",
-    "web audio",
-    "waapi",
     "microphone",
     "mic",
     "audio",
     "input",
     "source",
-    "AudioNode",
     "phonegap"
   ],
   "author": "Alberto Inuggi",
   "license": "MIT",
   "bugs": {
-    "url": "https://gitlab.iit.it/AllSpeak/cordova-plugin-audioinput-vad/issues"
+    "url": "https://gitlab.iit.it/AllSpeak/cordova-plugin-speechrecognition/issues"
   },
-  "homepage": "https://gitlab.iit.it/AllSpeak/cordova-plugin-audioinput-vad#readme"
+  "homepage": "https://gitlab.iit.it/AllSpeak/cordova-plugin-speechrecognition#readme"
 }

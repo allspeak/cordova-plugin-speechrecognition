@@ -225,7 +225,9 @@ speechrecognition.ENUM.tf.DEFAULT = {
     nDataDest               : speechrecognition.ENUM.PLUGIN.TF_DATADEST_MODEL,      
     fRecognitionThreshold   : 0.1,      
     sCreationTime           : "",      
-    nProcessingScheme       : 252      
+    nProcessingScheme       : 252,      
+    sModelFileName          : "controls_fsc.pb",         
+    sLocalFolder            : "default"
 };
 //=========================================================================================
 // CHECK INPUT PARAMS
@@ -315,13 +317,15 @@ speechrecognition.checkTfParams = function(tf_params)
     speechrecognition.tf.params.nInputParams                    = tf_params.nInputParams                || speechrecognition.ENUM.tf.DEFAULT.nInputParams;          
     speechrecognition.tf.params.nContextFrames                  = tf_params.nContextFrames              || speechrecognition.ENUM.tf.DEFAULT.nContextFrames;          
     speechrecognition.tf.params.nItems2Recognize                = tf_params.nItems2Recognize            || speechrecognition.ENUM.tf.DEFAULT.nItems2Recognize;          
-    speechrecognition.tf.params.sModelFilePath                  = tf_params.sModelFilePath              || speechrecognition.ENUM.tf.DEFAULT.sModelFilePath;          
+    speechrecognition.tf.params.sModelFilePath                  = tf_params.sModelFilePath              || "";          
     speechrecognition.tf.params.sInputNodeName                  = tf_params.sInputNodeName              || speechrecognition.ENUM.tf.DEFAULT.sInputNodeName;          
     speechrecognition.tf.params.sOutputNodeName                 = tf_params.sOutputNodeName             || speechrecognition.ENUM.tf.DEFAULT.sOutputNodeName;          
     speechrecognition.tf.params.fRecognitionThreshold           = tf_params.fRecognitionThreshold       || speechrecognition.ENUM.tf.DEFAULT.fRecognitionThreshold;
     speechrecognition.tf.params.sCreationTime                   = tf_params.sCreationTime               || "";
-    speechrecognition.tf.params.nProcessingScheme               = tf_params.nProcessingScheme           || speechrecognition.ENUM.mfcc.DEFAULT.nProcessingScheme;    
-    speechrecognition.tf.params.vocabulary                      = tf_params.vocabulary                  || [];
+    speechrecognition.tf.params.nProcessingScheme               = tf_params.nProcessingScheme           || speechrecognition.ENUM.tf.DEFAULT.nProcessingScheme;    
+    speechrecognition.tf.params.sModelFileName                  = tf_params.sModelFileName              || speechrecognition.ENUM.tf.DEFAULT.sModelFileName;    
+    speechrecognition.tf.params.sLocalFolder                    = tf_params.sLocalFolder                || speechrecognition.ENUM.tf.DEFAULT.sLocalFolder;    
+    speechrecognition.tf.params.commands                        = tf_params.commands                    || [];
     speechrecognition.tf.params.nDataDest                       = tf_params.nDataDest                   || speechrecognition.ENUM.tf.DEFAULT.nDataDest;
     speechrecognition.tf.params.bLoaded                         = false;
        

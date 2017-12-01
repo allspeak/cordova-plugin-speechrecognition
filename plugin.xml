@@ -8,7 +8,7 @@
     <description>This cordova plugin implements an Automatic Speech Recognition (ASR) Android Service based on TensorFlow Deep Neural Networks (DNN) engine. Performs audio capture from the device microphone and bluetooth headset, perform Voice Activity Detection, features extraction (MFCC FilterBanks and its derivatives) and make inference on a TensorFlow model.</description>
 	<author>Alberto Inuggi</author>
 	<license>MIT</license>
-    <keywords>cordova,speech,mfcc,vad,tensorflow,phonegap,media,microphone,mic,input,audio,waapi,audio,api,capture,android</keywords>
+    <keywords>cordova,speech,mfcc,vad,tensorflow,phonegap,media,microphone,mic,input,audio,capture,android</keywords>
     <repo>https://gitlab.iit.it/AllSpeak/cordova-plugin-speechrecognition.git</repo>
     <issue>https://gitlab.iit.it/AllSpeak/cordova-plugin-speechrecognition/issues</issue>
 
