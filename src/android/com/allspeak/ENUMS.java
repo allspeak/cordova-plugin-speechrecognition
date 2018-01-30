@@ -69,6 +69,10 @@ public class ENUMS
     public static final int MFCC_PROCSCHEME_F_S_PP_CTX      = 253;      // FilterBanks, Spectral derivatives, Pre-processing, Contexting
     public static final int MFCC_PROCSCHEME_F_T_CTX         = 254;      // FilterBanks, Temporal derivatives, Contexting
     public static final int MFCC_PROCSCHEME_F_T_PP_CTX      = 255;      // FilterBanks, Temporal derivatives, Pre-processing, Contexting    
+    public static final int MFCC_PROCSCHEME_F_S_NOTHR       = 256;      // FilterBanks, Spectral derivatives,                   DO NOT threshold frames with null cepstra
+    public static final int MFCC_PROCSCHEME_F_S_PP_NOTHR    = 257;      // FilterBanks, Spectral derivatives, Pre-processing,   DO NOT threshold frames with null cepstra
+    public static final int MFCC_PROCSCHEME_F_T_NOTHR       = 258;      // FilterBanks, Temporal derivatives,           ,       DO NOT threshold frames with null cepstra
+    public static final int MFCC_PROCSCHEME_F_T_PP_NOTHR    = 259;      // FilterBanks, Temporal derivatives, Pre-processing,   DO NOT threshold frames with null cepstra
   
     public static final int VAD_RESULT_DETECTION_ONLY               = 260;      // just detect. no MFCC, no save, only callback to WL    
     public static final int VAD_RESULT_SAVE_SENTENCE                = 261;      // save (natively) and/or send data to WL  
@@ -79,8 +83,9 @@ public class ENUMS
     public static final int TF_DATADEST_FILEONLY            = 271;      // sentence's cepstra are written to a file only
     public static final int TF_DATADEST_MODEL_FILE          = 272;      // sentence's cepstra are sent to TF model and written to a file
     public static final int TF_MODELTYPE_COMMON             = 273;      // default NET made with a general population
-    public static final int TF_MODELTYPE_USER               = 274;      // user NET made only with user sentences
-    public static final int TF_MODELTYPE_USER_FT            = 275;      // fine-tuned NET made with user sentences
+    public static final int TF_MODELTYPE_USER               = 274;      // user NET made only with user sentences (recordings must be ncommands x minrepetitions)
+    public static final int TF_MODELTYPE_USER_FT            = 275;      // fine-tuned NET made with user sentences (recordings must be ncommands x minrepetitions) 
+    public static final int TF_MODELTYPE_USER_FT_APPEND     = 276;      // RESERVED BY THE GUI : fine-tuned NET made with user sentences (recordings are free) .... the plugin actually never receives it. 
 
     public static final int TRAIN_DATA_READY                = 280; // 
     

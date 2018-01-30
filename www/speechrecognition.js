@@ -62,6 +62,10 @@ speechrecognition.ENUM.PLUGIN   =
     MFCC_PROCSCHEME_F_S_PP_CTX      : 253,      // FilterBanks, Spectral derivatives, Pre-processing, Contexting
     MFCC_PROCSCHEME_F_T_CTX         : 254,      // FilterBanks, Temporal derivatives, Contexting
     MFCC_PROCSCHEME_F_T_PP_CTX      : 255,      // FilterBanks, Temporal derivatives, Pre-processing, Contexting      
+    MFCC_PROCSCHEME_F_S_NOTHR       : 256,      // FilterBanks, Spectral derivatives,                   DO NOT threshold frames with null cepstra
+    MFCC_PROCSCHEME_F_S_PP_NOTHR    : 257,      // FilterBanks, Spectral derivatives, Pre-processing,   DO NOT threshold frames with null cepstra
+    MFCC_PROCSCHEME_F_T_NOTHR       : 258,      // FilterBanks, Temporal derivatives,           ,       DO NOT threshold frames with null cepstra
+    MFCC_PROCSCHEME_F_T_PP_NOTHR    : 259,      // FilterBanks, Temporal derivatives, Pre-processing,   DO NOT threshold frames with null cepstra    
     
     VAD_RESULT_DETECTION_ONLY               : 260,      // just detect. no MFCC, no save, only callback to WL    
     VAD_RESULT_SAVE_SENTENCE                : 261,      // save (natively) and/or send data to WL  
@@ -72,8 +76,9 @@ speechrecognition.ENUM.PLUGIN   =
     TF_DATADEST_FILEONLY            : 271,      // sentence's cepstra are written to a file only
     TF_DATADEST_MODEL_FILE          : 272,      // sentence's cepstra are sent to TF model and written to a file    
     TF_MODELTYPE_COMMON             : 273,      // default NET made with a general population
-    TF_MODELTYPE_USER               : 274,      // user NET made only with user sentences
-    TF_MODELTYPE_USER_FT            : 275,      // fine-tuned NET made with user sentences    
+    TF_MODELTYPE_USER               : 274,      // user NET made only with user sentences (recordings must be ncommands x minrepetitions)
+    TF_MODELTYPE_USER_FT            : 275,      // fine-tuned NET made with user sentences (recordings must be ncommands x minrepetitions)   
+    TF_MODELTYPE_USER_FT_APPEND     : 276,      // fine-tuned NET made with user sentences (recordings are free)   
     
     TRAIN_DATA_READY                : 280,
     

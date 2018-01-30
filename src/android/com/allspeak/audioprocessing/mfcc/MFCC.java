@@ -14,7 +14,7 @@ import java.io.File;
 
 import android.os.Environment;
 import android.util.Log;
-import com.allspeak.BuildConfig;
+//import com.allspeak.BuildConfig;
 import java.io.FilenameFilter;
 
 import android.os.ResultReceiver;
@@ -184,7 +184,7 @@ public class MFCC
         catch(Exception e)
         {
             e.printStackTrace();
-            if(BuildConfig.DEBUG) Log.e(TAG, "processFile" + ": Error: " + e.toString());
+           Log.e(TAG, "processFile" + ": Error: " + e.toString());
             Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
         }        
     }
@@ -204,6 +204,12 @@ public class MFCC
                 }
             });
 //            aiElapsedTimes               = new int[files.length][5];
+            if(files.length == 0) 
+            {
+                Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", "Input folder does not contain any file");
+                return;
+            }
+                
             for (int i = 0; i < files.length; i++)
             {
                 tempfile            = input_folderpath + File.separatorChar + files[i].getName();
@@ -216,7 +222,7 @@ public class MFCC
         catch(Exception e)
         {
             e.printStackTrace();
-            if(BuildConfig.DEBUG) Log.e(TAG, "processFolder" + ": Error: " + e.toString());
+           Log.e(TAG, "processFolder" + ": Error: " + e.toString());
             Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
         }    
     }
@@ -234,11 +240,15 @@ public class MFCC
         {
             case ENUMS.MFCC_PROCSCHEME_F_S_CTX:
             case ENUMS.MFCC_PROCSCHEME_F_T_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_S_NOTHR:
+            case ENUMS.MFCC_PROCSCHEME_F_T_NOTHR:
                 frames2beprocessed = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.0f, null); // NO pre-emphasis, 
                 break;
                 
             case ENUMS.MFCC_PROCSCHEME_F_S_PP_CTX:
             case ENUMS.MFCC_PROCSCHEME_F_T_PP_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_S_PP_NOTHR:
+            case ENUMS.MFCC_PROCSCHEME_F_T_PP_NOTHR:
                 frames2beprocessed  = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.95f, hammingWnd); // pre-emphasis/framing/hamming-windowing
                 break;
         }
@@ -248,16 +258,22 @@ public class MFCC
         {
             case ENUMS.MFCC_PROCSCHEME_F_S_CTX:
             case ENUMS.MFCC_PROCSCHEME_F_S_PP_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_S_NOTHR:
+            case ENUMS.MFCC_PROCSCHEME_F_S_PP_NOTHR:
                 cepstra = processSpectral(frames2beprocessed);
                 break;
                 
             case ENUMS.MFCC_PROCSCHEME_F_T_CTX:
             case ENUMS.MFCC_PROCSCHEME_F_T_PP_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_T_NOTHR:
+            case ENUMS.MFCC_PROCSCHEME_F_T_PP_NOTHR:
                 cepstra = processTemporal(frames2beprocessed);
                 break;
         }
         int allframes                   = cepstra.length;
-        float[][] validframes           = Framing.getSuprathresholdFrames(cepstra, 0.0f);
+        float[][] validframes;
+        if((int)mfccParams.nProcessingScheme < ENUMS.MFCC_PROCSCHEME_F_S_NOTHR) validframes = Framing.getSuprathresholdFrames(cepstra, 0.0f);
+        else                                                                    validframes = cepstra;
         Framing.normalizeFrames(validframes);                       // float[][] ctx_scores = getContextedFrames(scores, 11, 792);return exportData(ctx_scores);  
         nFrames                         = validframes.length;
         nIgnoredFrames                  = allframes - nFrames;
@@ -276,11 +292,15 @@ public class MFCC
         {
             case ENUMS.MFCC_PROCSCHEME_F_S_CTX:
             case ENUMS.MFCC_PROCSCHEME_F_T_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_S_NOTHR:
+            case ENUMS.MFCC_PROCSCHEME_F_T_NOTHR:                
                 frames2beprocessed = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.0f, null); // NO pre-emphasis, NO hamming-windowing
                 break;
                 
             case ENUMS.MFCC_PROCSCHEME_F_S_PP_CTX:
             case ENUMS.MFCC_PROCSCHEME_F_T_PP_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_S_PP_NOTHR:
+            case ENUMS.MFCC_PROCSCHEME_F_T_PP_NOTHR:                
                 frames2beprocessed  = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.95f, hammingWnd); // pre-emphasis/framing/hamming-windowing
                 break;
         }
@@ -291,16 +311,23 @@ public class MFCC
         {
             case ENUMS.MFCC_PROCSCHEME_F_S_CTX:
             case ENUMS.MFCC_PROCSCHEME_F_S_PP_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_S_NOTHR:
+            case ENUMS.MFCC_PROCSCHEME_F_S_PP_NOTHR:                
                 cepstra = processQueuedSpectral(frames2beprocessed, queuedcepstraframes);
                 break;
                 
             case ENUMS.MFCC_PROCSCHEME_F_T_CTX:
             case ENUMS.MFCC_PROCSCHEME_F_T_PP_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_T_NOTHR:
+            case ENUMS.MFCC_PROCSCHEME_F_T_PP_NOTHR:                
                 cepstra = processQueuedTemporal(frames2beprocessed, queuedcepstraframes);
                 break;
         }        
         nFrames                         = cepstra.length;
-        float[][] validframes           = Framing.getSuprathresholdFrames(cepstra, 0.0f);
+        float[][] validframes;
+        if((int)mfccParams.nProcessingScheme < ENUMS.MFCC_PROCSCHEME_F_S_NOTHR) validframes = Framing.getSuprathresholdFrames(cepstra, 0.0f);
+        else                                                                    validframes = cepstra;        
+//        float[][] validframes           = Framing.getSuprathresholdFrames(cepstra, 0.0f);
         nIgnoredFrames                  += (norigframes - nFrames - mfccParams.nDeltaWindow);
         
         return validframes;
@@ -396,7 +423,7 @@ public class MFCC
         catch(Exception e)
         {
             e.printStackTrace();
-            if(BuildConfig.DEBUG) Log.e(TAG, "exportData" + ": Error: " + e.toString());
+           Log.e(TAG, "exportData" + ": Error: " + e.toString());
             Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
             return null;
         }
@@ -453,7 +480,7 @@ public class MFCC
         catch(Exception e)
         {
             e.printStackTrace();
-            if(BuildConfig.DEBUG) Log.e(TAG, "processFramesTemporal" + ": Error: " + e.toString());
+           Log.e(TAG, "processFramesTemporal" + ": Error: " + e.toString());
             Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
             return null;
         }        
@@ -478,13 +505,14 @@ public class MFCC
         catch(Exception e)
         {
             e.printStackTrace();
-            if(BuildConfig.DEBUG) Log.e(TAG, "processFramesTemporal" + ": Error: " + e.toString());
+           Log.e(TAG, "processFramesTemporal" + ": Error: " + e.toString());
             Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
             return null;
         }        
     }     
     
-    // 
+    // now, since empty frames are deleted, you cannot check if the file is corrupt (has less lines).
+    // thus when overwrite is false and file exist, skip it.
     private void checkWhetherDeleteMFCCFile(boolean overwrite, String mfcc_relfile, int nframes) throws Exception
     {
         // Since I write appending, I have to decide what to do with the existing files.
@@ -497,16 +525,16 @@ public class MFCC
                 if(overwrite) FileUtilities.deleteExternalStorageFile(mfcc_relfile); 
                 else
                 {
-                    File f = new File(Environment.getExternalStorageDirectory(), mfcc_relfile);
-                    int nlines = FileUtilities.countLines(f);
-                    if(nlines == nframes)   // is a valid file ?
-                    {
+//                    File f = new File(Environment.getExternalStorageDirectory(), mfcc_relfile);
+//                    int nlines = FileUtilities.countLines(f);
+//                    if(nlines == nframes)   // is a valid file ?
+//                    {
                         // send message & skip
                         Messaging.sendMessageToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROGRESS_FILE, "progress_file", mfccParams.sOutputPath);                    
                         return;
-                    }                        
-                    else    // the file exist but is corrupted...presumably a crash during processing..I delete it
-                        FileUtilities.deleteExternalStorageFile(mfcc_relfile); 
+//                    }                        
+//                    else    // the file exist but is corrupted...presumably a crash during processing..I delete it
+//                        FileUtilities.deleteExternalStorageFile(mfcc_relfile); 
                 }
             }
         }
