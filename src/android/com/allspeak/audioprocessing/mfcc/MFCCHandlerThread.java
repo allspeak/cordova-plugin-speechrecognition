@@ -5,9 +5,13 @@ import android.os.HandlerThread;
 import android.os.Message;
 import android.os.Bundle;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Arrays;
+
 import org.apache.cordova.CallbackContext;
 import android.util.Log;
-import com.allspeak.BuildConfig;
+//import com.allspeak.BuildConfig;
 
 import com.allspeak.ENUMS;
 import com.allspeak.ERRORS;
@@ -62,6 +66,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
     private int nIgnoredFrames              = 0;                // number of removed frames (where none of frame's cepstras passed the threshold)
 
     String sSource                          = "";
+    String sDest                            = "";
     int scoresMultFactor                    = 3;                // number used to calcolate all the available features 3*nScores
     //================================================================================================================
     public MFCCHandlerThread(String name)
@@ -140,7 +145,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
     //===============================================================================================
     // send message MFCC_CMD_GETFILE / MFCC_CMD_GETFOLDER 
     // GET FROM folder or a file
-    public void getMFCC(String source, boolean overwrite)
+    public void getMFCC(String source, String dest, boolean overwrite)
     {
         sSource = source;
         Bundle bundle  = new Bundle();
@@ -150,6 +155,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
             case ENUMS.MFCC_DATAORIGIN_FILE:
                 
                 bundle.putString("source", source);
+                bundle.putString("dest", dest);
                 bundle.putBoolean("overwrite", overwrite);
                 message         = mInternalHandler.obtainMessage();
                 message.what    = ENUMS.MFCC_CMD_GETFILE;
@@ -160,6 +166,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
             case ENUMS.MFCC_DATAORIGIN_FOLDER:
 
                 bundle.putString("source", source);
+                bundle.putString("dest", dest);
                 bundle.putBoolean("overwrite", overwrite);
                 message         = mInternalHandler.obtainMessage();
                 message.what    = ENUMS.MFCC_CMD_GETFOLDER;
@@ -167,6 +174,32 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
                 mInternalHandler.sendMessage(message);
                 break;
         }        
+    }    
+    
+    public void getMFCC(String source, String dest, boolean overwrite, String[] filefilters)
+    {
+        sSource = source;
+        Bundle bundle  = new Bundle();
+        Message message;
+        
+        if((int)mfccParams.nDataOrig != ENUMS.MFCC_DATAORIGIN_FOLDER)
+        {
+            Messaging.sendErrorString2Web(mWlCb, "User asked for processing a filtered folder, but mfccParams.nDataOrig was wrong", ERRORS.MFCC_ERROR, true);            
+            return;
+        }
+
+        ArrayList<String> stringList = new ArrayList<String>(Arrays.asList(filefilters)); 
+        
+        bundle.putString("source", source);
+        bundle.putString("dest", dest);
+        
+        bundle.putBoolean("overwrite", overwrite);
+        bundle.putStringArrayList("filefilters", stringList);
+        
+        message         = mInternalHandler.obtainMessage();
+        message.what    = ENUMS.MFCC_CMD_GETFILTEREDFOLDER;
+        message.setData(bundle);
+        mInternalHandler.sendMessage(message);
     }    
 
     // send message MFCC_CMD_GETDATA    
@@ -275,7 +308,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
 //            strmsg  = "CMD_SENDDATA: sample ERROR, frames: " + String.valueOf(nProcessedFrames) + " expected2bemanipulated: " + String.valueOf(manipulatedSamples) + ", manipulated: " + String.valueOf(nProcessedSamples);
 //            res     = false;
 //        }
-        if(BuildConfig.DEBUG) Log.d(LOG_TAG, strmsg);         
+       Log.d(LOG_TAG, strmsg);         
         return res;
     }
 
@@ -392,15 +425,30 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
 
                 case ENUMS.MFCC_CMD_GETFILE:
                     sSource             = bundle.getString("source");
+                    sDest               = bundle.getString("dest");
                     overwrite           = bundle.getBoolean("overwrite");
-                    mfcc.processFile(sSource, overwrite);
+                    mfcc.processFile(sSource, sDest, overwrite);
                     break;
 
                 case ENUMS.MFCC_CMD_GETFOLDER:
 
                     sSource             = bundle.getString("source");
+                    sDest               = bundle.getString("dest");
                     overwrite           = bundle.getBoolean("overwrite");
-                    mfcc.processFolder(sSource, overwrite);
+                    mfcc.processFolder(sSource, sDest, overwrite);
+                    break;
+
+                case ENUMS.MFCC_CMD_GETFILTEREDFOLDER:
+
+                    sSource                 = bundle.getString("source");
+                    sDest                   = bundle.getString("dest");
+                    overwrite               = bundle.getBoolean("overwrite");
+                    ArrayList<String> alist = bundle.getStringArrayList("filefilters");
+                    
+                    String[] filefilters    = new String[alist.size()];
+                    filefilters             = alist.toArray(filefilters);
+                    
+                    mfcc.processFolder(sSource, sDest, overwrite, filefilters);
                     break;
 
                 case ENUMS.MFCC_CMD_GETDATA:
@@ -433,7 +481,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
         catch(Exception e)
         {
             e.printStackTrace();                  
-            if(BuildConfig.DEBUG) Log.e(LOG_TAG, e.getMessage(), e);
+            Log.e(LOG_TAG, e.getMessage(), e);
             Messaging.sendErrorString2Web(mWlCb, e.getMessage(), ERRORS.MFCC_ERROR, true);            
             return false;            
         }
@@ -447,7 +495,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
    
     public Handler getHandlerLooper()
     {
-        if(mInternalHandler == null)   if(BuildConfig.DEBUG) Log.w(LOG_TAG, "MFCCHandlerThread mInternalHandler is NULL !!!!!!!!!!!!!!!!!");
+        if(mInternalHandler == null)  Log.w(LOG_TAG, "MFCCHandlerThread mInternalHandler is NULL !!!!!!!!!!!!!!!!!");
         return mInternalHandler;
     }        
     //================================================================================================================

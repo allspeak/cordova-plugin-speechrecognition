@@ -159,15 +159,16 @@ public class MFCC
    // read wav(String) => framing => processFrames(float[][])
     //if !overwrite : check if file exist, if YES => if it has the correct number of frames => skip it.
     //                                            => if not                                 => overwrite it
-    public void processFile(String input_file_noext, boolean overwrite) 
+    public void processFile(String input_filepath, String output_filepath, boolean overwrite) 
     {
         try
         {
             // tp                  = new TrackPerformance(5); // I want to monitor : wav read (if applicable), params calculation, data export(if applicable), data write(if applicable), data json packaging(if applicable)
+            String inputpath        = StringUtilities.removeExtension(input_filepath);
+            String outputpath       = StringUtilities.removeExtension(output_filepath);
             
-            mfccParams.sOutputPath  = StringUtilities.removeExtension(input_file_noext);
-            String audio_relfile    = mfccParams.sOutputPath + ".wav";
-            String mfcc_relfile     = mfccParams.sOutputPath + ".dat";
+            String audio_relfile    = inputpath + ".wav";
+            String mfcc_relfile     = outputpath + ".dat";
             
             float[] data            = WavFile.getWavData(Environment.getExternalStorageDirectory() + "/" + audio_relfile);  
             int nframes             = Framing.getFrames(data.length, mfccParams.nWindowLength, mfccParams.nWindowDistance);
@@ -175,6 +176,8 @@ public class MFCC
             // Since I write appending, I have to decide what to do with the existing files. 1) go on appending to the existing file OR skip.... 2) delete it 
             checkWhetherDeleteMFCCFile(overwrite, mfcc_relfile, nframes);
             
+            mfccParams.sOutputPath  = StringUtilities.removeExtension(mfcc_relfile);   // exportData uses it (and appends dat, thus give it with no extension 16/3/18
+                                
             // tp.addTimepoint(1);
             float[][] cepstra       = getFeatures(data);
             exportData(cepstra);
@@ -190,14 +193,59 @@ public class MFCC
     }
     //-----------------------------------------------------------------------------------------
     // processFolder(String) => for files in... processFile(String) => processRawData(float[])
-    public void processFolder(String input_folderpath, boolean overwrite) 
+    public void processFolder(String input_folderpath, String output_folderpath, boolean overwrite) 
     {
 //        TrackPerformance tp_folder      = new TrackPerformance(1); // I want to monitor just to total time
         File directory                  = new File(Environment.getExternalStorageDirectory().toString() + "/" + input_folderpath);
 
         try
         {
-            String tempfile             = "";
+            String infile             = "";
+            String outfile            = "";
+            
+            // filter WAV
+            File[] files              = directory.listFiles(new FilenameFilter() {
+                public boolean accept(File dir, String name) {
+                    return name.toLowerCase().endsWith(".wav");
+                }
+            });
+            // aiElapsedTimes               = new int[files.length][5];
+            if(files.length == 0) 
+            {
+                Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", "Input folder does not contain any file");
+                return;
+            }
+                
+            for (int i = 0; i < files.length; i++)
+            {
+                infile            = input_folderpath + File.separatorChar + files[i].getName();
+                outfile           = output_folderpath + File.separatorChar + files[i].getName();
+                processFile(infile, outfile, overwrite);
+            } 
+            // BUG....it doesn't work...since the last-1 file, in the target I get a Bundle with either process_file and process_folder messages
+            // folder processing completion is presently resolved in the web layer.
+            // Messaging.sendMessageToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROGRESS_FOLDER, "progress_folder", mfccParams.sOutputPath);
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+           Log.e(TAG, "processFolder" + ": Error: " + e.toString());
+            Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
+        }    
+    }
+    //-----------------------------------------------------------------------------------------
+    // processFolder(String) => for files in... processFile(String) => processRawData(float[])
+    public void processFolder(String input_folderpath, String output_folderpath, boolean overwrite, String[] filefilters) 
+    {
+//        TrackPerformance tp_folder      = new TrackPerformance(1); // I want to monitor just to total time
+        File directory                  = new File(Environment.getExternalStorageDirectory().toString() + "/" + input_folderpath);
+
+        try
+        {
+            String infile             = "";
+            String outfile            = "";
+            
+            // filter WAV
             File[] files                = directory.listFiles(new FilenameFilter() {
                 public boolean accept(File dir, String name) {
                     return name.toLowerCase().endsWith(".wav");
@@ -210,10 +258,23 @@ public class MFCC
                 return;
             }
                 
+            boolean processit = false;
             for (int i = 0; i < files.length; i++)
             {
-                tempfile            = input_folderpath + File.separatorChar + files[i].getName();
-                processFile(StringUtilities.removeExtension(tempfile), overwrite);
+                for (int p = 0; p < filefilters.length; p++)
+                {
+                    if(files[i].getName().contains(filefilters[p]))
+                    {
+                        processit = true;
+                        break;
+                    }
+                }
+                if(processit)
+                {
+                    infile            = input_folderpath + File.separatorChar + files[i].getName();
+                    outfile           = output_folderpath + File.separatorChar + files[i].getName();
+                    processFile(infile, outfile, overwrite);                    
+                }
             } 
             // BUG....it doesn't work...since the last-1 file, in the target I get a Bundle with either process_file and process_folder messages
             // folder processing completion is presently resolved in the web layer.
@@ -272,7 +333,9 @@ public class MFCC
         }
         int allframes                   = cepstra.length;
         float[][] validframes;
-        if((int)mfccParams.nProcessingScheme < ENUMS.MFCC_PROCSCHEME_F_S_NOTHR) validframes = Framing.getSuprathresholdFrames(cepstra, 0.0f);
+        
+        // TODO : I should remove null frames after contexting...otherwise when I take the the previous 5, I may get frames before the cut
+        if((int)mfccParams.nProcessingScheme < ENUMS.MFCC_PROCSCHEME_F_S_NOTHR) validframes = Framing.getSuprathresholdFrames(cepstra, 0.0f); 
         else                                                                    validframes = cepstra;
         Framing.normalizeFrames(validframes);                       // float[][] ctx_scores = getContextedFrames(scores, 11, 792);return exportData(ctx_scores);  
         nFrames                         = validframes.length;

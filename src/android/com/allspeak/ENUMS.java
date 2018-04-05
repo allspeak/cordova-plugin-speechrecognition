@@ -25,6 +25,9 @@ public class ENUMS
     public static final int MFCC_CMD_SENDDATA           = 39; //
     public static final int MFCC_CMD_FINALIZEDATA       = 40; //  during capturing, onStopCapture => close file calculation, normalize data (& contexting?)
     public static final int MFCC_RESULT                 = 41; //
+    public static final int MFCC_CMD_GETFILTEREDFOLDER  = 42; //
+    
+    
     
     public static final int TF_STATUS_MODEL_LOADED      = 50; // recognizing process started
     public static final int TF_STATUS_PROCESS_STARTED   = 51; // recognizing process started
@@ -82,10 +85,13 @@ public class ENUMS
     public static final int TF_DATADEST_MODEL               = 270;      // sentence's cepstra are sent to TF model only
     public static final int TF_DATADEST_FILEONLY            = 271;      // sentence's cepstra are written to a file only
     public static final int TF_DATADEST_MODEL_FILE          = 272;      // sentence's cepstra are sent to TF model and written to a file
-    public static final int TF_MODELTYPE_COMMON             = 273;      // default NET made with a general population
-    public static final int TF_MODELTYPE_USER               = 274;      // user NET made only with user sentences (recordings must be ncommands x minrepetitions)
-    public static final int TF_MODELTYPE_USER_FT            = 275;      // fine-tuned NET made with user sentences (recordings must be ncommands x minrepetitions) 
-    public static final int TF_MODELTYPE_USER_FT_APPEND     = 276;      // RESERVED BY THE GUI : fine-tuned NET made with user sentences (recordings are free) .... the plugin actually never receives it. 
+    
+    public static final int TF_MODELTYPE_COMMON             = 273;      // COMMON NET made with a general population
+    public static final int TF_MODELTYPE_USER               = 274;      // PURE USER (PU) NET made only with user sentences (recordings must be ncommands x minrepetitions)
+    public static final int TF_MODELTYPE_USER_ADAPTED       = 275;      // PURE USER ADAPTED (fine-tuned) NET made with user sentences (recordings must be ncommands x minrepetitions)   
+    public static final int TF_MODELTYPE_COMMON_ADAPTED     = 276;      // COMMON ADAPTED (fine-tuned) NET made with user sentences (recordings must be ncommands x minrepetitions)   
+    public static final int TF_MODELTYPE_USER_READAPTED     = 277;      // RE-ADAPTION of PUA NET made with user sentences (recordings are free)   
+    public static final int TF_MODELTYPE_COMMON_READAPTED   = 278;      // RE-ADAPTION of CA NET made with user sentences (recordings are free)   
 
     public static final int TRAIN_DATA_READY                = 280; // 
     

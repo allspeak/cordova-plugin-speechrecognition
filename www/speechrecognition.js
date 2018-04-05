@@ -75,10 +75,13 @@ speechrecognition.ENUM.PLUGIN   =
     TF_DATADEST_MODEL               : 270,      // sentence's cepstra are sent to TF model only
     TF_DATADEST_FILEONLY            : 271,      // sentence's cepstra are written to a file only
     TF_DATADEST_MODEL_FILE          : 272,      // sentence's cepstra are sent to TF model and written to a file    
-    TF_MODELTYPE_COMMON             : 273,      // default NET made with a general population
-    TF_MODELTYPE_USER               : 274,      // user NET made only with user sentences (recordings must be ncommands x minrepetitions)
-    TF_MODELTYPE_USER_FT            : 275,      // fine-tuned NET made with user sentences (recordings must be ncommands x minrepetitions)   
-    TF_MODELTYPE_USER_FT_APPEND     : 276,      // fine-tuned NET made with user sentences (recordings are free)   
+    
+    TF_MODELTYPE_COMMON             : 273,      // COMMON NET made with a general population
+    TF_MODELTYPE_USER               : 274,      // PURE USER (PU) NET made only with user sentences (recordings must be ncommands x minrepetitions)
+    TF_MODELTYPE_USER_ADAPTED       : 275,      // PURE USER ADAPTED (fine-tuned) NET made with user sentences (recordings must be ncommands x minrepetitions)   
+    TF_MODELTYPE_COMMON_ADAPTED     : 276,      // COMMON ADAPTED (fine-tuned) NET made with user sentences (recordings must be ncommands x minrepetitions)   
+    TF_MODELTYPE_USER_READAPTED     : 277,      // RE-ADAPTION of PUA NET made with user sentences (recordings are free)   
+    TF_MODELTYPE_COMMON_READAPTED   : 278,      // RE-ADAPTION of CA NET made with user sentences (recordings are free)   
     
     TRAIN_DATA_READY                : 280,
     
@@ -171,6 +174,18 @@ speechrecognition.ENUM.vad.MIN_MXL_MS = 8000;   // minimun SPEECH_DETECTION_MAX_
 speechrecognition.ENUM.vad.MIN_MIL_MS = 300;    // minimum SPEECH_DETECTION_MIN_LENGTH
 speechrecognition.ENUM.vad.MAX_MIL_MS = 1000;   // maximum SPEECH_DETECTION_MIN_LENGTH
 
+//=========================================================================================
+
+speechrecognition.ENUM.mfcc.processingTypes = [
+    {"label": "Filt-Spec-ctx-Thr"       , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S_CTX},
+    {"label": "Filt-Spectral-PP-ctx-Thr", "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S_PP_CTX},
+    {"label": "Filt-Temp-ctx-Thr"       , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_CTX},
+    {"label": "Filt-Temp-PP-ctx-Thr"    , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_PP_CTX},
+    {"label": "Filt-Spect"              , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S_NOTHR},
+    {"label": "Filt-Spect-PP"           , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S_PP_NOTHR},
+    {"label": "Filt-Temp"               , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_NOTHR},
+    {"label": "Filt-Temp-PP"            , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_PP_NOTHR}
+];
 //=========================================================================================
 // DEFAULT
 //=========================================================================================
@@ -459,9 +474,10 @@ speechrecognition.setPlayBackPercVol = function (perc) {
         exec(null, speechrecognition._pluginError, speechrecognition.pluginName, "setPlayBackPercVol", [perc]);
 };
 
-speechrecognition.getMFCC = function(mfcc_params, source, overwrite, filepath_noext)
+speechrecognition.getMFCC = function(mfcc_params, source, dest, overwrite, filefilters)
 {
-    if(overwrite == null)  overwrite = true;
+    if(overwrite == null)   overwrite   = true;
+    if(dest == null)        dest        = source;
         
     var mfcc_json_params    = speechrecognition.checkMfccParams(mfcc_params);
     
@@ -482,7 +498,7 @@ speechrecognition.getMFCC = function(mfcc_params, source, overwrite, filepath_no
         return false;
     }
     
-    exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, 'getMFCC', [mfcc_json_params, source, overwrite, filepath_noext]);            
+    exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, 'getMFCC', [mfcc_json_params, source, dest, overwrite, filefilters]);            
     return true;
 };
 
