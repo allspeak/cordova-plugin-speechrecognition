@@ -22,7 +22,10 @@ import android.content.ServiceConnection;
 import android.os.IBinder;
 
 import android.util.Log;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
+
 import android.Manifest;
 
 import com.allspeak.ERRORS;
@@ -40,12 +43,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 //import com.example.HelloCJni;
+import java.util.concurrent.ExecutorService;
+import android.content.Intent;
 
-
-import android.content.IntentFilter;
-import android.media.AudioDeviceInfo;
-import android.content.BroadcastReceiver;
-import android.media.AudioDeviceInfo;
 
 public class SpeechRecognitionPlugin extends CordovaPlugin
 {
@@ -64,17 +64,17 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     public static final int PERMISSION_DENIED_ERROR = 20;    
     boolean isCapturingAllowed                  = false;
     
-    AudioDevicesManager mAudioDevicesManager    = null;
+    private AudioDevicesManager mAudioDevicesManager    = null;
     
-    boolean isCapturing                         = false;
-    boolean bUseHeadSet                         = false;
-    boolean isHeadSetConnected                         = false;
+    private boolean isCapturing                         = false;
+//    boolean bUseHeadSet                         = false;
+//    boolean isHeadSetConnected                  = false;
     //-----------------------------------------------------------------------------------------------
     
     private SpeechRecognitionService mService   = null;
     private boolean mBound                      = false;
     
-    private CaptureParams mCfgParams                = null;
+    private CaptureParams mCfgParams            = null;
     private MFCCParams mMfccParams              = null;
     private VADParams mVadParams                = null;
     private TFParams mTfParams                  = null;
@@ -83,7 +83,7 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     public void initialize(CordovaInterface cordova, CordovaWebView webView) 
     {
         super.initialize(cordova, webView);
-        Log.d(LOG_TAG, "Initializing SpeechRecognitionPlugin");
+       Log.d(LOG_TAG, "Initializing SpeechRecognitionPlugin");
 
         //get plugin context
         cordovaInterface        = cordova;
@@ -97,15 +97,14 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
             mAudioDevicesManager = new AudioDevicesManager(mContext, mAudioManager);
             boolean conn = bindService();
             
-//            int jniOutput = HelloCJni.calculate(2,5);
-//            int res = 2 + jniOutput;
+//            int jniOutput = HelloCJni.calculate(2,5);  int res = 2 + jniOutput;
 //            promptForDangerousPermissions();
 
         }
         catch(Exception e)
         {
             e.printStackTrace();                    
-            Log.e(LOG_TAG, e.getMessage(), e);
+           Log.e(LOG_TAG, e.getMessage(), e);
         }
         
     }
@@ -131,7 +130,7 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
             mService            = binder.getService();
             String res          = mService.initService();  // if(res != "ok") dont' know how to inform web layer
             mBound              = true;
-            Log.d(LOG_TAG, "========> Service Bounded <=========");
+           Log.d(LOG_TAG, "========> Service Bounded <=========");
         }
 
         @Override
@@ -142,6 +141,20 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
         }
     };    
     
+    private boolean isDebug() 
+    {
+        try {
+            if ((mContext.getPackageManager().getPackageInfo(
+                mContext.getPackageName(), 0).applicationInfo.flags &
+                ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+                //Debug and development mode
+                return true;
+            }
+        } catch (NameNotFoundException e){
+            // do nothing
+        }
+        return false;
+    }    
     /**
      * @param action
      *          getAudioDevices
@@ -153,7 +166,12 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
      *          startSpeechRecognition
      *          stopSpeechRecognition
      *          adjustVADThreshold
+     *          startSCOConnection
+     *          isBTHSconnected
      *          getMFCC
+     *          zipFolder
+     *          recognizeCepstraFile
+     *          debugCall
      * 
      * @param args
      * @param _callbackContext
@@ -324,33 +342,59 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
         } 
         else if (action.equals("startSCOConnection")) 
         {
-            bUseHeadSet = (boolean)args.get(0);
+//            bUseHeadSet = (boolean)args.get(0);
             
-            mAudioDevicesManager.startBTHSConnection(bUseHeadSet);
+            mAudioDevicesManager.startBTHSConnection((boolean)args.get(0));
+            Messaging.sendNoResult2Web(callbackContext);
+            return true;
+        } 
+        else if (action.equals("isBTHSconnected")) 
+        {
+           
+            mAudioDevicesManager.isBTHSconnected();
             Messaging.sendNoResult2Web(callbackContext);
             return true;
         } 
         else if(action.equals("getMFCC")) 
         {            
-            // fcc_json_params, source (inputpathnoext or dataarray), overwrite, inputpathnoext (in case of dataarray)
+            // fcc_json_params, source (inputpathnoext or dataarray), overwrite, outputpathnoext (in case of dataarray)
             try 
             {               
                 // JS interface call params:     mfcc_json_params, source;  params have been validated in the js interface
                 // should have a nDataDest > 0  web,file,both
                 mMfccParams             = new MFCCParams(new JSONObject((String)args.get(0)));
-                boolean overwrite       = true;
-                if(args.get(2) != null)
-                    overwrite = args.getBoolean(2); 
-                
-                String inputpathnoext = "";
+
                 if(mMfccParams.nDataOrig == ENUMS.MFCC_DATAORIGIN_JSONDATA)
                 {
                     Messaging.sendErrorString2Web(callbackContext, "getMFCC from a data array still not supported", ERRORS.PLUGIN_INIT_MFCC, true);
                     return true;
                 }
-                else    inputpathnoext   = args.getString(1); 
+                
+                String inputpathnoext   = args.getString(1);
+                
+                // check whether user specified a different output folder for features files
+                String outputpathnoext = "";
+                if(args.get(2) != null) outputpathnoext = args.getString(2); 
+                else                    outputpathnoext = inputpathnoext;                
 
-                mService.getMFCC(mMfccParams, inputpathnoext, overwrite, callbackContext);
+                // do overwrite ?
+                boolean overwrite       = true;
+                if(args.get(3) != null) overwrite = args.getBoolean(3); 
+                
+                // check whether a list of file filters were defined
+                String[] filefilters    = null;
+                JSONArray arrJson       = null;
+                if(args.get(4) != null && args.getString(4) != "null")
+                {
+                    arrJson     = args.getJSONArray(4);
+                    filefilters = new String[arrJson.length()];
+                    for(int s = 0; s < arrJson.length(); s++)
+                        filefilters[s]  = arrJson.getString(s);                        
+                    
+                    mService.getMFCC(mMfccParams, inputpathnoext, outputpathnoext, overwrite, filefilters, callbackContext);
+                }
+                else mService.getMFCC(mMfccParams, inputpathnoext, outputpathnoext, overwrite, callbackContext);
+                
                 Messaging.sendNoResult2Web(callbackContext);
                 return true;
             }
@@ -361,6 +405,26 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
                 return true;
             }            
         }    
+        else if(action.equals("zipFolder")) 
+        {  
+            String path         = args.getString(0);
+            String outzippath   = args.getString(1);
+            
+            String[] ext        = null;
+            if(args.get(2) != null)
+            {
+                JSONArray exts  = args.getJSONArray(2);
+                int len         = exts.length();
+                ext             = new String[len];
+                for(int e=0; e<len; e++)    ext[e] = exts.getString(e);
+            }
+            
+            ExecutorService execServ = cordova.getThreadPool();
+            
+            mService.zipFolder(path, outzippath, ext, execServ, callbackContext);
+            Messaging.sendNoResult2Web(callbackContext);
+            return true;            
+        }
         else if(action.equals("recognizeCepstraFile")) 
         {  
             String cepstra_file_path = args.getString(0);
@@ -403,7 +467,9 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     public void onPause(boolean multitasking)
     {
         mAudioDevicesManager.onPause();
-//                mAudioManager.stopBluetoothSco();        
+
+//        mContext.unregisterReceiver(mBluetoothScoReceiver);
+//        mAudioManager.stopBluetoothSco();        
 
     }
     
@@ -455,3 +521,61 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     //=================================================================================================
 }
 
+    
+//    
+//    private void initBTConnection()
+//    {
+//        IntentFilter intentFilter = new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED);
+//        mContext.registerReceiver(mBluetoothScoReceiver, intentFilter);
+//
+//        
+////        AudioDeviceInfo[] adIN  = new AudioDeviceInfo[10];
+////        AudioDeviceInfo[] adOUT = new AudioDeviceInfo[10];
+////        adIN                    = mAudioManager.getDevices(AudioManager.GET_DEVICES_INPUTS);
+////        adOUT                   = mAudioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS);
+//        
+//        
+//        mAudioManager.startBluetoothSco();          
+//    }
+//    
+//    private BroadcastReceiver mBluetoothScoReceiver = new BroadcastReceiver() 
+//    {
+//        @Override
+//        public void onReceive(Context context, Intent intent) 
+//        {
+//            int state = intent.getIntExtra(AudioManager.EXTRA_SCO_AUDIO_STATE, -1);
+//            
+//            try
+//            {
+//                isHeadSetConnected  = false;
+//                JSONObject info     = new JSONObject(); 
+//                
+//                if(state == AudioManager.SCO_AUDIO_STATE_ERROR)
+//                    Messaging.sendErrorString2Web(callbackContext, "headset connection error", ERRORS.HEADSET_ERROR, true);
+//                else
+//                {
+//                    switch (state)
+//                    {
+//                        case AudioManager.SCO_AUDIO_STATE_CONNECTED:
+//                            info.put("type", ENUMS.HEADSET_CONNECTED);  
+//                            isHeadSetConnected = true;
+//                            break;
+//
+//                        case AudioManager.SCO_AUDIO_STATE_DISCONNECTED:
+//                            info.put("type", ENUMS.HEADSET_DISCONNECTED);  
+//                            isHeadSetConnected = false;
+//                            break;
+//
+//                        case AudioManager.SCO_AUDIO_STATE_CONNECTING:
+//                            info.put("type", ENUMS.HEADSET_CONNECTING);  
+//                            isHeadSetConnected = false;
+//                            break;
+//                    }
+//
+//                    Messaging.sendUpdate2Web(callbackContext, info, true);
+//                }
+//            }
+//            catch (JSONException e){e.printStackTrace();}              
+//        }
+//    };      
+//

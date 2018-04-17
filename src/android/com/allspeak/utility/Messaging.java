@@ -185,6 +185,25 @@ public class Messaging
     /**
      * Create a new plugin result and send it back to JavaScript
      */
+    public static void sendCode2Web(CallbackContext callbackContext, int action_code, boolean keepCallback) 
+    {
+        if (callbackContext != null) 
+        {
+            try
+            {
+                JSONObject info = new JSONObject(); 
+                info.put("type", action_code);                
+                PluginResult result = new PluginResult(PluginResult.Status.OK, info);
+                result.setKeepCallback(keepCallback);
+                callbackContext.sendPluginResult(result);
+            }
+            catch(JSONException e) { e.printStackTrace(); }
+        }
+    }  
+    
+    /**
+     * Create a new plugin result and send it back to JavaScript
+     */
     public static void sendFloatData2Web(CallbackContext callbackContext, int action_code, float[] data, boolean keepCallback) 
     {
         if (callbackContext != null) 

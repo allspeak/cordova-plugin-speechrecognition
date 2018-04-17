@@ -1,6 +1,7 @@
 package com.allspeak.utility;
 
 import android.util.Log;
+//import com.allspeak.BuildConfig;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -11,8 +12,8 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadset;
 import android.bluetooth.BluetoothProfile;
 import android.content.BroadcastReceiver;
-
-
+ 
+import android.bluetooth.BluetoothAdapter;
 
 import android.media.AudioDeviceCallback;
 import android.media.AudioDeviceInfo;
@@ -26,10 +27,14 @@ import com.allspeak.ERRORS;
 import com.allspeak.utility.Messaging;
 import org.apache.cordova.CallbackContext;
 
+import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Set;
 
 import com.allspeak.utility.ArrayList2d;
+import com.allspeak.utility.BluetoothHeadsetManager;
+import com.allspeak.utility.BluetoothHeadsetManager.onBluetoothHeadSetListener;
 
 public class AudioDevicesManager 
 {
@@ -41,6 +46,10 @@ public class AudioDevicesManager
     boolean isSCOEnabled                        = false;
     private CallbackContext callbackContext     = null;
     
+    private BluetoothHeadset mBluetoothHeadset;
+    private BluetoothAdapter mBluetoothAdapter          = null;
+    private BluetoothHeadsetManager mBTHeadSetManager;
+   
     IntentFilter intentFilterSCO                = new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED);
     IntentFilter intentFilterBTHSCONN           = new IntentFilter(BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED);    
     
@@ -56,7 +65,103 @@ public class AudioDevicesManager
 
         mAd                 = getAudioDevices();
         registerReceivers(true);
+        mAudioManager.startBluetoothSco();  
+
+//        if (mBTHeadSetManager == null)
+//                mBTHeadSetManager = new BluetoothHeadsetManager(mContext);
+//
+//        mBTHeadSetManager.addListener(mHeadsetCallback);
+//
+//        // if BT is turn on then we move next step
+//        if(mBTHeadSetManager.hasEnableBluetooth())
+//        {
+//                mBTHeadSetManager.connectionToProxy();
+//        }        
+
     }
+    
+    public onBluetoothHeadSetListener mHeadsetCallback = new onBluetoothHeadSetListener() 
+    {
+
+        @Override
+        public void disconnectedToProxy()
+        {
+            verifyHeadSetState(false,null);
+        }
+
+        @Override
+        public void connectedToProxy(BluetoothHeadset aBluetoothHeadset)
+        {
+            mBluetoothHeadset = aBluetoothHeadset;
+            if(mBluetoothHeadset != null)
+            {
+                verifyHeadSetState(false,null);
+            }
+        }
+    };    
+    
+    private void verifyHeadSetState(boolean flag, BluetoothDevice device)
+    {
+        //TODO Wait for other wise result getting wrong
+        try {
+                Thread.sleep(500);
+        } catch (InterruptedException e) {
+                e.printStackTrace();
+        }
+
+        int state = 0;
+//        HeadSetModel btheasetdmodel = null;
+        if(flag)
+        {
+            // STATE_DISCONNECTED	0
+            // STATE_CONNECTED 		2
+
+            // STATE_CONNECTING		1
+            // STATE_DISCONNECTING	3
+
+            state = mBluetoothHeadset.getConnectionState(device);
+           Log.d(AudioDevicesManager.class.getCanonicalName(), "State :" + state);
+        }
+        else
+        {
+//            AudioManager am = getAudioManager();
+            state = (mAudioManager.isBluetoothA2dpOn() == true) ? 1 : 0;
+        }
+
+        switch (state)
+        {
+            case 0:
+            {
+               Log.d(AudioDevicesManager.class.getCanonicalName(), "isBluetoothA2dpOff()");
+//				btheasetdmodel= new HeadSetModel().setState(0).setStateName("BluetoothA2dpOff");
+                break;
+            }
+            case 1:
+            {
+               Log.d(AudioDevicesManager.class.getCanonicalName(), "isBluetoothA2dpOn()");
+//				btheasetdmodel= new HeadSetModel().setState(1).setStateName("BluetoothA2dpOn");
+                break;
+            }
+            case 2:
+            {
+               Log.d(AudioDevicesManager.class.getCanonicalName(), "isBluetoothA2dpOn()");
+//				btheasetdmodel= new HeadSetModel().setState(1).setStateName("BluetoothA2dpOn");
+                break;
+            }
+            default:
+                break;
+        }
+
+        // TODO Please call setBTHeadsetInfo instead of setHeadsetInfo
+//		DeviceAudioOutputManager.getInstance(getActiveContext()).setBTHeadsetInfo(btheasetdmodel);
+//
+//		if(hasController())
+//		{
+//			mAudioController.updateHeadSetInfo(btheasetdmodel.getState(), btheasetdmodel);
+//		}
+
+    }    
+    
     
     public AudioDevicesManager(Context context, AudioManager audiomanager, CallbackContext callbackcontext)
     {
@@ -152,6 +257,18 @@ public class AudioDevicesManager
         return ad;
     }
 
+    public boolean isBTHSconnected()
+    {
+        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (mBluetoothAdapter == null) 
+        {
+            // Device does not support Bluetooth
+            
+        }        
+//        Set<BluetoothDevice> bondedDevices = mBluetoothAdapter.getBondedDevices();
+        return true;
+    }
+    
     public void startBTHSConnection(boolean start)
     {
         if(start)
@@ -192,14 +309,14 @@ public class AudioDevicesManager
         if(reg)
         {
             mContext.registerReceiver(mBluetoothScoReceiver, intentFilterSCO);
-            mContext.registerReceiver(mBTHSConnReceiver, intentFilterBTHSCONN);  
-            mAudioManager.registerAudioDeviceCallback(mAudioDeviceCallback, null);
+//            mContext.registerReceiver(mBTHSConnReceiver, intentFilterBTHSCONN);  
+//            mAudioManager.registerAudioDeviceCallback(mAudioDeviceCallback, null);
         }
         else
         {
             mContext.unregisterReceiver(mBluetoothScoReceiver);
-            mContext.unregisterReceiver(mBTHSConnReceiver);  
-            mAudioManager.unregisterAudioDeviceCallback(mAudioDeviceCallback);            
+//            mContext.unregisterReceiver(mBTHSConnReceiver);  
+//            mAudioManager.unregisterAudioDeviceCallback(mAudioDeviceCallback);            
         }
     }
     
@@ -223,25 +340,25 @@ public class AudioDevicesManager
                     case BluetoothProfile.STATE_CONNECTED:
                         info.put("type", ENUMS.HEADSET_CONNECTED);  
                         isHeadSetConnected = true;
-                        Log.d(LOG_TAG, "BT headset " + deviceName + " connected");
+                       Log.d(LOG_TAG, "BT headset " + deviceName + " connected");
                         break;
 
                     case BluetoothProfile.STATE_DISCONNECTED:
                         info.put("type", ENUMS.HEADSET_DISCONNECTED);  
                         isHeadSetConnected = false;
-                        Log.d(LOG_TAG, "BT headset " + deviceName + " disconnected");
+                       Log.d(LOG_TAG, "BT headset " + deviceName + " disconnected");
                         break;
 
                     case BluetoothProfile.STATE_CONNECTING:
                         info.put("type", ENUMS.HEADSET_CONNECTING);  
                         isHeadSetConnected = false;
-                        Log.d(LOG_TAG, "BT headset " + deviceName + " connecting");
+                       Log.d(LOG_TAG, "BT headset " + deviceName + " connecting");
                         break;
 
                     case BluetoothProfile.STATE_DISCONNECTING:
                         info.put("type", ENUMS.HEADSET_DISCONNECTING);  
                         isHeadSetConnected = false;
-                        Log.d(LOG_TAG, "BT headset " + deviceName + " disconnecting");
+                       Log.d(LOG_TAG, "BT headset " + deviceName + " disconnecting");
                         break;
                 }
 
@@ -273,13 +390,13 @@ public class AudioDevicesManager
                         case AudioManager.SCO_AUDIO_STATE_CONNECTED:
                             info.put("type", ENUMS.HEADSET_CONNECTED);  
                             isSCOEnabled = true;
-                            Log.d(LOG_TAG, "SCO connected");
+                           Log.d(LOG_TAG, "SCO connected");
                             break;
 
                         case AudioManager.SCO_AUDIO_STATE_DISCONNECTED:
                             info.put("type", ENUMS.HEADSET_DISCONNECTED);  
                             isSCOEnabled = false;
-                            Log.d(LOG_TAG, "SCO disconnected");
+                           Log.d(LOG_TAG, "SCO disconnected");
                             
                             break;
 
@@ -289,7 +406,7 @@ public class AudioDevicesManager
                             break;
                     }
 
-//                    Messaging.sendUpdate2Web(callbackContext, info, true);
+                    Messaging.sendUpdate2Web(callbackContext, info, true);
                 }
             }
             catch (JSONException e){e.printStackTrace();}              
@@ -307,7 +424,7 @@ public class AudioDevicesManager
                 if(ad.isSink()) mAd.Add(ad, 1);
                 else            mAd.Add(ad, 0);
                 
-                Log.d(LOG_TAG, "added audio devices: " + addedDevices[d].getProductName().toString());
+               Log.d(LOG_TAG, "added audio devices: " + addedDevices[d].getProductName().toString());
             }
         }
 
@@ -328,7 +445,7 @@ public class AudioDevicesManager
                     if(name == thisname)    mAd.remove(col, dd);
                 }
                 
-                Log.d(LOG_TAG, "removed audio devices: " + name);
+               Log.d(LOG_TAG, "removed audio devices: " + name);
             }
         }
     }  

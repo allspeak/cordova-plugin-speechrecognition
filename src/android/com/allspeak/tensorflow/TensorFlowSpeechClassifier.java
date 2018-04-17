@@ -18,6 +18,7 @@ package com.allspeak.tensorflow;
 import android.content.res.AssetManager;
 import android.os.Trace;
 import android.util.Log;
+//import com.allspeak.BuildConfig;
 import java.io.FileInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -68,32 +69,68 @@ public class TensorFlowSpeechClassifier implements Classifier
      * @param outputName    The label of the output node.
      * @throws IOException
      */
+//    public static Classifier createold(AssetManager assetManager,
+//                                    String modelFilename,
+//                                    String labelFilename,
+//                                    int inputSize,
+//                                    String inputName,
+//                                    String outputName) 
+//    {
+//        TensorFlowSpeechClassifier c    = new TensorFlowSpeechClassifier();
+//        c.inputName                     = inputName;
+//        c.outputName                    = outputName;
+//        c.labels                        = readLabels(assetManager, labelFilename);
+//        
+//        // Ideally, inputSize could have been retrieved from the shape of the input operation.  
+//        // Alas, the placeholder node for input in the graphdef typically used does not specify a shape, so it must be passed in as a parameter. 
+//        c.inputSize                     = inputSize;
+//        c.inferenceInterface            = new TensorFlowInferenceInterface();
+//        
+//        modelFilename = labelFilename.startsWith("file://") ? modelFilename.split("file://")[1] : modelFilename;                
+//        if (c.inferenceInterface.initializeTensorFlow(assetManager, modelFilename) != 0) throw new RuntimeException("TF initialization failed");
+//    
+//        // The shape of the output is [N, NUM_CLASSES], where N is the batch size.
+//        final Operation operation       = c.inferenceInterface.graph().operation(outputName);
+//        if (operation == null)          throw new RuntimeException("Node '" + outputName + "' does not exist in model '" + modelFilename + "'");
+//    
+//        c.nOutputClasses                = (int)operation.output(0).shape().size(1);
+//       Log.i(TAG, "Read " + c.labels.size() + " labels, output layer size is " + c.nOutputClasses);
+//
+//        // Pre-allocate buffers.
+//        c.outputNames   = new String[] {outputName};
+//
+//        return c;
+//    }
+    
     public static Classifier create(AssetManager assetManager,
                                     String modelFilename,
-                                    String labelFilename,
                                     int inputSize,
                                     String inputName,
-                                    String outputName) 
+                                    String outputName,
+                                    Vector<String> titles) 
     {
         TensorFlowSpeechClassifier c    = new TensorFlowSpeechClassifier();
         c.inputName                     = inputName;
         c.outputName                    = outputName;
-        c.labels                        = readLabels(assetManager, labelFilename);
+        c.labels                        = titles;
         
         // Ideally, inputSize could have been retrieved from the shape of the input operation.  
         // Alas, the placeholder node for input in the graphdef typically used does not specify a shape, so it must be passed in as a parameter. 
         c.inputSize                     = inputSize;
-        c.inferenceInterface            = new TensorFlowInferenceInterface();
-        
-        modelFilename = labelFilename.startsWith("file://") ? modelFilename.split("file://")[1] : modelFilename;                
-        if (c.inferenceInterface.initializeTensorFlow(assetManager, modelFilename) != 0) throw new RuntimeException("TF initialization failed");
-    
+//        c.inferenceInterface            = new TensorFlowInferenceInterface();
+////        modelFilename = labelFilename.startsWith("file://") ? modelFilename.split("file://")[1] : modelFilename;                
+//        if (c.inferenceInterface.initializeTensorFlow(assetManager, modelFilename) != 0) throw new RuntimeException("TF initialization failed");
+
+        c.inferenceInterface            = new TensorFlowInferenceInterface(assetManager, modelFilename);
+
+
+
         // The shape of the output is [N, NUM_CLASSES], where N is the batch size.
         final Operation operation       = c.inferenceInterface.graph().operation(outputName);
         if (operation == null)          throw new RuntimeException("Node '" + outputName + "' does not exist in model '" + modelFilename + "'");
     
         c.nOutputClasses                = (int)operation.output(0).shape().size(1);
-        Log.i(TAG, "Read " + c.labels.size() + " labels, output layer size is " + c.nOutputClasses);
+       Log.i(TAG, "Read " + c.labels.size() + " labels, output layer size is " + c.nOutputClasses);
 
         // Pre-allocate buffers.
         c.outputNames   = new String[] {outputName};
@@ -101,38 +138,38 @@ public class TensorFlowSpeechClassifier implements Classifier
         return c;
     }
 
-    private static Vector<String> readLabels(AssetManager assetManager, String labelFilename)
-    {
-        Vector<String> labels = new Vector<String>();
-        // Read the label names into memory.
-        // TODO(andrewharp): make this handle non-assets.
-        boolean hasAssetPrefix = labelFilename.startsWith("file:///android_asset/");
-        String actualFilename = hasAssetPrefix ? labelFilename.split("file:///android_asset/")[1] : labelFilename;
-        Log.i(TAG, "Reading labels from: " + actualFilename);
-        BufferedReader br = null;
-        try 
-        {
-            br = new BufferedReader(new InputStreamReader(assetManager.open(actualFilename)));
-            String line;
-            while ((line = br.readLine()) != null) labels.add(line);
-            br.close();
-        }
-        catch (IOException e) 
-        {
-            if (hasAssetPrefix) throw new RuntimeException("Problem reading TF model label file!" , e);
-            try 
-            {
-                actualFilename  = labelFilename.startsWith("file://") ? labelFilename.split("file://")[1] : labelFilename;                
-                br              = new BufferedReader(new InputStreamReader(new FileInputStream(actualFilename)));
-                String line;
-                while ((line = br.readLine()) != null) labels.add(line);
-                br.close();
-            }
-            catch (IOException e2) { throw new RuntimeException("Problem reading TF model label file!" , e);  }
-        }        
-        return labels;
-    }
-    
+//    private static Vector<String> readLabels(AssetManager assetManager, String labelFilename)
+//    {
+//        Vector<String> labels = new Vector<String>();
+//        // Read the label names into memory.
+//        // TODO(andrewharp): make this handle non-assets.
+//        boolean hasAssetPrefix = labelFilename.startsWith("file:///android_asset/");
+//        String actualFilename = hasAssetPrefix ? labelFilename.split("file:///android_asset/")[1] : labelFilename;
+//       Log.i(TAG, "Reading labels from: " + actualFilename);
+//        BufferedReader br = null;
+//        try 
+//        {
+//            br = new BufferedReader(new InputStreamReader(assetManager.open(actualFilename)));
+//            String line;
+//            while ((line = br.readLine()) != null) labels.add(line);
+//            br.close();
+//        }
+//        catch (IOException e) 
+//        {
+//            if (hasAssetPrefix) throw new RuntimeException("Problem reading TF model label file!" , e);
+//            try 
+//            {
+//                actualFilename  = labelFilename.startsWith("file://") ? labelFilename.split("file://")[1] : labelFilename;                
+//                br              = new BufferedReader(new InputStreamReader(new FileInputStream(actualFilename)));
+//                String line;
+//                while ((line = br.readLine()) != null) labels.add(line);
+//                br.close();
+//            }
+//            catch (IOException e2) { throw new RuntimeException("Problem reading TF model label file!" , e);  }
+//        }        
+//        return labels;
+//    }
+//    
     // return a list of (nOutputClasses+1) elements
     // considering only those frames where at least one command's prob is over threshold. 
     // At position 0 u find the most probable element.
@@ -178,6 +215,7 @@ public class TensorFlowSpeechClassifier implements Classifier
 //        {
 //            e.printStackTrace();
 //        }         
+
        
         // Find the best classifications.
         PriorityQueue<Recognition> pq =
@@ -213,22 +251,25 @@ public class TensorFlowSpeechClassifier implements Classifier
     public float[] recognizeFrame(float[] frameCepstra) 
     {
         float[] confidences = new float[nOutputClasses];
-        // Log this method so that it can be analyzed with systrace.
+        // if(BuildConfig.DEBUG) Log this method so that it can be analyzed with systrace.
         Trace.beginSection("recognizeFrame");
 
         // Copy the input data into TensorFlow.
         Trace.beginSection("fillNodeFloat");
-        inferenceInterface.fillNodeFloat(inputName, new int[] {1, inputSize}, frameCepstra);  //   << ===========  ????????????????????????
+//        inferenceInterface.fillNodeFloat(inputName, new int[] {1, inputSize}, frameCepstra);  //   << ===========  ????????????????????????
+        inferenceInterface.feed(inputName, frameCepstra, new long[] {1, inputSize});        
         Trace.endSection();
 
         // Run the inference call.
         Trace.beginSection("runInference");
-        inferenceInterface.runInference(outputNames);
+//        inferenceInterface.runInference(outputNames);
+        inferenceInterface.run(outputNames);
         Trace.endSection();
 
         // Copy the output Tensor back into the output array.
         Trace.beginSection("readNodeFloat");
-        inferenceInterface.readNodeFloat(outputName, confidences);
+//        inferenceInterface.readNodeFloat(outputName, confidences);
+        inferenceInterface.fetch(outputName, confidences);
         Trace.endSection();
 
         Trace.endSection(); // "recognizeFrame"
@@ -239,7 +280,8 @@ public class TensorFlowSpeechClassifier implements Classifier
  
     @Override
     public void enableStatLogging(boolean debug) {
-        inferenceInterface.enableStatLogging(debug);
+//        inferenceInterface.enableStatLogging(debug);
+        inferenceInterface.run(outputNames, debug);
     }
 
     @Override

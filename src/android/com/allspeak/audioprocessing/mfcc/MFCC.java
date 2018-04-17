@@ -14,6 +14,7 @@ import java.io.File;
 
 import android.os.Environment;
 import android.util.Log;
+//import com.allspeak.BuildConfig;
 import java.io.FilenameFilter;
 
 import android.os.ResultReceiver;
@@ -158,15 +159,16 @@ public class MFCC
    // read wav(String) => framing => processFrames(float[][])
     //if !overwrite : check if file exist, if YES => if it has the correct number of frames => skip it.
     //                                            => if not                                 => overwrite it
-    public void processFile(String input_file_noext, boolean overwrite) 
+    public void processFile(String input_filepath, String output_filepath, boolean overwrite) 
     {
         try
         {
             // tp                  = new TrackPerformance(5); // I want to monitor : wav read (if applicable), params calculation, data export(if applicable), data write(if applicable), data json packaging(if applicable)
+            String inputpath        = StringUtilities.removeExtension(input_filepath);
+            String outputpath       = StringUtilities.removeExtension(output_filepath);
             
-            mfccParams.sOutputPath  = StringUtilities.removeExtension(input_file_noext);
-            String audio_relfile    = mfccParams.sOutputPath + ".wav";
-            String mfcc_relfile     = mfccParams.sOutputPath + "_scores.dat";
+            String audio_relfile    = inputpath + ".wav";
+            String mfcc_relfile     = outputpath + ".dat";
             
             float[] data            = WavFile.getWavData(Environment.getExternalStorageDirectory() + "/" + audio_relfile);  
             int nframes             = Framing.getFrames(data.length, mfccParams.nWindowLength, mfccParams.nWindowDistance);
@@ -174,6 +176,8 @@ public class MFCC
             // Since I write appending, I have to decide what to do with the existing files. 1) go on appending to the existing file OR skip.... 2) delete it 
             checkWhetherDeleteMFCCFile(overwrite, mfcc_relfile, nframes);
             
+            mfccParams.sOutputPath  = StringUtilities.removeExtension(mfcc_relfile);   // exportData uses it (and appends dat, thus give it with no extension 16/3/18
+                                
             // tp.addTimepoint(1);
             float[][] cepstra       = getFeatures(data);
             exportData(cepstra);
@@ -183,30 +187,40 @@ public class MFCC
         catch(Exception e)
         {
             e.printStackTrace();
-            Log.e(TAG, "processFile" + ": Error: " + e.toString());
+           Log.e(TAG, "processFile" + ": Error: " + e.toString());
             Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
         }        
     }
     //-----------------------------------------------------------------------------------------
     // processFolder(String) => for files in... processFile(String) => processRawData(float[])
-    public void processFolder(String input_folderpath, boolean overwrite) 
+    public void processFolder(String input_folderpath, String output_folderpath, boolean overwrite) 
     {
 //        TrackPerformance tp_folder      = new TrackPerformance(1); // I want to monitor just to total time
         File directory                  = new File(Environment.getExternalStorageDirectory().toString() + "/" + input_folderpath);
 
         try
         {
-            String tempfile             = "";
-            File[] files                = directory.listFiles(new FilenameFilter() {
+            String infile             = "";
+            String outfile            = "";
+            
+            // filter WAV
+            File[] files              = directory.listFiles(new FilenameFilter() {
                 public boolean accept(File dir, String name) {
                     return name.toLowerCase().endsWith(".wav");
                 }
             });
-//            aiElapsedTimes               = new int[files.length][5];
+            // aiElapsedTimes               = new int[files.length][5];
+            if(files.length == 0) 
+            {
+                Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", "Input folder does not contain any file");
+                return;
+            }
+                
             for (int i = 0; i < files.length; i++)
             {
-                tempfile            = input_folderpath + File.separatorChar + files[i].getName();
-                processFile(StringUtilities.removeExtension(tempfile), overwrite);
+                infile            = input_folderpath + File.separatorChar + files[i].getName();
+                outfile           = output_folderpath + File.separatorChar + files[i].getName();
+                processFile(infile, outfile, overwrite);
             } 
             // BUG....it doesn't work...since the last-1 file, in the target I get a Bundle with either process_file and process_folder messages
             // folder processing completion is presently resolved in the web layer.
@@ -215,7 +229,61 @@ public class MFCC
         catch(Exception e)
         {
             e.printStackTrace();
-            Log.e(TAG, "processFolder" + ": Error: " + e.toString());
+           Log.e(TAG, "processFolder" + ": Error: " + e.toString());
+            Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
+        }    
+    }
+    //-----------------------------------------------------------------------------------------
+    // processFolder(String) => for files in... processFile(String) => processRawData(float[])
+    public void processFolder(String input_folderpath, String output_folderpath, boolean overwrite, String[] filefilters) 
+    {
+//        TrackPerformance tp_folder      = new TrackPerformance(1); // I want to monitor just to total time
+        File directory                  = new File(Environment.getExternalStorageDirectory().toString() + "/" + input_folderpath);
+
+        try
+        {
+            String infile             = "";
+            String outfile            = "";
+            
+            // filter WAV
+            File[] files                = directory.listFiles(new FilenameFilter() {
+                public boolean accept(File dir, String name) {
+                    return name.toLowerCase().endsWith(".wav");
+                }
+            });
+//            aiElapsedTimes               = new int[files.length][5];
+            if(files.length == 0) 
+            {
+                Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", "Input folder does not contain any file");
+                return;
+            }
+                
+            boolean processit = false;
+            for (int i = 0; i < files.length; i++)
+            {
+                for (int p = 0; p < filefilters.length; p++)
+                {
+                    if(files[i].getName().contains(filefilters[p]))
+                    {
+                        processit = true;
+                        break;
+                    }
+                }
+                if(processit)
+                {
+                    infile            = input_folderpath + File.separatorChar + files[i].getName();
+                    outfile           = output_folderpath + File.separatorChar + files[i].getName();
+                    processFile(infile, outfile, overwrite);                    
+                }
+            } 
+            // BUG....it doesn't work...since the last-1 file, in the target I get a Bundle with either process_file and process_folder messages
+            // folder processing completion is presently resolved in the web layer.
+            // Messaging.sendMessageToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROGRESS_FOLDER, "progress_folder", mfccParams.sOutputPath);
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+           Log.e(TAG, "processFolder" + ": Error: " + e.toString());
             Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
         }    
     }
@@ -233,11 +301,15 @@ public class MFCC
         {
             case ENUMS.MFCC_PROCSCHEME_F_S_CTX:
             case ENUMS.MFCC_PROCSCHEME_F_T_CTX:
-                frames2beprocessed = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.0f, null); // NO pre-emphasis, NO hamming-windowing
+            case ENUMS.MFCC_PROCSCHEME_F_S_NOTHR:
+            case ENUMS.MFCC_PROCSCHEME_F_T_NOTHR:
+                frames2beprocessed = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.0f, null); // NO pre-emphasis, 
                 break;
                 
             case ENUMS.MFCC_PROCSCHEME_F_S_PP_CTX:
             case ENUMS.MFCC_PROCSCHEME_F_T_PP_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_S_PP_NOTHR:
+            case ENUMS.MFCC_PROCSCHEME_F_T_PP_NOTHR:
                 frames2beprocessed  = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.95f, hammingWnd); // pre-emphasis/framing/hamming-windowing
                 break;
         }
@@ -247,16 +319,24 @@ public class MFCC
         {
             case ENUMS.MFCC_PROCSCHEME_F_S_CTX:
             case ENUMS.MFCC_PROCSCHEME_F_S_PP_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_S_NOTHR:
+            case ENUMS.MFCC_PROCSCHEME_F_S_PP_NOTHR:
                 cepstra = processSpectral(frames2beprocessed);
                 break;
                 
             case ENUMS.MFCC_PROCSCHEME_F_T_CTX:
             case ENUMS.MFCC_PROCSCHEME_F_T_PP_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_T_NOTHR:
+            case ENUMS.MFCC_PROCSCHEME_F_T_PP_NOTHR:
                 cepstra = processTemporal(frames2beprocessed);
                 break;
         }
         int allframes                   = cepstra.length;
-        float[][] validframes           = Framing.getSuprathresholdFrames(cepstra, 0.0f);
+        float[][] validframes;
+        
+        // TODO : I should remove null frames after contexting...otherwise when I take the the previous 5, I may get frames before the cut
+        if((int)mfccParams.nProcessingScheme < ENUMS.MFCC_PROCSCHEME_F_S_NOTHR) validframes = Framing.getSuprathresholdFrames(cepstra, 0.0f); 
+        else                                                                    validframes = cepstra;
         Framing.normalizeFrames(validframes);                       // float[][] ctx_scores = getContextedFrames(scores, 11, 792);return exportData(ctx_scores);  
         nFrames                         = validframes.length;
         nIgnoredFrames                  = allframes - nFrames;
@@ -269,18 +349,21 @@ public class MFCC
     public synchronized float[][] getFeaturesQueued(float[] samples2beprocessed, float[][] queuedcepstraframes)
     {
         float[][] frames2beprocessed = null;
-        float[][] cepstra = null;
-        
+        float[][] cepstra = null;        
         // preproc or not preproc
         switch((int)mfccParams.nProcessingScheme)
         {
             case ENUMS.MFCC_PROCSCHEME_F_S_CTX:
             case ENUMS.MFCC_PROCSCHEME_F_T_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_S_NOTHR:
+            case ENUMS.MFCC_PROCSCHEME_F_T_NOTHR:                
                 frames2beprocessed = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.0f, null); // NO pre-emphasis, NO hamming-windowing
                 break;
                 
             case ENUMS.MFCC_PROCSCHEME_F_S_PP_CTX:
             case ENUMS.MFCC_PROCSCHEME_F_T_PP_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_S_PP_NOTHR:
+            case ENUMS.MFCC_PROCSCHEME_F_T_PP_NOTHR:                
                 frames2beprocessed  = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.95f, hammingWnd); // pre-emphasis/framing/hamming-windowing
                 break;
         }
@@ -291,16 +374,23 @@ public class MFCC
         {
             case ENUMS.MFCC_PROCSCHEME_F_S_CTX:
             case ENUMS.MFCC_PROCSCHEME_F_S_PP_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_S_NOTHR:
+            case ENUMS.MFCC_PROCSCHEME_F_S_PP_NOTHR:                
                 cepstra = processQueuedSpectral(frames2beprocessed, queuedcepstraframes);
                 break;
                 
             case ENUMS.MFCC_PROCSCHEME_F_T_CTX:
             case ENUMS.MFCC_PROCSCHEME_F_T_PP_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_T_NOTHR:
+            case ENUMS.MFCC_PROCSCHEME_F_T_PP_NOTHR:                
                 cepstra = processQueuedTemporal(frames2beprocessed, queuedcepstraframes);
                 break;
         }        
         nFrames                         = cepstra.length;
-        float[][] validframes           = Framing.getSuprathresholdFrames(cepstra, 0.0f);
+        float[][] validframes;
+        if((int)mfccParams.nProcessingScheme < ENUMS.MFCC_PROCSCHEME_F_S_NOTHR) validframes = Framing.getSuprathresholdFrames(cepstra, 0.0f);
+        else                                                                    validframes = cepstra;        
+//        float[][] validframes           = Framing.getSuprathresholdFrames(cepstra, 0.0f);
         nIgnoredFrames                  += (norigframes - nFrames - mfccParams.nDeltaWindow);
         
         return validframes;
@@ -348,9 +438,9 @@ public class MFCC
                     case ENUMS.MFCC_DATADEST_FILEWEB:
                     case ENUMS.MFCC_DATADEST_ALL:
 
-                        boolean res = FileUtilities.write2DArrayToFile(scores, nValidFrames, mfccParams.sOutputPath + "_scores.dat", sOutputPrecision, true);
+                        boolean res = FileUtilities.write2DArrayToFile(scores, nValidFrames, mfccParams.sOutputPath + ".dat", sOutputPrecision, true);
     //                    strscores   = StringUtilities.exportArray2String(scores, );
-    //                    boolean res = FileUtilities.writeStringToFile(mfccParams.sOutputPath + "_scores.dat", strscores, true);
+    //                    boolean res = FileUtilities.writeStringToFile(mfccParams.sOutputPath + ".dat", strscores, true);
                         //                tp.addTimepoint(4);                
                         break;
                 }
@@ -396,7 +486,7 @@ public class MFCC
         catch(Exception e)
         {
             e.printStackTrace();
-            Log.e(TAG, "exportData" + ": Error: " + e.toString());
+           Log.e(TAG, "exportData" + ": Error: " + e.toString());
             Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
             return null;
         }
@@ -453,7 +543,7 @@ public class MFCC
         catch(Exception e)
         {
             e.printStackTrace();
-            Log.e(TAG, "processFramesTemporal" + ": Error: " + e.toString());
+           Log.e(TAG, "processFramesTemporal" + ": Error: " + e.toString());
             Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
             return null;
         }        
@@ -478,13 +568,14 @@ public class MFCC
         catch(Exception e)
         {
             e.printStackTrace();
-            Log.e(TAG, "processFramesTemporal" + ": Error: " + e.toString());
+           Log.e(TAG, "processFramesTemporal" + ": Error: " + e.toString());
             Messaging.sendMessageToHandler(mStatusCallback, ERRORS.MFCC_ERROR, "error", e.getMessage());
             return null;
         }        
     }     
     
-    // 
+    // now, since empty frames are deleted, you cannot check if the file is corrupt (has less lines).
+    // thus when overwrite is false and file exist, skip it.
     private void checkWhetherDeleteMFCCFile(boolean overwrite, String mfcc_relfile, int nframes) throws Exception
     {
         // Since I write appending, I have to decide what to do with the existing files.
@@ -497,16 +588,16 @@ public class MFCC
                 if(overwrite) FileUtilities.deleteExternalStorageFile(mfcc_relfile); 
                 else
                 {
-                    File f = new File(Environment.getExternalStorageDirectory(), mfcc_relfile);
-                    int nlines = FileUtilities.countLines(f);
-                    if(nlines == nframes)   // is a valid file ?
-                    {
+//                    File f = new File(Environment.getExternalStorageDirectory(), mfcc_relfile);
+//                    int nlines = FileUtilities.countLines(f);
+//                    if(nlines == nframes)   // is a valid file ?
+//                    {
                         // send message & skip
                         Messaging.sendMessageToHandler(mStatusCallback, ENUMS.MFCC_STATUS_PROGRESS_FILE, "progress_file", mfccParams.sOutputPath);                    
                         return;
-                    }                        
-                    else    // the file exist but is corrupted...presumably a crash during processing..I delete it
-                        FileUtilities.deleteExternalStorageFile(mfcc_relfile); 
+//                    }                        
+//                    else    // the file exist but is corrupted...presumably a crash during processing..I delete it
+//                        FileUtilities.deleteExternalStorageFile(mfcc_relfile); 
                 }
             }
         }

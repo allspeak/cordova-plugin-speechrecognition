@@ -3,6 +3,9 @@ package com.allspeak;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
 
+import java.util.concurrent.ExecutorService;
+
+
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 
@@ -33,6 +36,7 @@ import com.allspeak.ENUMS;
 import com.allspeak.ERRORS;
 import com.allspeak.utility.Messaging;
 import com.allspeak.utility.FileUtilities;
+import com.allspeak.utility.ZipManager;
 import com.allspeak.audioprocessing.mfcc.*;
 import com.allspeak.audioprocessing.mfcc.MFCCParams;
 import com.allspeak.audioprocessing.Framing;
@@ -100,6 +104,7 @@ public class SpeechRecognitionService extends Service
     private TFHandlerThread mTfHT                       = null;        
     //-----------------------------------------------------------------------------------------------
     
+    private final GenericHandler mGenericHandler        = new GenericHandler(this);    
     //===============================================================================
     //binding
     public class LocalBinder extends Binder { SpeechRecognitionService getService() { return SpeechRecognitionService.this; } }
@@ -137,7 +142,7 @@ public class SpeechRecognitionService extends Service
             mTfHT           = new TFHandlerThread("TFHandlerThread", Process.THREAD_PRIORITY_MORE_FAVORABLE);
             mTfHT.start();   
 
-            Log.d(LOG_TAG, "========> initService() <========="); 
+           Log.d(LOG_TAG, "========> initService() <========="); 
             return "ok";
         }
         catch (Exception e) 
@@ -171,7 +176,7 @@ public class SpeechRecognitionService extends Service
                 mTfHT.quit();
                 mTfHT.interrupt();
             }
-            Log.d(LOG_TAG, "========> unbindService() <========="); 
+           Log.d(LOG_TAG, "========> unbindService() <========="); 
         }
         catch (Exception e) 
         {
@@ -233,7 +238,7 @@ public class SpeechRecognitionService extends Service
                 bIsCalculatingMFCC  = true;
 
                 if(mMfccParams.sOutputPath != "" && mMfccParams.nDataDest >= ENUMS.MFCC_DATADEST_FILE)
-                     FileUtilities.deleteExternalStorageFile(mMfccParams.sOutputPath + "_scores.dat");
+                     FileUtilities.deleteExternalStorageFile(mMfccParams.sOutputPath + ".dat");
             }            
             aicCapture                  = new AudioInputCapture(mCaptureParams, mAicServiceHandler, null, mAicServiceHandler);
             nCapturedDataDest           = mCaptureParams.nDataDest;
@@ -369,7 +374,7 @@ public class SpeechRecognitionService extends Service
         mVadHT.resumeSpeechRecognition(callbackContext);
     }    
         
-    public void getMFCC(MFCCParams mfccParams, String inputpathnoext, boolean overwrite, CallbackContext cb)
+    public void getMFCC(MFCCParams mfccParams, String inputpathnoext, String outputpathnoext, boolean overwrite, CallbackContext cb)
     {
         try 
         {
@@ -377,7 +382,25 @@ public class SpeechRecognitionService extends Service
             mMfccParams                 = mfccParams;           
             nMFCCDataDest               = mMfccParams.nDataDest;
             mMfccHT.init(mMfccParams, mMfccServiceHandler, callbackContext);       // MFCC send commands & results to TF, status here            
-            mMfccHT.getMFCC(inputpathnoext, overwrite);   
+            mMfccHT.getMFCC(inputpathnoext, outputpathnoext, overwrite);   
+        }
+        catch (Exception e) 
+        {
+            onMFCCError(e.toString());
+            callbackContext = null;
+        }            
+    }
+    
+        
+    public void getMFCC(MFCCParams mfccParams, String inputpathnoext, String outputpathnoext, boolean overwrite, String[] filefilters, CallbackContext cb)
+    {
+        try 
+        {
+            callbackContext             = cb;   
+            mMfccParams                 = mfccParams;           
+            nMFCCDataDest               = mMfccParams.nDataDest;
+            mMfccHT.init(mMfccParams, mMfccServiceHandler, callbackContext);       // MFCC send commands & results to TF, status here            
+            mMfccHT.getMFCC(inputpathnoext, outputpathnoext, overwrite, filefilters);   
         }
         catch (Exception e) 
         {
@@ -397,6 +420,55 @@ public class SpeechRecognitionService extends Service
         mTfHT.recognizeCepstraFile(cepstra_file_path, wlcb);
     }
             
+  
+    public void zipFolder(String infolder, String outfilename, String[] validext, ExecutorService execServ, CallbackContext wlcb)
+    {
+        ZipManager.zipFolder(infolder, outfilename, validext, execServ, wlcb);
+    }        
+        
+        
+//        String[] fileinfolder;
+//        
+//        String path             = Environment.getExternalStorageDirectory().toString() + "/" + infolder;    // Log.d("Files", "Path: " + path);
+//        File directory          = new File(path);
+//        File[] files            = directory.listFiles();   //Log.d("Files", "Size: "+ files.length);
+//        int norigfiles          = files.length;
+//        String[] fileinfolder   = String[norigfiles];
+//        int nvalidfiles         = 0;
+//        
+//        if(ext != null)
+//        {
+//            // filter by extension
+//            for (int i = 0; i < norigfiles; i++)
+//            {
+//                String filename = files[i].getName();
+//               Log.d("Files", "FileName:" + files[i].getName());
+//                if(StringUtilities.removeExtension(filename) == "ext")
+//                {
+//                    fileinfolder[nvalidfiles] = path + "/" + filename;
+//                    nvalidfiles++;
+//                }
+//            }   
+//            String[] validfiles = new String[nvalidfiles];
+//            for(int f=0; f<nvalidfiles; f++) validfiles[f] = fileinfolder[f];                
+//        }
+//        else
+//        {
+//           String[] validfiles  = new String[norigfiles];
+//           for(int f=0; f<norigfiles; f++) validfiles[f] = path + "/" + files[f].getName(); 
+//        }
+//        
+//        cordova.getThreadPool().execute(new Runnable() 
+//        {
+//            public void run() 
+//            {        
+//               boolean res = ZipManager.zip(validfiles, outfilename);
+//               
+//               
+//            }
+//        }
+ 
+    
     public boolean isCapturing() {
         return bIsCapturing;
     }    
@@ -489,7 +561,7 @@ public class SpeechRecognitionService extends Service
             catch(JSONException e)
             {
                 e.printStackTrace();                  
-                Log.e(LOG_TAG, e.getMessage(), e);
+               Log.e(LOG_TAG, e.getMessage(), e);
                 onCaptureError(e.getMessage());            
             }                         
         }
@@ -514,7 +586,7 @@ public class SpeechRecognitionService extends Service
         {
             int ntotalReadBytes = Integer.parseInt(totalReadBytes);
             if(nCapturedBytes != ntotalReadBytes)    
-                Log.w(LOG_TAG, "onCaptureStop: read by AIReceiver: " + totalReadBytes + "bytes, internal count " + Integer.toString(nCapturedBytes));            
+               Log.w(LOG_TAG, "onCaptureStop: read by AIReceiver: " + totalReadBytes + "bytes, internal count " + Integer.toString(nCapturedBytes));            
 
             bTriggerAction  = true;
 
@@ -577,7 +649,7 @@ public class SpeechRecognitionService extends Service
     // called by MFCC class when sending frames to be processed
     public void onMFCCStartProcessing(int nframes, int nmfccblocks)
     {
-//        Log.d(LOG_TAG, "start to process: " + Integer.toString(nframes));
+//       Log.d(LOG_TAG, "start to process: " + Integer.toString(nframes));
         nMFCCFrames2beProcessed += nframes;
         nMFCCProcessedBlocks    = nmfccblocks;
     }
@@ -612,7 +684,7 @@ public class SpeechRecognitionService extends Service
         catch (JSONException e) 
         {
             e.printStackTrace();                  
-            Log.e(LOG_TAG, e.getMessage(), e);
+           Log.e(LOG_TAG, e.getMessage(), e);
             onMFCCError(e.toString());
         }
      }   
@@ -622,15 +694,15 @@ public class SpeechRecognitionService extends Service
         nMFCCProcessedFrames    += frames;
         nMFCCFrames2beProcessed = nMFCCExpectedFrames - nMFCCProcessedFrames;
         
-        Log.d(LOG_TAG, "onMFCCProgress : expected frames : " + nMFCCExpectedFrames  + ", processed frames : " + Integer.toString(nMFCCProcessedFrames) +  ", still to be processed: " + Integer.toString(nMFCCFrames2beProcessed));
-        Log.d(LOG_TAG, "onMFCCProgress : captured blocks: " + Integer.toString(nCapturedBlocks) + ", mfccprocessed blocks: " + Integer.toString(nMFCCProcessedBlocks));
-        Log.d(LOG_TAG, "------");
+       Log.d(LOG_TAG, "onMFCCProgress : expected frames : " + nMFCCExpectedFrames  + ", processed frames : " + Integer.toString(nMFCCProcessedFrames) +  ", still to be processed: " + Integer.toString(nMFCCFrames2beProcessed));
+       Log.d(LOG_TAG, "onMFCCProgress : captured blocks: " + Integer.toString(nCapturedBlocks) + ", mfccprocessed blocks: " + Integer.toString(nMFCCProcessedBlocks));
+       Log.d(LOG_TAG, "------");
         
         
         //check if this is the last cepstra packet (bTriggerAction=true has been set by onStopCapture)
         if(bTriggerAction && nMFCCExpectedFrames == nMFCCProcessedFrames)
         {
-            Log.d(LOG_TAG, "@@@@@@@@@@@@@@@ F I N I S H E D   M F C C   C A L C @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+           Log.d(LOG_TAG, "@@@@@@@@@@@@@@@ F I N I S H E D   M F C C   C A L C @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
             bTriggerAction      = false;
             bIsCalculatingMFCC  = false;
             Messaging.sendDataToHandler(mMfccHTLooper, ENUMS.MFCC_CMD_FINALIZEDATA);
@@ -717,7 +789,7 @@ public class SpeechRecognitionService extends Service
                 catch (Exception e) 
                 {
                     e.printStackTrace();                      
-                    Log.e(LOG_TAG, e.getMessage(), e);
+                   Log.e(LOG_TAG, e.getMessage(), e);
                     service.onCaptureError(e.toString());
                 }
             }
@@ -788,7 +860,7 @@ public class SpeechRecognitionService extends Service
                 catch (JSONException e) 
                 {
                     e.printStackTrace();                    
-                    Log.e(LOG_TAG, e.getMessage(), e);
+                   Log.e(LOG_TAG, e.getMessage(), e);
                     service.onMFCCError(e.toString());
                 }
             }
@@ -816,7 +888,7 @@ public class SpeechRecognitionService extends Service
                 }
                 catch (Exception e) {
                     e.printStackTrace();                    
-                    Log.e(LOG_TAG, e.getMessage(), e);
+                   Log.e(LOG_TAG, e.getMessage(), e);
                 }
             }
         }
@@ -827,6 +899,37 @@ public class SpeechRecognitionService extends Service
         private final WeakReference<SpeechRecognitionService> mService;
 
         public TFHandler(SpeechRecognitionService service) {
+            mService = new WeakReference<SpeechRecognitionService>(service);
+        }
+
+        public void handleMessage(Message msg) 
+        {
+            SpeechRecognitionService service = mService.get();
+            if (service != null) 
+            {
+                try 
+                {
+                    //get message type
+                    JSONObject info = new JSONObject();
+                    Bundle b        = msg.getData();
+                    switch((int)msg.what) //get message type
+                    {
+                        case ENUMS.TF_STATUS_PROCESS_STARTED:
+                            break;                  
+                    }
+                }
+                catch (Exception e) {
+
+                }
+            }
+        }
+    }    
+    
+    private static class GenericHandler extends Handler 
+    {
+        private final WeakReference<SpeechRecognitionService> mService;
+
+        public GenericHandler(SpeechRecognitionService service) {
             mService = new WeakReference<SpeechRecognitionService>(service);
         }
 

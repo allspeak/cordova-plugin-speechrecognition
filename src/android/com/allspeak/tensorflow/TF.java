@@ -14,6 +14,7 @@ import org.json.JSONObject;
 import org.json.JSONArray;
 
 import android.util.Log;
+//import com.allspeak.BuildConfig;
 
 import com.allspeak.utility.Messaging;
 
@@ -110,7 +111,6 @@ public class TF
         try
         {
             String sModelFilePath = mTfParams.sModelFilePath.startsWith("file://") ? mTfParams.sModelFilePath.split("file://")[1] : mTfParams.sModelFilePath;
-            String sLabelFilePath = mTfParams.sLabelFilePath.startsWith("file://") ? mTfParams.sLabelFilePath.split("file://")[1] : mTfParams.sLabelFilePath;
         
             boolean exists = true;
             String err = "";
@@ -119,23 +119,23 @@ public class TF
                 exists = false;
                 err += (" " + sModelFilePath);
             }
-            if(!FileUtilities.existFile(sLabelFilePath))
-            {            
-                exists = false;
-                err += (" " + sLabelFilePath);               
-            }
+//            if(!FileUtilities.existFile(sLabelFilePath))
+//            {            
+//                exists = false;
+//                err += (" " + sLabelFilePath);               
+//            }
 
             if(exists)
             {
                 mClassifier = TensorFlowSpeechClassifier.create(
-                        mTfParams.mAssetManager,
-                        sModelFilePath,
-                        sLabelFilePath,
-                        mTfParams.nInputParams,
-                        mTfParams.sInputNodeName,
-                        mTfParams.sOutputNodeName);
+                                    mTfParams.mAssetManager,
+                                    sModelFilePath,
+                                    mTfParams.nInputParams,
+                                    mTfParams.sInputNodeName,
+                                    mTfParams.sOutputNodeName,
+                                    mTfParams.getTitles());
             
-                callbackContext.success(1);
+                callbackContext.success(mTfParams.sLabel);
             }
             else callbackContext.error("the following files are missing: " + err);
             
@@ -166,7 +166,7 @@ public class TF
         {
             List<Recognition> results = mClassifier.recognizeSpeech(contextedCepstra, mTfParams.fRecognitionThreshold);
             
-            String recognizedWavPath = mTfParams.saAudioPath[Integer.parseInt(results.get(0).id)];
+//            String recognizedWavPath = mTfParams.saAudioPath[Integer.parseInt(results.get(0).id)];
             
             try
             {
@@ -200,7 +200,7 @@ public class TF
             catch(Exception e)
             {
                 e.printStackTrace();                  
-                Log.e(LOG_TAG, e.getMessage(), e);
+               Log.e(LOG_TAG, e.getMessage(), e);
                 Messaging.sendErrorString2Web(callbackContext, e.getMessage(), ERRORS.TF_ERROR, true);
             }            
         }

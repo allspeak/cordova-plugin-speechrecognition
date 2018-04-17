@@ -207,23 +207,23 @@ public class Framing
     }
 
     // cepstra can be only partially filled, thus I process up to frames2recognize
+    // nctxframes is the number of frames to add before and after (e.g. 5, not 11)
     public static float[][] getContextedFrames(float[][] cepstra, int nctxframes, int noutparams, int frames2recognize)    // cepstra = [:][72] => [:][792] 
     {
         int ncepstra                    = cepstra[0].length;
         float[][] contextedCepstra      = new float[frames2recognize][noutparams];
         int startId, endId, cnt,corr_pf = 0;
         
-        int preFrames  = (int)Math.floor((double)(nctxframes*1.0)/2);
         // append Context frames (from 72 => 792 = tfParams.nInputParam)
         for (int f=0; f<frames2recognize; f++)
         {
-            startId = f - preFrames;
-            endId   = f + preFrames + 1; // won't be included in the for...
+            startId = f - nctxframes;
+            endId   = f + nctxframes + 1; // won't be included in the for...
             cnt     = 0;
             
-            if(f < (frames2recognize-preFrames))
+            if(f < (frames2recognize-nctxframes))
             {
-                // from frames = [0 : frames2recognize-preFrames-1]
+                // from frames = [0 : frames2recognize-nctxframes-1]
                 for(int pf=startId; pf<endId; pf++)
                 {
                     if(pf < 0)  corr_pf = 0;
@@ -237,7 +237,7 @@ public class Framing
             }
             else
             {
-                // from frames = [frames2recognize-preFrames : frames2recognize-1]
+                // from frames = [frames2recognize-nctxframes : frames2recognize-1]
                 for(int pf=startId; pf<endId; pf++)
                 {
                     if(pf > (frames2recognize-1))   corr_pf = frames2recognize-1;

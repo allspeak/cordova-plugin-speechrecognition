@@ -7,6 +7,7 @@ import android.os.Bundle;
 
 import org.apache.cordova.CallbackContext;
 import android.util.Log;
+//import com.allspeak.BuildConfig;
 
 import com.allspeak.ENUMS;
 import com.allspeak.ERRORS;
@@ -189,7 +190,7 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
             strmsg  = "TF_CMD_RECOGNIZE: sample ERROR, frames: " + String.valueOf(nProcessedFrames) + " expected frames: " + String.valueOf(expectedFrames);
             res     = false;
         }
-        Log.d(LOG_TAG, strmsg);         
+       Log.d(LOG_TAG, strmsg);         
         return res;
     }    
     //================================================================================================================
@@ -265,7 +266,7 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
         catch(Exception e)
         {
             e.printStackTrace();                  
-            Log.e(LOG_TAG, e.getMessage(), e);
+           Log.e(LOG_TAG, e.getMessage(), e);
             Messaging.sendErrorString2Web(mWlCb, e.getMessage(), ERRORS.TF_ERROR, true);            
             return true;
         }
@@ -278,7 +279,7 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
     
     public Handler getHandlerLooper()
     {
-        if(mInternalHandler == null)   Log.w(LOG_TAG, "TFHandlerThread mInternalHandler is NULL !!!!!!!!!!!!!!!!!");
+        if(mInternalHandler == null)  Log.w(LOG_TAG, "TFHandlerThread mInternalHandler is NULL !!!!!!!!!!!!!!!!!");
         return mInternalHandler;
     }  
     //================================================================================================================
