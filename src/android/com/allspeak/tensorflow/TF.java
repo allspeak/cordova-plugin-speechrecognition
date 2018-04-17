@@ -14,7 +14,7 @@ import org.json.JSONObject;
 import org.json.JSONArray;
 
 import android.util.Log;
-import com.allspeak.BuildConfig;
+//import com.allspeak.BuildConfig;
 
 import com.allspeak.utility.Messaging;
 
@@ -200,7 +200,7 @@ public class TF
             catch(Exception e)
             {
                 e.printStackTrace();                  
-                if(BuildConfig.DEBUG) Log.e(LOG_TAG, e.getMessage(), e);
+               Log.e(LOG_TAG, e.getMessage(), e);
                 Messaging.sendErrorString2Web(callbackContext, e.getMessage(), ERRORS.TF_ERROR, true);
             }            
         }

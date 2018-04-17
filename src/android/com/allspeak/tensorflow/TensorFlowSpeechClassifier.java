@@ -18,7 +18,7 @@ package com.allspeak.tensorflow;
 import android.content.res.AssetManager;
 import android.os.Trace;
 import android.util.Log;
-import com.allspeak.BuildConfig;
+//import com.allspeak.BuildConfig;
 import java.io.FileInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -94,7 +94,7 @@ public class TensorFlowSpeechClassifier implements Classifier
 //        if (operation == null)          throw new RuntimeException("Node '" + outputName + "' does not exist in model '" + modelFilename + "'");
 //    
 //        c.nOutputClasses                = (int)operation.output(0).shape().size(1);
-//        if(BuildConfig.DEBUG) Log.i(TAG, "Read " + c.labels.size() + " labels, output layer size is " + c.nOutputClasses);
+//       Log.i(TAG, "Read " + c.labels.size() + " labels, output layer size is " + c.nOutputClasses);
 //
 //        // Pre-allocate buffers.
 //        c.outputNames   = new String[] {outputName};
@@ -117,17 +117,20 @@ public class TensorFlowSpeechClassifier implements Classifier
         // Ideally, inputSize could have been retrieved from the shape of the input operation.  
         // Alas, the placeholder node for input in the graphdef typically used does not specify a shape, so it must be passed in as a parameter. 
         c.inputSize                     = inputSize;
-        c.inferenceInterface            = new TensorFlowInferenceInterface();
-        
-//        modelFilename = labelFilename.startsWith("file://") ? modelFilename.split("file://")[1] : modelFilename;                
-        if (c.inferenceInterface.initializeTensorFlow(assetManager, modelFilename) != 0) throw new RuntimeException("TF initialization failed");
-    
+//        c.inferenceInterface            = new TensorFlowInferenceInterface();
+////        modelFilename = labelFilename.startsWith("file://") ? modelFilename.split("file://")[1] : modelFilename;                
+//        if (c.inferenceInterface.initializeTensorFlow(assetManager, modelFilename) != 0) throw new RuntimeException("TF initialization failed");
+
+        c.inferenceInterface            = new TensorFlowInferenceInterface(assetManager, modelFilename);
+
+
+
         // The shape of the output is [N, NUM_CLASSES], where N is the batch size.
         final Operation operation       = c.inferenceInterface.graph().operation(outputName);
         if (operation == null)          throw new RuntimeException("Node '" + outputName + "' does not exist in model '" + modelFilename + "'");
     
         c.nOutputClasses                = (int)operation.output(0).shape().size(1);
-        if(BuildConfig.DEBUG) Log.i(TAG, "Read " + c.labels.size() + " labels, output layer size is " + c.nOutputClasses);
+       Log.i(TAG, "Read " + c.labels.size() + " labels, output layer size is " + c.nOutputClasses);
 
         // Pre-allocate buffers.
         c.outputNames   = new String[] {outputName};
@@ -142,7 +145,7 @@ public class TensorFlowSpeechClassifier implements Classifier
 //        // TODO(andrewharp): make this handle non-assets.
 //        boolean hasAssetPrefix = labelFilename.startsWith("file:///android_asset/");
 //        String actualFilename = hasAssetPrefix ? labelFilename.split("file:///android_asset/")[1] : labelFilename;
-//        if(BuildConfig.DEBUG) Log.i(TAG, "Reading labels from: " + actualFilename);
+//       Log.i(TAG, "Reading labels from: " + actualFilename);
 //        BufferedReader br = null;
 //        try 
 //        {
@@ -180,7 +183,7 @@ public class TensorFlowSpeechClassifier implements Classifier
     public List<Recognition> recognizeSpeech(final float[][] framesCepstra, float threshold) 
     {
         // Log this method so that it can be analyzed with systrace.
-        if(BuildConfig.DEBUG) Trace.beginSection("recognizeSpeech"); 
+        Trace.beginSection("recognizeSpeech"); 
         
         nFrames = framesCepstra.length;
         outputs = new float[nOutputClasses];
@@ -212,6 +215,7 @@ public class TensorFlowSpeechClassifier implements Classifier
 //        {
 //            e.printStackTrace();
 //        }         
+
        
         // Find the best classifications.
         PriorityQueue<Recognition> pq =
@@ -240,7 +244,7 @@ public class TensorFlowSpeechClassifier implements Classifier
         }
         for (int i = 0; i < nReturnedElements; ++i) recognitions.add(pq.poll());
         
-        if(BuildConfig.DEBUG) Trace.endSection(); // "recognizeSpeech"
+        Trace.endSection(); // "recognizeSpeech"
         return recognitions;        
     }
     
@@ -248,24 +252,27 @@ public class TensorFlowSpeechClassifier implements Classifier
     {
         float[] confidences = new float[nOutputClasses];
         // if(BuildConfig.DEBUG) Log this method so that it can be analyzed with systrace.
-        if(BuildConfig.DEBUG) Trace.beginSection("recognizeFrame");
+        Trace.beginSection("recognizeFrame");
 
         // Copy the input data into TensorFlow.
-        if(BuildConfig.DEBUG) Trace.beginSection("fillNodeFloat");
-        inferenceInterface.fillNodeFloat(inputName, new int[] {1, inputSize}, frameCepstra);  //   << ===========  ????????????????????????
-        if(BuildConfig.DEBUG) Trace.endSection();
+        Trace.beginSection("fillNodeFloat");
+//        inferenceInterface.fillNodeFloat(inputName, new int[] {1, inputSize}, frameCepstra);  //   << ===========  ????????????????????????
+        inferenceInterface.feed(inputName, frameCepstra, new long[] {1, inputSize});        
+        Trace.endSection();
 
         // Run the inference call.
-        if(BuildConfig.DEBUG) Trace.beginSection("runInference");
-        inferenceInterface.runInference(outputNames);
-        if(BuildConfig.DEBUG) Trace.endSection();
+        Trace.beginSection("runInference");
+//        inferenceInterface.runInference(outputNames);
+        inferenceInterface.run(outputNames);
+        Trace.endSection();
 
         // Copy the output Tensor back into the output array.
-        if(BuildConfig.DEBUG) Trace.beginSection("readNodeFloat");
-        inferenceInterface.readNodeFloat(outputName, confidences);
-        if(BuildConfig.DEBUG) Trace.endSection();
+        Trace.beginSection("readNodeFloat");
+//        inferenceInterface.readNodeFloat(outputName, confidences);
+        inferenceInterface.fetch(outputName, confidences);
+        Trace.endSection();
 
-        if(BuildConfig.DEBUG) Trace.endSection(); // "recognizeFrame"
+        Trace.endSection(); // "recognizeFrame"
 
 //        softmax(confidences);
         return confidences;
@@ -273,7 +280,8 @@ public class TensorFlowSpeechClassifier implements Classifier
  
     @Override
     public void enableStatLogging(boolean debug) {
-        inferenceInterface.enableStatLogging(debug);
+//        inferenceInterface.enableStatLogging(debug);
+        inferenceInterface.run(outputNames, debug);
     }
 
     @Override

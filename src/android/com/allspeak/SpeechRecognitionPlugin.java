@@ -22,7 +22,10 @@ import android.content.ServiceConnection;
 import android.os.IBinder;
 
 import android.util.Log;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
+
 import android.Manifest;
 
 import com.allspeak.ERRORS;
@@ -80,7 +83,7 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
     public void initialize(CordovaInterface cordova, CordovaWebView webView) 
     {
         super.initialize(cordova, webView);
-        if(BuildConfig.DEBUG) Log.d(LOG_TAG, "Initializing SpeechRecognitionPlugin");
+       Log.d(LOG_TAG, "Initializing SpeechRecognitionPlugin");
 
         //get plugin context
         cordovaInterface        = cordova;
@@ -101,7 +104,7 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
         catch(Exception e)
         {
             e.printStackTrace();                    
-            if(BuildConfig.DEBUG) Log.e(LOG_TAG, e.getMessage(), e);
+           Log.e(LOG_TAG, e.getMessage(), e);
         }
         
     }
@@ -127,7 +130,7 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
             mService            = binder.getService();
             String res          = mService.initService();  // if(res != "ok") dont' know how to inform web layer
             mBound              = true;
-            if(BuildConfig.DEBUG) Log.d(LOG_TAG, "========> Service Bounded <=========");
+           Log.d(LOG_TAG, "========> Service Bounded <=========");
         }
 
         @Override
@@ -138,6 +141,20 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
         }
     };    
     
+    private boolean isDebug() 
+    {
+        try {
+            if ((mContext.getPackageManager().getPackageInfo(
+                mContext.getPackageName(), 0).applicationInfo.flags &
+                ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+                //Debug and development mode
+                return true;
+            }
+        } catch (NameNotFoundException e){
+            // do nothing
+        }
+        return false;
+    }    
     /**
      * @param action
      *          getAudioDevices
@@ -340,25 +357,44 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
         } 
         else if(action.equals("getMFCC")) 
         {            
-            // fcc_json_params, source (inputpathnoext or dataarray), overwrite, inputpathnoext (in case of dataarray)
+            // fcc_json_params, source (inputpathnoext or dataarray), overwrite, outputpathnoext (in case of dataarray)
             try 
             {               
                 // JS interface call params:     mfcc_json_params, source;  params have been validated in the js interface
                 // should have a nDataDest > 0  web,file,both
                 mMfccParams             = new MFCCParams(new JSONObject((String)args.get(0)));
-                boolean overwrite       = true;
-                if(args.get(2) != null)
-                    overwrite = args.getBoolean(2); 
-                
-                String inputpathnoext = "";
+
                 if(mMfccParams.nDataOrig == ENUMS.MFCC_DATAORIGIN_JSONDATA)
                 {
                     Messaging.sendErrorString2Web(callbackContext, "getMFCC from a data array still not supported", ERRORS.PLUGIN_INIT_MFCC, true);
                     return true;
                 }
-                else    inputpathnoext   = args.getString(1); 
+                
+                String inputpathnoext   = args.getString(1);
+                
+                // check whether user specified a different output folder for features files
+                String outputpathnoext = "";
+                if(args.get(2) != null) outputpathnoext = args.getString(2); 
+                else                    outputpathnoext = inputpathnoext;                
 
-                mService.getMFCC(mMfccParams, inputpathnoext, overwrite, callbackContext);
+                // do overwrite ?
+                boolean overwrite       = true;
+                if(args.get(3) != null) overwrite = args.getBoolean(3); 
+                
+                // check whether a list of file filters were defined
+                String[] filefilters    = null;
+                JSONArray arrJson       = null;
+                if(args.get(4) != null && args.getString(4) != "null")
+                {
+                    arrJson     = args.getJSONArray(4);
+                    filefilters = new String[arrJson.length()];
+                    for(int s = 0; s < arrJson.length(); s++)
+                        filefilters[s]  = arrJson.getString(s);                        
+                    
+                    mService.getMFCC(mMfccParams, inputpathnoext, outputpathnoext, overwrite, filefilters, callbackContext);
+                }
+                else mService.getMFCC(mMfccParams, inputpathnoext, outputpathnoext, overwrite, callbackContext);
+                
                 Messaging.sendNoResult2Web(callbackContext);
                 return true;
             }

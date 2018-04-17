@@ -24,7 +24,7 @@ package com.allspeak.audioprocessing.vad;
 import android.os.Handler;
 import android.util.Log;
 import org.apache.cordova.CallbackContext;
-import com.allspeak.BuildConfig;
+//import com.allspeak.BuildConfig;
 
 import com.allspeak.ENUMS;
 import com.allspeak.ERRORS;
@@ -382,7 +382,7 @@ public class VAD
             {
                 // write only those data that fit into the array
                 data2write      = data2write - (final_length - faCurrentSpeech.length);
-                if(BuildConfig.DEBUG) Log.w(LOG_TAG, "appendSpeech: data needed to be truncated");
+               Log.w(LOG_TAG, "appendSpeech: data needed to be truncated");
             }
             System.arraycopy(analysisBuffer,0, faCurrentSpeech, nCurrentSpeechSamples, data2write);
         }
