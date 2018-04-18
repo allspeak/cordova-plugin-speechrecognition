@@ -58,10 +58,10 @@ speechrecognition.ENUM.PLUGIN   =
     
     MFCC_DATATYPE_MFPARAMETERS      : 250,
     MFCC_DATATYPE_MFFILTERS         : 251,
-    MFCC_PROCSCHEME_F_S_CTX         : 252,      // FilterBanks, Spectral derivatives, Contexting
-    MFCC_PROCSCHEME_F_S_PP_CTX      : 253,      // FilterBanks, Spectral derivatives, Pre-processing, Contexting
-    MFCC_PROCSCHEME_F_T_CTX         : 254,      // FilterBanks, Temporal derivatives, Contexting
-    MFCC_PROCSCHEME_F_T_PP_CTX      : 255,      // FilterBanks, Temporal derivatives, Pre-processing, Contexting      
+    MFCC_PROCSCHEME_F_S         : 252,      // FilterBanks, Spectral derivatives, Contexting
+    MFCC_PROCSCHEME_F_S_PP      : 253,      // FilterBanks, Spectral derivatives, Pre-processing, Contexting
+    MFCC_PROCSCHEME_F_T         : 254,      // FilterBanks, Temporal derivatives, Contexting
+    MFCC_PROCSCHEME_F_T_PP      : 255,      // FilterBanks, Temporal derivatives, Pre-processing, Contexting      
     MFCC_PROCSCHEME_F_S_NOTHR       : 256,      // FilterBanks, Spectral derivatives,                   DO NOT threshold frames with null cepstra
     MFCC_PROCSCHEME_F_S_PP_NOTHR    : 257,      // FilterBanks, Spectral derivatives, Pre-processing,   DO NOT threshold frames with null cepstra
     MFCC_PROCSCHEME_F_T_NOTHR       : 258,      // FilterBanks, Temporal derivatives,           ,       DO NOT threshold frames with null cepstra
@@ -83,13 +83,16 @@ speechrecognition.ENUM.PLUGIN   =
     TF_MODELTYPE_USER_READAPTED     : 277,      // RE-ADAPTION of PUA NET made with user sentences (recordings are free)   
     TF_MODELTYPE_COMMON_READAPTED   : 278,      // RE-ADAPTION of CA NET made with user sentences (recordings are free)   
     
-    TRAIN_DATA_READY                : 280,
+    TF_MODELCLASS_FF                : 280,      // use Feed Forward net
+    TF_MODELTYPE_LSTM               : 281,      // use LSTM net
+
+    TRAIN_DATA_ZIPPED               : 290,
     
-    AUDIODEVICES_INFO               : 290, // 
-    HEADSET_CONNECTED               : 291,
-    HEADSET_DISCONNECTED            : 292, 
-    HEADSET_CONNECTING              : 293,     
-    HEADSET_DISCONNECTING           : 294     
+    AUDIODEVICES_INFO               : 300, 
+    HEADSET_CONNECTED               : 301,
+    HEADSET_DISCONNECTED            : 302, 
+    HEADSET_CONNECTING              : 303,     
+    HEADSET_DISCONNECTING           : 304     
 }; 
 
 // MUST MAP plugin's ERRORS.java
@@ -177,14 +180,14 @@ speechrecognition.ENUM.vad.MAX_MIL_MS = 1000;   // maximum SPEECH_DETECTION_MIN_
 //=========================================================================================
 
 speechrecognition.ENUM.mfcc.processingTypes = [
-    {"label": "Filt-Spec-ctx-Thr"       , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S_CTX},
-    {"label": "Filt-Spectral-PP-ctx-Thr", "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S_PP_CTX},
-    {"label": "Filt-Temp-ctx-Thr"       , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_CTX},
-    {"label": "Filt-Temp-PP-ctx-Thr"    , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_PP_CTX},
-    {"label": "Filt-Spect"              , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S_NOTHR},
-    {"label": "Filt-Spect-PP"           , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S_PP_NOTHR},
-    {"label": "Filt-Temp"               , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_NOTHR},
-    {"label": "Filt-Temp-PP"            , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_PP_NOTHR}
+    {"label": "Filt-Spec-Thr"       , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S},
+    {"label": "Filt-Spectral-PP-Thr", "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S_PP},
+    {"label": "Filt-Temp-Thr"       , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T},
+    {"label": "Filt-Temp-PP-Thr"    , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_PP},
+    {"label": "Filt-Spect"          , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S_NOTHR},
+    {"label": "Filt-Spect-PP"       , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S_PP_NOTHR},
+    {"label": "Filt-Temp"           , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_NOTHR},
+    {"label": "Filt-Temp-PP"        , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_PP_NOTHR}
 ];
 //=========================================================================================
 // DEFAULT
@@ -659,7 +662,7 @@ speechrecognition._pluginEvent = function (data) {
                 cordova.fireWindowEvent("headsetstatus", {datatype: itemsdata.type});
                 break;
                 
-            case speechrecognition.ENUM.PLUGIN.TRAIN_DATA_READY:
+            case speechrecognition.ENUM.PLUGIN.TRAIN_DATA_ZIPPED:
                 cordova.fireWindowEvent("traindataready", {items:data.items});
                 break;
                 

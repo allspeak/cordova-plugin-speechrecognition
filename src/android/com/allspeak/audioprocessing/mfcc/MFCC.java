@@ -299,15 +299,15 @@ public class MFCC
         // preproc or not preproc
         switch((int)mfccParams.nProcessingScheme)
         {
-            case ENUMS.MFCC_PROCSCHEME_F_S_CTX:
-            case ENUMS.MFCC_PROCSCHEME_F_T_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_S:
+            case ENUMS.MFCC_PROCSCHEME_F_T:
             case ENUMS.MFCC_PROCSCHEME_F_S_NOTHR:
             case ENUMS.MFCC_PROCSCHEME_F_T_NOTHR:
                 frames2beprocessed = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.0f, null); // NO pre-emphasis, 
                 break;
                 
-            case ENUMS.MFCC_PROCSCHEME_F_S_PP_CTX:
-            case ENUMS.MFCC_PROCSCHEME_F_T_PP_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_S_PP:
+            case ENUMS.MFCC_PROCSCHEME_F_T_PP:
             case ENUMS.MFCC_PROCSCHEME_F_S_PP_NOTHR:
             case ENUMS.MFCC_PROCSCHEME_F_T_PP_NOTHR:
                 frames2beprocessed  = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.95f, hammingWnd); // pre-emphasis/framing/hamming-windowing
@@ -317,15 +317,15 @@ public class MFCC
         // spectral or temporal derivatives
         switch((int)mfccParams.nProcessingScheme)
         {
-            case ENUMS.MFCC_PROCSCHEME_F_S_CTX:
-            case ENUMS.MFCC_PROCSCHEME_F_S_PP_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_S:
+            case ENUMS.MFCC_PROCSCHEME_F_S_PP:
             case ENUMS.MFCC_PROCSCHEME_F_S_NOTHR:
             case ENUMS.MFCC_PROCSCHEME_F_S_PP_NOTHR:
                 cepstra = processSpectral(frames2beprocessed);
                 break;
                 
-            case ENUMS.MFCC_PROCSCHEME_F_T_CTX:
-            case ENUMS.MFCC_PROCSCHEME_F_T_PP_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_T:
+            case ENUMS.MFCC_PROCSCHEME_F_T_PP:
             case ENUMS.MFCC_PROCSCHEME_F_T_NOTHR:
             case ENUMS.MFCC_PROCSCHEME_F_T_PP_NOTHR:
                 cepstra = processTemporal(frames2beprocessed);
@@ -353,15 +353,15 @@ public class MFCC
         // preproc or not preproc
         switch((int)mfccParams.nProcessingScheme)
         {
-            case ENUMS.MFCC_PROCSCHEME_F_S_CTX:
-            case ENUMS.MFCC_PROCSCHEME_F_T_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_S:
+            case ENUMS.MFCC_PROCSCHEME_F_T:
             case ENUMS.MFCC_PROCSCHEME_F_S_NOTHR:
             case ENUMS.MFCC_PROCSCHEME_F_T_NOTHR:                
                 frames2beprocessed = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.0f, null); // NO pre-emphasis, NO hamming-windowing
                 break;
                 
-            case ENUMS.MFCC_PROCSCHEME_F_S_PP_CTX:
-            case ENUMS.MFCC_PROCSCHEME_F_T_PP_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_S_PP:
+            case ENUMS.MFCC_PROCSCHEME_F_T_PP:
             case ENUMS.MFCC_PROCSCHEME_F_S_PP_NOTHR:
             case ENUMS.MFCC_PROCSCHEME_F_T_PP_NOTHR:                
                 frames2beprocessed  = Framing.samplesProcessing(samples2beprocessed, mfccParams.nWindowLength, mfccParams.nWindowDistance, 0.95f, hammingWnd); // pre-emphasis/framing/hamming-windowing
@@ -372,15 +372,15 @@ public class MFCC
         // spectral or temporal derivatives
         switch((int)mfccParams.nProcessingScheme)
         {
-            case ENUMS.MFCC_PROCSCHEME_F_S_CTX:
-            case ENUMS.MFCC_PROCSCHEME_F_S_PP_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_S:
+            case ENUMS.MFCC_PROCSCHEME_F_S_PP:
             case ENUMS.MFCC_PROCSCHEME_F_S_NOTHR:
             case ENUMS.MFCC_PROCSCHEME_F_S_PP_NOTHR:                
                 cepstra = processQueuedSpectral(frames2beprocessed, queuedcepstraframes);
                 break;
                 
-            case ENUMS.MFCC_PROCSCHEME_F_T_CTX:
-            case ENUMS.MFCC_PROCSCHEME_F_T_PP_CTX:
+            case ENUMS.MFCC_PROCSCHEME_F_T:
+            case ENUMS.MFCC_PROCSCHEME_F_T_PP:
             case ENUMS.MFCC_PROCSCHEME_F_T_NOTHR:
             case ENUMS.MFCC_PROCSCHEME_F_T_PP_NOTHR:                
                 cepstra = processQueuedTemporal(frames2beprocessed, queuedcepstraframes);
