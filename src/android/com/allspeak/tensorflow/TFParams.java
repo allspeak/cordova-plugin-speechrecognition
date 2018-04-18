@@ -155,7 +155,7 @@ public class TFParams
         public static int OUTPUT_DATADEST           = ENUMS.TF_DATADEST_MODEL;        
         public static float RECOGNITION_THRESHOLD   = 0.1f;        
         public static boolean LOADED                = false;        
-        public static int PROCESSING_SCHEME         = ENUMS.MFCC_PROCSCHEME_F_S_CTX;        
+        public static int PROCESSING_SCHEME         = ENUMS.MFCC_PROCSCHEME_F_S;        
         public static String LOCAL_FOLDER           = "default";        
     }    
 }
