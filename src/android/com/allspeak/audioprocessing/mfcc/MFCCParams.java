@@ -23,7 +23,7 @@ public class MFCCParams
     public int nDataOrig                    = ENUMS.MFCC_DATAORIGIN_RAWDATA;    
     public String sOutputPath               = "";    
     public int nDeltaWindow                 = 2;    // values used in getDerivatives
-    public int nProcessingScheme            = ENUMS.MFCC_PROCSCHEME_F_S;   
+    public int nProcessingScheme            = ENUMS.MFCC_PROCSCHEME_F_S_CTX;   
     
     //derived
     public int nData2Reprocess              = 120;  // last part of the processed vector, that must be the first part of the new one.

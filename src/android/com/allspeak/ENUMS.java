@@ -67,12 +67,11 @@ public class ENUMS
     public static final int MFCC_DATAORIGIN_RAWDATA         = 243;   
     
     public static final int MFCC_DATATYPE_MFPARAMETERS      = 250;
-    public static final int MFCC_DATATYPE_MFFILTERS         = 251;  
-    
-    public static final int MFCC_PROCSCHEME_F_S         = 252;      // FilterBanks, Spectral derivatives, Contexting
-    public static final int MFCC_PROCSCHEME_F_S_PP      = 253;      // FilterBanks, Spectral derivatives, Pre-processing, Contexting
-    public static final int MFCC_PROCSCHEME_F_T         = 254;      // FilterBanks, Temporal derivatives, Contexting
-    public static final int MFCC_PROCSCHEME_F_T_PP      = 255;      // FilterBanks, Temporal derivatives, Pre-processing, Contexting    
+    public static final int MFCC_DATATYPE_MFFILTERS         = 251;   
+    public static final int MFCC_PROCSCHEME_F_S_CTX         = 252;      // FilterBanks, Spectral derivatives, Contexting
+    public static final int MFCC_PROCSCHEME_F_S_PP_CTX      = 253;      // FilterBanks, Spectral derivatives, Pre-processing, Contexting
+    public static final int MFCC_PROCSCHEME_F_T_CTX         = 254;      // FilterBanks, Temporal derivatives, Contexting
+    public static final int MFCC_PROCSCHEME_F_T_PP_CTX      = 255;      // FilterBanks, Temporal derivatives, Pre-processing, Contexting    
     public static final int MFCC_PROCSCHEME_F_S_NOTHR       = 256;      // FilterBanks, Spectral derivatives,                   DO NOT threshold frames with null cepstra
     public static final int MFCC_PROCSCHEME_F_S_PP_NOTHR    = 257;      // FilterBanks, Spectral derivatives, Pre-processing,   DO NOT threshold frames with null cepstra
     public static final int MFCC_PROCSCHEME_F_T_NOTHR       = 258;      // FilterBanks, Temporal derivatives,           ,       DO NOT threshold frames with null cepstra
@@ -93,17 +92,14 @@ public class ENUMS
     public static final int TF_MODELTYPE_COMMON_ADAPTED     = 276;      // COMMON ADAPTED (fine-tuned) NET made with user sentences (recordings must be ncommands x minrepetitions)   
     public static final int TF_MODELTYPE_USER_READAPTED     = 277;      // RE-ADAPTION of PUA NET made with user sentences (recordings are free)   
     public static final int TF_MODELTYPE_COMMON_READAPTED   = 278;      // RE-ADAPTION of CA NET made with user sentences (recordings are free)   
+
+    public static final int TRAIN_DATA_READY                = 280; // 
     
-    public static final int TF_MODELCLASS_FF                = 280;      // use Feed Forward net
-    public static final int TF_MODELTYPE_LSTM               = 281;      // use LSTM net
-    
-    public static final int TRAIN_DATA_ZIPPED               = 290; // 
-    
-    public static final int AUDIODEVICES_INFO               = 300; // 
-    public static final int HEADSET_CONNECTED               = 301;
-    public static final int HEADSET_DISCONNECTED            = 302; // 
-    public static final int HEADSET_CONNECTING              = 303; // 
-    public static final int HEADSET_DISCONNECTING           = 304; // 
+    public static final int AUDIODEVICES_INFO               = 290; // 
+    public static final int HEADSET_CONNECTED               = 291;
+    public static final int HEADSET_DISCONNECTED            = 292; // 
+    public static final int HEADSET_CONNECTING              = 293; // 
+    public static final int HEADSET_DISCONNECTING           = 294; // 
     
     
 }   
