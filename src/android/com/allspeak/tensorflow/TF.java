@@ -119,19 +119,13 @@ public class TF
                 exists = false;
                 err += (" " + sModelFilePath);
             }
-//            if(!FileUtilities.existFile(sLabelFilePath))
-//            {            
-//                exists = false;
-//                err += (" " + sLabelFilePath);               
-//            }
-
             if(exists)
             {
                 mClassifier = TensorFlowSpeechClassifier.create(
                                     mTfParams.mAssetManager,
                                     sModelFilePath,
                                     mTfParams.nInputParams,
-                                    mTfParams.sInputNodeName,
+                                    mTfParams.saInputNodeName,
                                     mTfParams.sOutputNodeName,
                                     mTfParams.getTitles());
             
@@ -152,24 +146,30 @@ public class TF
    
     public void doRecognize(float[][] cepstra, int frames2recognize)    // cepstra = [?][72]
     {
-        float[][] contextedCepstra = null;
-        
-        if(cepstra[0].length != mTfParams.nInputParams)
+        try
         {
             Framing.normalizeFrames(cepstra, frames2recognize);
-            contextedCepstra = Framing.getContextedFrames(cepstra, mTfParams.nContextFrames, mTfParams.nInputParams, frames2recognize);  // [?][72] => [?][792]
-        }
-        else
-            contextedCepstra = cepstra;
-        
-        if(mClassifier != null)
-        {
-            List<Recognition> results = mClassifier.recognizeSpeech(contextedCepstra, mTfParams.fRecognitionThreshold);
-            
-//            String recognizedWavPath = mTfParams.saAudioPath[Integer.parseInt(results.get(0).id)];
-            
-            try
+
+            float[][] contextedCepstra = null;
+            if(cepstra[0].length != mTfParams.nInputParams)
+                contextedCepstra = Framing.getContextedFrames(cepstra, mTfParams.nContextFrames, mTfParams.nInputParams, frames2recognize);  // [?][72] => [?][792]
+            else
+                contextedCepstra = cepstra;
+
+            if(mClassifier != null)
             {
+                List<Recognition> results = null;
+                switch((int)mTfParams.nModelClass)
+                {
+                    case ENUMS.TF_MODELCLASS_FF:
+                        results = mClassifier.recognizeSpeech(contextedCepstra, frames2recognize, mTfParams.fRecognitionThreshold);
+                        break;
+
+                    case ENUMS.TF_MODELCLASS_LSTM:
+                        results = mClassifier.recognizeLSTMSpeech(contextedCepstra, frames2recognize);
+                        break;
+                }
+//            String recognizedWavPath = mTfParams.saAudioPath[Integer.parseInt(results.get(0).id)];
                 JSONObject output       = new JSONObject();  
                 output.put("type", ENUMS.TF_RESULT);
 
@@ -189,22 +189,19 @@ public class TF
                 {
                     case ENUMS.TF_DATADEST_MODEL_FILE:
                     case ENUMS.TF_DATADEST_FILEONLY:
-//                        String outfile      = "AllSpeak/audiofiles/temp/cepstra_live.dat";
-//                        String outfile_ctx  = "AllSpeak/audiofiles/temp/ctx_cepstra_live.dat";
-//                        
-//                        FileUtilities.write2DArrayToFile(cepstra, frames2recognize, outfile, "%.4f", true);
-////                        FileUtilities.write2DArrayToFile(contextedCepstra, frames2recognize, outfile_ctx, "%.4f", true);
-//                        break;
+//                        String outfile      = "AllSpeak/audiofiles/temp/cepstra_live.dat";FileUtilities.write2DArrayToFile(cepstra, frames2recognize, outfile, "%.4f", true);
+//                        String outfile_ctx  = "AllSpeak/audiofiles/temp/ctx_cepstra_live.dat";FileUtilities.write2DArrayToFile(contextedCepstra, frames2recognize, outfile_ctx, "%.4f", true);
+                        break;
                 }
             }
-            catch(Exception e)
-            {
-                e.printStackTrace();                  
-               Log.e(LOG_TAG, e.getMessage(), e);
-                Messaging.sendErrorString2Web(callbackContext, e.getMessage(), ERRORS.TF_ERROR, true);
-            }            
+            else Messaging.sendErrorString2Web(callbackContext, "TF model not loaded", ERRORS.TF_ERROR_NOMODEL, true);
         }
-        else Messaging.sendErrorString2Web(callbackContext, "TF model not loaded", ERRORS.TF_ERROR_NOMODEL, true);
+        catch(Exception e)
+        {
+            e.printStackTrace();                  
+           Log.e(LOG_TAG, e.getMessage(), e);
+            Messaging.sendErrorString2Web(callbackContext, e.getMessage(), ERRORS.TF_ERROR, true);
+        }             
     }
     //=================================================================================================================
     // PRIVATE

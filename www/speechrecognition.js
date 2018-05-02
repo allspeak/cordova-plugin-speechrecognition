@@ -84,7 +84,7 @@ speechrecognition.ENUM.PLUGIN   =
     TF_MODELTYPE_COMMON_READAPTED   : 278,      // RE-ADAPTION of CA NET made with user sentences (recordings are free)   
     
     TF_MODELCLASS_FF                : 280,      // use Feed Forward net
-    TF_MODELTYPE_LSTM               : 281,      // use LSTM net
+    TF_MODELCLASS_LSTM              : 281,      // use LSTM net
 
     TRAIN_DATA_ZIPPED               : 290,
     
@@ -238,12 +238,13 @@ speechrecognition.ENUM.vad.DEFAULT = {
 
 speechrecognition.ENUM.tf.DEFAULT = {
     sLabel                  : "",        
+    nModelClass             : speechrecognition.ENUM.PLUGIN.TF_MODELCLASS_FF,        
     nModelType              : speechrecognition.ENUM.PLUGIN.TF_MODELTYPE_COMMON,        
     nInputParams            : 792,        
     nContextFrames          : 5,        
     nItems2Recognize        : 25,
     sModelFilePath          : "",         
-    sInputNodeName          : "inputs/I",          
+    saInputNodeName         : ["inputs/I"],          
     sOutputNodeName         : "SMO",      
     nDataDest               : speechrecognition.ENUM.PLUGIN.TF_DATADEST_MODEL,      
     fRecognitionThreshold   : 0.1,      
@@ -336,12 +337,13 @@ speechrecognition.checkVadParams = function(vad_params)
 speechrecognition.checkTfParams = function(tf_params)
 {
     speechrecognition.tf.params.sLabel                          = tf_params.sLabel                      || "";          
+    speechrecognition.tf.params.nModelClass                     = tf_params.nModelClass                 || speechrecognition.ENUM.tf.DEFAULT.nModelClass;          
     speechrecognition.tf.params.nModelType                      = tf_params.nModelType                  || speechrecognition.ENUM.tf.DEFAULT.nModelType;          
     speechrecognition.tf.params.nInputParams                    = tf_params.nInputParams                || speechrecognition.ENUM.tf.DEFAULT.nInputParams;          
     speechrecognition.tf.params.nContextFrames                  = tf_params.nContextFrames              || speechrecognition.ENUM.tf.DEFAULT.nContextFrames;          
     speechrecognition.tf.params.nItems2Recognize                = tf_params.nItems2Recognize            || speechrecognition.ENUM.tf.DEFAULT.nItems2Recognize;          
     speechrecognition.tf.params.sModelFilePath                  = tf_params.sModelFilePath              || "";          
-    speechrecognition.tf.params.sInputNodeName                  = tf_params.sInputNodeName              || speechrecognition.ENUM.tf.DEFAULT.sInputNodeName;          
+    speechrecognition.tf.params.saInputNodeName                 = tf_params.saInputNodeName             || [speechrecognition.ENUM.tf.DEFAULT.sInputNodeName];          
     speechrecognition.tf.params.sOutputNodeName                 = tf_params.sOutputNodeName             || speechrecognition.ENUM.tf.DEFAULT.sOutputNodeName;          
     speechrecognition.tf.params.fRecognitionThreshold           = tf_params.fRecognitionThreshold       || speechrecognition.ENUM.tf.DEFAULT.fRecognitionThreshold;
     speechrecognition.tf.params.sCreationTime                   = tf_params.sCreationTime               || "";

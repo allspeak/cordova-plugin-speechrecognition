@@ -219,25 +219,17 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
                 case ENUMS.TF_CMD_RECOGNIZE:  
                     nframes             = bundle.getInt("nframes");
                     boolean res         = HTcheckData(nframes);
+//                    debug_write_cepstra();
                     if(true)    // TODO: decide what to do whether the frames do not correspond
-                    {
-    //                    float[][] final_data = new float[nProcessedFrames][nColumns];
-    //                    for(int f=0; f<nProcessedFrames; f++)
-    //                        System.arraycopy(faCalculatedCepstra[f], 0, final_data[f], 0, nColumns);
-
-                        Framing.normalizeFrames(faCalculatedCepstra, nProcessedFrames);                    
-
-//                        String outfile      = "AllSpeak/audiofiles/temp/cepstra_live.dat";  FileUtilities.write2DArrayToFile(faCalculatedCepstra, nProcessedFrames, outfile, "%.4f", true);                    
                         tf.doRecognize(faCalculatedCepstra, nProcessedFrames);
-                    }
                     break;
 
                 case ENUMS.TF_CMD_RECOGNIZE_FILE:  
                     String cepstra_file = bundle.getString("file");
                     try
                     {
-                        cepstra             = FileUtilities.read2DArrayFromFile(cepstra_file);
-                        if(true)            tf.doRecognize(cepstra, cepstra.length);// TODO: decide what to do whether the frames do not correspond                    
+                        cepstra         = FileUtilities.read2DArrayFromFile(cepstra_file);
+                        if(true)        tf.doRecognize(cepstra, cepstra.length);              
                     }
                     catch(Exception e)
                     {
@@ -282,6 +274,25 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
         if(mInternalHandler == null)  Log.w(LOG_TAG, "TFHandlerThread mInternalHandler is NULL !!!!!!!!!!!!!!!!!");
         return mInternalHandler;
     }  
+    
+    private void debug_write_cepstra()
+    {
+        try
+        {
+            float[][] final_data = new float[nProcessedFrames][nColumns];
+            for(int f=0; f<nProcessedFrames; f++)
+                System.arraycopy(faCalculatedCepstra[f], 0, final_data[f], 0, nColumns);
+            String outfile      = "AllSpeak/audiofiles/temp/cepstra_live.dat";  
+            FileUtilities.write2DArrayToFile(faCalculatedCepstra, nProcessedFrames, outfile, "%.4f", true);                    
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();                  
+            Log.e(LOG_TAG, e.getMessage(), e);
+            Messaging.sendErrorString2Web(mWlCb, e.getMessage(), ERRORS.TF_ERROR, true);            
+            return;
+        }
+    }
     //================================================================================================================
     
 }

@@ -96,7 +96,7 @@ public class ZipManager
                 origin.close();
             }
             out.close();
-            Messaging.sendCode2Web(wlcb, ENUMS.TRAIN_DATA_READY, true);            
+            Messaging.sendCode2Web(wlcb, ENUMS.TRAIN_DATA_ZIPPED, true);            
             return true;
         }
         catch (Exception e) {
@@ -140,7 +140,7 @@ public class ZipManager
                 }
             }
             zin.close();
-            Messaging.sendCode2Web(wlcb, ENUMS.TRAIN_DATA_READY, true);            
+            Messaging.sendCode2Web(wlcb, ENUMS.TRAIN_DATA_ZIPPED, true);            
             return true;            
         }
         catch (Exception e) 

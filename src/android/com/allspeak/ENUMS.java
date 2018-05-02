@@ -95,7 +95,7 @@ public class ENUMS
     public static final int TF_MODELTYPE_COMMON_READAPTED   = 278;      // RE-ADAPTION of CA NET made with user sentences (recordings are free)   
     
     public static final int TF_MODELCLASS_FF                = 280;      // use Feed Forward net
-    public static final int TF_MODELTYPE_LSTM               = 281;      // use LSTM net
+    public static final int TF_MODELCLASS_LSTM              = 281;      // use LSTM net
     
     public static final int TRAIN_DATA_ZIPPED               = 290; // 
     

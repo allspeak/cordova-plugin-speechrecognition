@@ -337,7 +337,7 @@ public class MFCC
         // TODO : I should remove null frames after contexting...otherwise when I take the the previous 5, I may get frames before the cut
         if((int)mfccParams.nProcessingScheme < ENUMS.MFCC_PROCSCHEME_F_S_NOTHR) validframes = Framing.getSuprathresholdFrames(cepstra, 0.0f); 
         else                                                                    validframes = cepstra;
-        Framing.normalizeFrames(validframes);                       // float[][] ctx_scores = getContextedFrames(scores, 11, 792);return exportData(ctx_scores);  
+//        Framing.normalizeFrames(validframes);                       // float[][] ctx_scores = getContextedFrames(scores, 11, 792);return exportData(ctx_scores);  
         nFrames                         = validframes.length;
         nIgnoredFrames                  = allframes - nFrames;
         
@@ -376,7 +376,7 @@ public class MFCC
             case ENUMS.MFCC_PROCSCHEME_F_S_PP:
             case ENUMS.MFCC_PROCSCHEME_F_S_NOTHR:
             case ENUMS.MFCC_PROCSCHEME_F_S_PP_NOTHR:                
-                cepstra = processQueuedSpectral(frames2beprocessed, queuedcepstraframes);
+                cepstra = processQueuedSpectral(frames2beprocessed);
                 break;
                 
             case ENUMS.MFCC_PROCSCHEME_F_T:
@@ -390,7 +390,6 @@ public class MFCC
         float[][] validframes;
         if((int)mfccParams.nProcessingScheme < ENUMS.MFCC_PROCSCHEME_F_S_NOTHR) validframes = Framing.getSuprathresholdFrames(cepstra, 0.0f);
         else                                                                    validframes = cepstra;        
-//        float[][] validframes           = Framing.getSuprathresholdFrames(cepstra, 0.0f);
         nIgnoredFrames                  += (norigframes - nFrames - mfccParams.nDeltaWindow);
         
         return validframes;
@@ -549,15 +548,14 @@ public class MFCC
         }        
     }            
     
-    private synchronized float[][] processQueuedSpectral(float[][] frames, float[][] queue)
+    private synchronized float[][] processQueuedSpectral(float[][] frames)
     {
         try
         {
-            float[][] scores    = (mfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? mfccCalc.getMFCC(frames) : mfccCalc.getMFFilters(frames)); 
+            float[][] scores    = processSpectral(frames);
+            
             nFrames             = scores.length;
             int ncols           = scores[0].length;
-            mfccCalc.addSpectralDerivatives(scores);  
-            
             // prune invalid frames (I want to preserve compatibility between temporal & spectral derivatives)
             // change [nframes][:] ==> [nframes-nDeltaWindow][:]             
             float[][] validscores = new float[nFrames-mfccParams.nDeltaWindow][ncols];
