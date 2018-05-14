@@ -93,7 +93,7 @@ public class TensorFlowSpeechClassifier implements Classifier
         
         // FF nets have output lenght in operation.output(0).shape().size(1);
         // LSTM nets have output lenght in operation.output(0).shape().size(2);
-        if(c.nOutputClasses == -1)      c.nOutputClasses = (int)operation.output(0).shape().size(2);
+        if(c.nOutputClasses == -1 || c.nOutputClasses == 1)      c.nOutputClasses = (int)operation.output(0).shape().size(2);
        Log.i(TAG, "Read " + c.labels.size() + " labels, output layer size is " + c.nOutputClasses);
 
         // Pre-allocate buffers.
@@ -173,17 +173,12 @@ public class TensorFlowSpeechClassifier implements Classifier
         float[] flat_data = new float[frames2recognize * inputSize];
         
         //METHOD 1: the most intuitive one
-//        for(int f = 0; f < frames2recognize; f++)  System.arraycopy(framesCepstra[f], 0, flat_data, f*inputSize, inputSize);
+        for(int f = 0; f < frames2recognize; f++)  System.arraycopy(framesCepstra[f], 0, flat_data, f*inputSize, inputSize);
         
         // METHOD 2: consistent with this approach: https://github.com/curiousily/TensorFlow-on-Android-for-Human-Activity-Recognition-with-LSTMs
-        for(int i = 0; i < inputSize; i++)  
-        {
-            for(int f = 0; f < frames2recognize; f++)  
-            {
-                flat_data[f + i*frames2recognize] = framesCepstra[f][i];
-            }
-        }
-        
+//        for(int i = 0; i < inputSize; i++)  
+//            for(int f = 0; f < frames2recognize; f++)  
+//                flat_data[f + i*frames2recognize] = framesCepstra[f][i];
         
         long[] input_data_size = {1, frames2recognize, inputSize};
         int[] input_len_size = {inputSize};

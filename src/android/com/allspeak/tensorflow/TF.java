@@ -27,7 +27,9 @@ import com.allspeak.utility.FileUtilities;
 import com.allspeak.utility.Messaging;
 
 import com.allspeak.audioprocessing.Framing;
-        
+import com.allspeak.audioprocessing.mfcc.MFCC;
+
+
 import com.allspeak.tensorflow.TensorFlowSpeechClassifier;
 import com.allspeak.tensorflow.Classifier.Recognition;
 import com.allspeak.tensorflow.Classifier;
@@ -144,15 +146,19 @@ public class TF
         }          
     }
    
-    public void doRecognize(float[][] cepstra, int frames2recognize)    // cepstra = [?][72]
+    public void doRecognize(float[][] simplecepstra, int frames2recognize, int deltawindow)    // simplecepstra = [?][24]
     {
         try
         {
-            Framing.normalizeFrames(cepstra, frames2recognize);
+            int nscores = simplecepstra[0].length;
+            float[][] cepstra = MFCC.finalizeData(simplecepstra, frames2recognize, mTfParams.nProcessingScheme, nscores, deltawindow);
+
+            int validframes = cepstra.length;
+//            Framing.normalizeFrames(cepstra, frames2recognize);
 
             float[][] contextedCepstra = null;
             if(cepstra[0].length != mTfParams.nInputParams)
-                contextedCepstra = Framing.getContextedFrames(cepstra, mTfParams.nContextFrames, mTfParams.nInputParams, frames2recognize);  // [?][72] => [?][792]
+                contextedCepstra = Framing.getContextedFrames(cepstra, mTfParams.nContextFrames, mTfParams.nInputParams, validframes);  // [?][72] => [?][792]
             else
                 contextedCepstra = cepstra;
 
@@ -162,11 +168,11 @@ public class TF
                 switch((int)mTfParams.nModelClass)
                 {
                     case ENUMS.TF_MODELCLASS_FF:
-                        results = mClassifier.recognizeSpeech(contextedCepstra, frames2recognize, mTfParams.fRecognitionThreshold);
+                        results = mClassifier.recognizeSpeech(contextedCepstra, validframes, mTfParams.fRecognitionThreshold);
                         break;
 
                     case ENUMS.TF_MODELCLASS_LSTM:
-                        results = mClassifier.recognizeLSTMSpeech(contextedCepstra, frames2recognize);
+                        results = mClassifier.recognizeLSTMSpeech(contextedCepstra, validframes);
                         break;
                 }
 //            String recognizedWavPath = mTfParams.saAudioPath[Integer.parseInt(results.get(0).id)];
@@ -189,8 +195,8 @@ public class TF
                 {
                     case ENUMS.TF_DATADEST_MODEL_FILE:
                     case ENUMS.TF_DATADEST_FILEONLY:
-//                        String outfile      = "AllSpeak/audiofiles/temp/cepstra_live.dat";FileUtilities.write2DArrayToFile(cepstra, frames2recognize, outfile, "%.4f", true);
-//                        String outfile_ctx  = "AllSpeak/audiofiles/temp/ctx_cepstra_live.dat";FileUtilities.write2DArrayToFile(contextedCepstra, frames2recognize, outfile_ctx, "%.4f", true);
+//                        String outfile      = "AllSpeak/audiofiles/temp/cepstra_live.dat";FileUtilities.write2DArrayToFile(cepstra, validframes, outfile, "%.4f", true);
+//                        String outfile_ctx  = "AllSpeak/audiofiles/temp/ctx_cepstra_live.dat";FileUtilities.write2DArrayToFile(contextedCepstra, validframes, outfile_ctx, "%.4f", true);
                         break;
                 }
             }

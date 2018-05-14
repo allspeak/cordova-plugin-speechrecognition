@@ -162,6 +162,7 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
         Message message = mInternalHandler.obtainMessage();
         message.setData(bundle);        
         message.what    = ENUMS.TF_CMD_RECOGNIZE_FILE;
+        message.arg1    = 2;
         mInternalHandler.sendMessage(message);
         return true;        
     }    
@@ -203,6 +204,7 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
             int nframes;
             float[] data = null;
             float[][] cepstra = null;
+            int deltaWindow;
             switch((int)msg.what)
             {
                 case ENUMS.TF_CMD_CLEAR:  // frequently called by VAD ht & on TF HT init
@@ -217,19 +219,25 @@ public class TFHandlerThread extends HandlerThread implements Handler.Callback
                     break;
 
                 case ENUMS.TF_CMD_RECOGNIZE:  
-                    nframes             = bundle.getInt("nframes");
+//                    nframes             = bundle.getInt("nframes"); // with derivatives calculated here....i need to know the deltawindow
+                    
+                    nframes             = msg.arg1;
+                    deltaWindow         = msg.arg2;                    
+                    
                     boolean res         = HTcheckData(nframes);
 //                    debug_write_cepstra();
                     if(true)    // TODO: decide what to do whether the frames do not correspond
-                        tf.doRecognize(faCalculatedCepstra, nProcessedFrames);
+                        tf.doRecognize(faCalculatedCepstra, nProcessedFrames, deltaWindow);
                     break;
 
                 case ENUMS.TF_CMD_RECOGNIZE_FILE:  
                     String cepstra_file = bundle.getString("file");
+                    deltaWindow         = msg.arg1;                    
+                    
                     try
                     {
                         cepstra         = FileUtilities.read2DArrayFromFile(cepstra_file);
-                        if(true)        tf.doRecognize(cepstra, cepstra.length);              
+                        if(true)        tf.doRecognize(cepstra, cepstra.length, deltaWindow);     // TODO:  fix the last param: deltawindow to make derivatives             
                     }
                     catch(Exception e)
                     {

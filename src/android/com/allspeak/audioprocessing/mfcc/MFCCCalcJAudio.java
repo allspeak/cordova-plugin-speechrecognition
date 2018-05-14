@@ -92,13 +92,13 @@ public class MFCCCalcJAudio
     private int m_nDefaultScoreLength;  // indicates either m_nnumberOfParameters or m_nnumberOfFilters
     private int m_nDeltaWindow;         // indicates either m_nnumberOfParameters or m_nnumberOfFilters
     
-    private int nindices1;
-    private int[] indices1 ;
-    private int nindices2;
-    private int[] indices2 ;
-    private int nindicesout;
-    private int[] indicesout;
-    private int nDerivDenom;    
+//    private int nindices1;
+//    private int[] indices1 ;
+//    private int nindices2;
+//    private int[] indices2 ;
+//    private int nindicesout;
+//    private int[] indicesout;
+//    private int nDerivDenom;    
     
     
     /**The 0-th coefficient is included in nnumberOfParameters.
@@ -143,7 +143,7 @@ public class MFCCCalcJAudio
         
 //        mDerivativesQueue        = new float[m_nDeltaWindow][m_nDefaultScoreLength];
         
-        initSpectralDerivativeIndices(m_nDeltaWindow, m_nDefaultScoreLength);
+//        initSpectralDerivativeIndices(m_nDeltaWindow, m_nDefaultScoreLength);
     }
     
     
@@ -469,14 +469,13 @@ public class MFCCCalcJAudio
     // =======================================================================================================
     // cepstra calculation (parameters, filters) calls
     // =======================================================================================================    
-    // PARAMETERS : returns [nframes][3*m_nnumberOfParameters]
-    // write only first [:][m_nnumberOfParameters] values
+    // PARAMETERS : returns [nframes][m_nnumberOfParameters]
     public float[][] getMFCC(float[][] frames)
     {
         try
         {
             m_nFrames           = frames.length;
-            float[][] faMFCC    = new float[m_nFrames][3*m_nnumberOfParameters];        
+            float[][] faMFCC    = new float[m_nFrames][m_nnumberOfParameters];        
             float[] temp;
             for(int f=0; f<m_nFrames; f++)
             {
@@ -494,14 +493,13 @@ public class MFCCCalcJAudio
     }
     
     //------------------------------------------------------------------------------------------------
-    // FILTERS : returns [nframes][3*m_nnumberOfFilters]
-    // write only first [:][m_nnumberOfFilters] values
+    // FILTERS : returns [nframes][m_nnumberOfFilters]
     public float[][] getMFFilters(float[][] frames)
     {
         try
         {
             m_nFrames           = frames.length;
-            float[][] faMFCC    = new float[m_nFrames][3*m_nnumberOfFilters];  
+            float[][] faMFCC    = new float[m_nFrames][m_nnumberOfFilters];  
             float[] temp;
             for(int f=0; f<m_nFrames; f++)
             {
@@ -518,308 +516,308 @@ public class MFCCCalcJAudio
         }             
     }
 
-    // =======================================================================================================
-    // 1-st & 2-nd order derivatives of cepstra data
-    // =======================================================================================================
-    // USED to process a single file. 
-    // it duplicates the first and last m_nDeltaWindow frames
-    // INPUT  data represent (nframes X 3*nfilters), 
-    // OUTPUT data represent (nframes X 3*nfilters)
-    public void addTemporalDerivatives(float[][] cepstra)
-    {
-        int nscores         = cepstra[0].length/3;   // num scores
-        int ntw             = cepstra.length;      // num time windows
-        float[] tempData;
-        
-        // copy first m_nDeltaWindow scores to pastData        
-        float[][] pastData  = new float[m_nDeltaWindow][nscores];
-        for (int q = 0; q < m_nDeltaWindow; q++)
-            System.arraycopy(cepstra[0], 0, pastData[q], 0, nscores); 
-        
-        // copy last m_nDeltaWindow scores to futureData
-        float[][] futureData    = new float[m_nDeltaWindow][nscores];
-        for (int q=0; q<m_nDeltaWindow; q++)
-            System.arraycopy(cepstra[ntw-1], 0, futureData[q], 0, nscores);
-        
-        //-------------------------------------------------------------------
-        // first derivative
-        //-------------------------------------------------------------------
-        for(int tw = 0; tw < ntw; tw++)
-        {
-            if(tw >= m_nDeltaWindow && tw < (ntw-m_nDeltaWindow))
-            {
-                for(int sc = 0; sc < nscores; sc++)
-                {
-                    for(int r=1; r<=m_nDeltaWindow; r++)
-                        cepstra[tw][nscores + sc] = r*(cepstra[tw+r][sc] - cepstra[tw-r][sc]);
-                    cepstra[tw][nscores + sc] /= nDerivDenom;
-                }
-            }
-            else if(tw < m_nDeltaWindow)
-            {
-                //first m_nDeltaWindow frames
-                for(int sc = 0; sc < nscores; sc++)
-                {
-                    for(int r=1; r <= m_nDeltaWindow; r++)
-                    {
-                        tempData = pastData[m_nDeltaWindow-r];
-                        cepstra[tw][nscores + sc] = r*(cepstra[tw+r][sc] - tempData[sc]);
-                    }
-                    cepstra[tw][nscores + sc] /= nDerivDenom;
-                }                
-            }
-            else if(tw >= (ntw-m_nDeltaWindow))
-            {
-                //last m_nDeltaWindow frames
-                for(int sc = 0; sc < nscores; sc++)
-                {
-                    for(int r=1; r <= m_nDeltaWindow; r++)
-                    {
-                        tempData = futureData[r-1];
-                        cepstra[tw][nscores + sc] = r*(tempData[sc] - cepstra[tw-r][sc]);
-                    }
-                    cepstra[tw][nscores + sc] /= nDerivDenom;
-                }                 
-            }            
-        }
-        //-------------------------------------------------------------------
-        // second derivative
-        //-------------------------------------------------------------------
-        // I copy the first derivative of borders frames in 0->(nscores-1) positions
-        // copy first m_nDeltaWindow 1-st deriv scores to pastData
-        // copy last m_nDeltaWindow 1-st deriv scores to futureData
-        for (int q=0; q<m_nDeltaWindow; q++)
-        {
-            System.arraycopy(cepstra[0], nscores, pastData[q], 0, nscores); 
-            System.arraycopy(cepstra[ntw-1], nscores, futureData[q], 0, nscores); 
-        }        
-       
-        for(int tw = 0; tw < ntw; tw++)
-        {
-            if(tw >= m_nDeltaWindow && tw < (ntw-m_nDeltaWindow))
-            {
-                for(int sc = 0; sc < nscores; sc++)
-                {
-                    for(int r=1; r<=m_nDeltaWindow; r++)
-                        cepstra[tw][2*nscores + sc] = r*(cepstra[tw+r][sc+nscores] - cepstra[tw-r][sc+nscores]);
-                    cepstra[tw][2*nscores + sc] /= nDerivDenom;
-                }
-            }
-            else if(tw < m_nDeltaWindow)
-            {
-                for(int sc = 0; sc < nscores; sc++)
-                {
-                    for(int r=1; r <= m_nDeltaWindow; r++)
-                    {
-                        tempData = pastData[m_nDeltaWindow-r];
-                        cepstra[tw][2*nscores + sc] = r*(cepstra[tw+r][sc+nscores] - tempData[sc]);  // tempData = [m_nDeltaWindow][nscores]
-                    }
-                    cepstra[tw][2*nscores + sc] /= nDerivDenom;
-                }                
-            }
-            else if(tw >= (ntw-m_nDeltaWindow))
-            {
-                //last m_nDeltaWindow frames
-                for(int sc = 0; sc < nscores; sc++)
-                {
-                    for(int r=1; r <= m_nDeltaWindow; r++)
-                    {
-                        tempData = futureData[r-1];
-                        cepstra[tw][2*nscores + sc] = r*(tempData[sc] - cepstra[tw-r][sc+nscores]);
-                    }
-                    cepstra[tw][2*nscores + sc] /= nDerivDenom;
-                }                 
-            }              
-        }
-    }
-    //----------------------------------------------------------------------------------------------------------------
-    // USED to process a live stream. 
-    // it gets the m_nDeltaWindow previous cestra's frames and calculate derivatives only for the valid frames (nframes-m_nDeltaWindow)
-    // INPUT  data represent (nframes X 3*nfilters), the last m_nDeltaWindow previous frames, to be used to calculate the temporal derivative
-    // OUTPUT data represent (nframes-m_nDeltaWindow X 3*nfilters)    
-    public void addTemporalDerivatives(float[][] cepstra, float[][] pastData)
-    {
-        int nscores             = cepstra[0].length/3;   // num scores
-        int ntw                 = cepstra.length;      // num time windows
-        float[] tempData;
-        
-        if(pastData == null)
-        {
-            pastData = new float[m_nDeltaWindow][nscores];
-            // copy first m_nDeltaWindow nscores-vectors to pastData
-            for (int q = 0; q < m_nDeltaWindow; q++)
-                System.arraycopy(cepstra[0], 0, pastData[q], 0, nscores); 
-        }
-        //-------------------------------------------------------------------
-        // first derivative
-        //-------------------------------------------------------------------
-        for(int tw = 0; tw < ntw; tw++)
-        {
-            if(tw >= m_nDeltaWindow && tw < (ntw-m_nDeltaWindow))
-            {
-                for(int sc = 0; sc < nscores; sc++)
-                {
-                    for(int r=1; r<=m_nDeltaWindow; r++)
-                        cepstra[tw][nscores + sc] = r*(cepstra[tw+r][sc] - cepstra[tw-r][sc]);
-                    cepstra[tw][nscores + sc] /= nDerivDenom;
-                }
-            }
-            else if(tw < m_nDeltaWindow)
-            {
-                //first m_nDeltaWindow frames
-                for(int sc = 0; sc < nscores; sc++)
-                {
-                    for(int r=1; r <= m_nDeltaWindow; r++)
-                    {
-                        tempData = pastData[m_nDeltaWindow-r];
-                        cepstra[tw][nscores + sc] = r*(cepstra[tw+r][sc] - tempData[sc]);
-                    }
-                    cepstra[tw][nscores + sc] /= nDerivDenom;
-                }                
-            }
-        }
-        //-------------------------------------------------------------------
-        // second derivative
-        //-------------------------------------------------------------------
-        // I copy the first derivative of borders frames in 0->(nscores-1) positions
-        // copy first m_nDeltaWindow 1-st deriv scores to pastData
-        // copy last m_nDeltaWindow 1-st deriv scores to futureData
-        for (int q=0; q<m_nDeltaWindow; q++)
-            System.arraycopy(cepstra[0], nscores, pastData[q], 0, nscores); 
-       
-        for(int tw = 0; tw < ntw; tw++)
-        {
-            if(tw >= m_nDeltaWindow && tw < (ntw-m_nDeltaWindow))
-            {
-                for(int sc = 0; sc < nscores; sc++)
-                {
-                    for(int r=1; r<=m_nDeltaWindow; r++)
-                        cepstra[tw][2*nscores + sc] = r*(cepstra[tw+r][sc+nscores] - cepstra[tw-r][sc+nscores]);
-                    cepstra[tw][2*nscores + sc] /= nDerivDenom;
-                }
-            }
-            else if(tw < m_nDeltaWindow)
-            {
-                for(int sc = 0; sc < nscores; sc++)
-                {
-                    for(int r=1; r <= m_nDeltaWindow; r++)
-                    {
-                        tempData = pastData[m_nDeltaWindow-r];
-                        cepstra[tw][2*nscores + sc] = r*(cepstra[tw+r][sc+nscores] - tempData[sc]);  // tempData = [m_nDeltaWindow][nscores]
-                    }
-                    cepstra[tw][2*nscores + sc] /= nDerivDenom;
-                }                
-            }
-        }
-//        denominator = 2 * sum([i**2 for i in range(1, N+1)])
-//        delta_feat = numpy.empty_like(feat)
-//        padded = numpy.pad(feat, ((N, N), (0, 0)), mode='edge')   # padded version of feat
+//    // =======================================================================================================
+//    // 1-st & 2-nd order derivatives of cepstra data
+//    // =======================================================================================================
+//    // USED to process a single file. 
+//    // it duplicates the first and last m_nDeltaWindow frames
+//    // INPUT  data represent (nframes X 3*nfilters), 
+//    // OUTPUT data represent (nframes X 3*nfilters)
+//    public void addTemporalDerivatives(float[][] cepstra)
+//    {
+//        int nscores         = cepstra[0].length/3;   // num scores
+//        int ntw             = cepstra.length;      // num time windows
+//        float[] tempData;
+//        
+//        // copy first m_nDeltaWindow scores to pastData        
+//        float[][] pastData  = new float[m_nDeltaWindow][nscores];
+//        for (int q = 0; q < m_nDeltaWindow; q++)
+//            System.arraycopy(cepstra[0], 0, pastData[q], 0, nscores); 
+//        
+//        // copy last m_nDeltaWindow scores to futureData
+//        float[][] futureData    = new float[m_nDeltaWindow][nscores];
+//        for (int q=0; q<m_nDeltaWindow; q++)
+//            System.arraycopy(cepstra[ntw-1], 0, futureData[q], 0, nscores);
+//        
+//        //-------------------------------------------------------------------
+//        // first derivative
+//        //-------------------------------------------------------------------
+//        for(int tw = 0; tw < ntw; tw++)
+//        {
+//            if(tw >= m_nDeltaWindow && tw < (ntw-m_nDeltaWindow))
+//            {
+//                for(int sc = 0; sc < nscores; sc++)
+//                {
+//                    for(int r=1; r<=m_nDeltaWindow; r++)
+//                        cepstra[tw][nscores + sc] = r*(cepstra[tw+r][sc] - cepstra[tw-r][sc]);
+//                    cepstra[tw][nscores + sc] /= nDerivDenom;
+//                }
+//            }
+//            else if(tw < m_nDeltaWindow)
+//            {
+//                //first m_nDeltaWindow frames
+//                for(int sc = 0; sc < nscores; sc++)
+//                {
+//                    for(int r=1; r <= m_nDeltaWindow; r++)
+//                    {
+//                        tempData = pastData[m_nDeltaWindow-r];
+//                        cepstra[tw][nscores + sc] = r*(cepstra[tw+r][sc] - tempData[sc]);
+//                    }
+//                    cepstra[tw][nscores + sc] /= nDerivDenom;
+//                }                
+//            }
+//            else if(tw >= (ntw-m_nDeltaWindow))
+//            {
+//                //last m_nDeltaWindow frames
+//                for(int sc = 0; sc < nscores; sc++)
+//                {
+//                    for(int r=1; r <= m_nDeltaWindow; r++)
+//                    {
+//                        tempData = futureData[r-1];
+//                        cepstra[tw][nscores + sc] = r*(tempData[sc] - cepstra[tw-r][sc]);
+//                    }
+//                    cepstra[tw][nscores + sc] /= nDerivDenom;
+//                }                 
+//            }            
+//        }
+//        //-------------------------------------------------------------------
+//        // second derivative
+//        //-------------------------------------------------------------------
+//        // I copy the first derivative of borders frames in 0->(nscores-1) positions
+//        // copy first m_nDeltaWindow 1-st deriv scores to pastData
+//        // copy last m_nDeltaWindow 1-st deriv scores to futureData
+//        for (int q=0; q<m_nDeltaWindow; q++)
+//        {
+//            System.arraycopy(cepstra[0], nscores, pastData[q], 0, nscores); 
+//            System.arraycopy(cepstra[ntw-1], nscores, futureData[q], 0, nscores); 
+//        }        
+//       
+//        for(int tw = 0; tw < ntw; tw++)
+//        {
+//            if(tw >= m_nDeltaWindow && tw < (ntw-m_nDeltaWindow))
+//            {
+//                for(int sc = 0; sc < nscores; sc++)
+//                {
+//                    for(int r=1; r<=m_nDeltaWindow; r++)
+//                        cepstra[tw][2*nscores + sc] = r*(cepstra[tw+r][sc+nscores] - cepstra[tw-r][sc+nscores]);
+//                    cepstra[tw][2*nscores + sc] /= nDerivDenom;
+//                }
+//            }
+//            else if(tw < m_nDeltaWindow)
+//            {
+//                for(int sc = 0; sc < nscores; sc++)
+//                {
+//                    for(int r=1; r <= m_nDeltaWindow; r++)
+//                    {
+//                        tempData = pastData[m_nDeltaWindow-r];
+//                        cepstra[tw][2*nscores + sc] = r*(cepstra[tw+r][sc+nscores] - tempData[sc]);  // tempData = [m_nDeltaWindow][nscores]
+//                    }
+//                    cepstra[tw][2*nscores + sc] /= nDerivDenom;
+//                }                
+//            }
+//            else if(tw >= (ntw-m_nDeltaWindow))
+//            {
+//                //last m_nDeltaWindow frames
+//                for(int sc = 0; sc < nscores; sc++)
+//                {
+//                    for(int r=1; r <= m_nDeltaWindow; r++)
+//                    {
+//                        tempData = futureData[r-1];
+//                        cepstra[tw][2*nscores + sc] = r*(tempData[sc] - cepstra[tw-r][sc+nscores]);
+//                    }
+//                    cepstra[tw][2*nscores + sc] /= nDerivDenom;
+//                }                 
+//            }              
+//        }
+//    }
+//    //----------------------------------------------------------------------------------------------------------------
+//    // USED to process a live stream. 
+//    // it gets the m_nDeltaWindow previous cestra's frames and calculate derivatives only for the valid frames (nframes-m_nDeltaWindow)
+//    // INPUT  data represent (nframes X 3*nfilters), the last m_nDeltaWindow previous frames, to be used to calculate the temporal derivative
+//    // OUTPUT data represent (nframes-m_nDeltaWindow X 3*nfilters)    
+//    public void addTemporalDerivatives(float[][] cepstra, float[][] pastData)
+//    {
+//        int nscores             = cepstra[0].length/3;   // num scores
+//        int ntw                 = cepstra.length;      // num time windows
+//        float[] tempData;
+//        
+//        if(pastData == null)
+//        {
+//            pastData = new float[m_nDeltaWindow][nscores];
+//            // copy first m_nDeltaWindow nscores-vectors to pastData
+//            for (int q = 0; q < m_nDeltaWindow; q++)
+//                System.arraycopy(cepstra[0], 0, pastData[q], 0, nscores); 
+//        }
+//        //-------------------------------------------------------------------
+//        // first derivative
+//        //-------------------------------------------------------------------
+//        for(int tw = 0; tw < ntw; tw++)
+//        {
+//            if(tw >= m_nDeltaWindow && tw < (ntw-m_nDeltaWindow))
+//            {
+//                for(int sc = 0; sc < nscores; sc++)
+//                {
+//                    for(int r=1; r<=m_nDeltaWindow; r++)
+//                        cepstra[tw][nscores + sc] = r*(cepstra[tw+r][sc] - cepstra[tw-r][sc]);
+//                    cepstra[tw][nscores + sc] /= nDerivDenom;
+//                }
+//            }
+//            else if(tw < m_nDeltaWindow)
+//            {
+//                //first m_nDeltaWindow frames
+//                for(int sc = 0; sc < nscores; sc++)
+//                {
+//                    for(int r=1; r <= m_nDeltaWindow; r++)
+//                    {
+//                        tempData = pastData[m_nDeltaWindow-r];
+//                        cepstra[tw][nscores + sc] = r*(cepstra[tw+r][sc] - tempData[sc]);
+//                    }
+//                    cepstra[tw][nscores + sc] /= nDerivDenom;
+//                }                
+//            }
+//        }
+//        //-------------------------------------------------------------------
+//        // second derivative
+//        //-------------------------------------------------------------------
+//        // I copy the first derivative of borders frames in 0->(nscores-1) positions
+//        // copy first m_nDeltaWindow 1-st deriv scores to pastData
+//        // copy last m_nDeltaWindow 1-st deriv scores to futureData
+//        for (int q=0; q<m_nDeltaWindow; q++)
+//            System.arraycopy(cepstra[0], nscores, pastData[q], 0, nscores); 
+//       
+//        for(int tw = 0; tw < ntw; tw++)
+//        {
+//            if(tw >= m_nDeltaWindow && tw < (ntw-m_nDeltaWindow))
+//            {
+//                for(int sc = 0; sc < nscores; sc++)
+//                {
+//                    for(int r=1; r<=m_nDeltaWindow; r++)
+//                        cepstra[tw][2*nscores + sc] = r*(cepstra[tw+r][sc+nscores] - cepstra[tw-r][sc+nscores]);
+//                    cepstra[tw][2*nscores + sc] /= nDerivDenom;
+//                }
+//            }
+//            else if(tw < m_nDeltaWindow)
+//            {
+//                for(int sc = 0; sc < nscores; sc++)
+//                {
+//                    for(int r=1; r <= m_nDeltaWindow; r++)
+//                    {
+//                        tempData = pastData[m_nDeltaWindow-r];
+//                        cepstra[tw][2*nscores + sc] = r*(cepstra[tw+r][sc+nscores] - tempData[sc]);  // tempData = [m_nDeltaWindow][nscores]
+//                    }
+//                    cepstra[tw][2*nscores + sc] /= nDerivDenom;
+//                }                
+//            }
+//        }
+////        denominator = 2 * sum([i**2 for i in range(1, N+1)])
+////        delta_feat = numpy.empty_like(feat)
+////        padded = numpy.pad(feat, ((N, N), (0, 0)), mode='edge')   # padded version of feat
+////
+////        for fr in range(NUMFRAMES):
+////            delta_feat[fr] = [0 for _ in range(NUMSCORES)]
+////            for d in xrange(1, N+1):
+////                delta_feat[fr] = map(add, delta_feat[fr], d*(padded[fr+N+d] - padded[fr+N-d]))
+////            delta_feat[fr] /= denominator        
 //
-//        for fr in range(NUMFRAMES):
-//            delta_feat[fr] = [0 for _ in range(NUMSCORES)]
-//            for d in xrange(1, N+1):
-//                delta_feat[fr] = map(add, delta_feat[fr], d*(padded[fr+N+d] - padded[fr+N-d]))
-//            delta_feat[fr] /= denominator        
-
-    }
-
-    // =======================================================================================================
-    // INPUT  data represent (ntimewindows X nfilters), the last two previous frames, to be used to calculate the temporal derivative
-    // OUTPUT data represent (ntimewindows X 3*nfilters)
-    public void addSpectralDerivatives(float[][] data)
-    {
-       
-        int nscores             = data[0].length/3;   // num scores
-        int ntw                 = data.length;      // num time windows
-//        float[][] res           = new float[ntw][nscores*3];
-        
-        int borderColumnsWidth  = 2*m_nDeltaWindow;
-        int finalColumns        = 2*borderColumnsWidth + nscores;
-        
-        // with the first and last column (score), I have to emulate the following Python code : 
-        // column vector [ntw] => [ntw,1] => [ntw, 2*deltawindow]
-        
-        float[][] appendedVec   = new float[ntw][finalColumns];
-        float[][] deltaVec      = new float[ntw][finalColumns];
-        float[][] deltadeltaVec = new float[ntw][finalColumns];
-        
-        for(int c=0; c<finalColumns; c++)
-        {
-            if(c<borderColumnsWidth)
-                for(int tw=0; tw<ntw; tw++)
-                    appendedVec[tw][c] = data[tw][0];
-            else if (c>=borderColumnsWidth && c<(borderColumnsWidth+nscores))
-                for(int tw=0; tw<ntw; tw++)
-                    appendedVec[tw][c] = data[tw][c-borderColumnsWidth];
-            else
-                for(int tw=0; tw<ntw; tw++)
-                    appendedVec[tw][c] = data[tw][nscores-1];
-        }
-        //-------------------------------------------------------------------
-        // first derivative
-        int offset = nscores;
-        float[][] deltaVecCur       = new float[ntw][nindices1];
-
-        for(int dw=1; dw<=m_nDeltaWindow; dw++)
-        {
-            for(int r=0; r<nindices1; r++)
-                for(int tw=0; tw<ntw; tw++)
-                    deltaVecCur[tw][r] = appendedVec[tw][indices1[r]+dw] - appendedVec[tw][indices1[r]-dw];
-            
-            for(int r=0; r<nindices1; r++)
-                for(int tw=0; tw<ntw; tw++)
-                    deltaVec[tw][indices1[r]] = deltaVec[tw][indices1[r]] + deltaVecCur[tw][r]*dw;
-        }
-        // final extraction: [ntw][2*dw + nscores + 2*dw] => [ntw][nscores]
-        for(int sc=0; sc<nscores; sc++)
-            for(int tw=0; tw<ntw; tw++)
-                data[tw][sc+offset] = deltaVec[tw][sc+2*m_nDeltaWindow]/nDerivDenom;
-        
-        //-------------------------------------------------------------------
-        // second derivative
-        offset = 2*nscores;        
-        float[][] deltadeltaVecCur = new float[ntw][nindices2];        
-        
-        for(int dw=1; dw<=m_nDeltaWindow; dw++)
-        {
-            for(int r=0; r<nindices2; r++)
-                for(int tw=0; tw<ntw; tw++)
-                    deltadeltaVecCur[tw][r] = deltaVec[tw][indices2[r]+dw] - deltaVec[tw][indices2[r]-dw];
-            
-            for(int r=0; r<nindices2; r++)
-                for(int tw=0; tw<ntw; tw++)
-                    deltadeltaVec[tw][indices2[r]] = deltadeltaVec[tw][indices2[r]] + deltadeltaVecCur[tw][r]*dw;
-        }
-        
-        // final extraction: [ntw][nscores + 4*dw] => [ntw][nscores]
-        for(int sc=0; sc<nscores; sc++)
-            for(int tw=0; tw<ntw; tw++)
-                data[tw][sc+offset] = deltadeltaVec[tw][sc+2*m_nDeltaWindow]/nDerivDenom;
-        
-        //-------------------------------------------------------------------
-    }
-     
-    private void initSpectralDerivativeIndices(int ndw, int nscores)
-    {
-        nindices1           = nscores + ndw*2;
-        indices1            = new int[nindices1];
-        for(int r=0; r<nindices1; r++)
-            indices1[r]     = ndw + r;
-
-        nindices2           = nscores;
-        indices2            = new int[nindices2];
-        for(int r=0; r<nindices2; r++)
-            indices2[r]     = 2*ndw + r;
-        
-        nindicesout        = nscores;
-        indicesout         = new int[nindicesout];
-        for(int r=0; r<nindicesout; r++)
-            indicesout[r]  = 2*ndw + r;     
-        
-        nDerivDenom = 0;
-        for(int dw=1; dw<=ndw; dw++)
-            nDerivDenom = nDerivDenom + 2*(dw*dw);        
-    }      
+//    }
+//
+//    // =======================================================================================================
+//    // INPUT  data represent (ntimewindows X nfilters), the last two previous frames, to be used to calculate the temporal derivative
+//    // OUTPUT data represent (ntimewindows X 3*nfilters)
+//    public void addSpectralDerivatives(float[][] data)
+//    {
+//       
+//        int nscores             = data[0].length/3;   // num scores
+//        int ntw                 = data.length;      // num time windows
+////        float[][] res           = new float[ntw][nscores*3];
+//        
+//        int borderColumnsWidth  = 2*m_nDeltaWindow;
+//        int finalColumns        = 2*borderColumnsWidth + nscores;
+//        
+//        // with the first and last column (score), I have to emulate the following Python code : 
+//        // column vector [ntw] => [ntw,1] => [ntw, 2*deltawindow]
+//        
+//        float[][] appendedVec   = new float[ntw][finalColumns];
+//        float[][] deltaVec      = new float[ntw][finalColumns];
+//        float[][] deltadeltaVec = new float[ntw][finalColumns];
+//        
+//        for(int c=0; c<finalColumns; c++)
+//        {
+//            if(c<borderColumnsWidth)
+//                for(int tw=0; tw<ntw; tw++)
+//                    appendedVec[tw][c] = data[tw][0];
+//            else if (c>=borderColumnsWidth && c<(borderColumnsWidth+nscores))
+//                for(int tw=0; tw<ntw; tw++)
+//                    appendedVec[tw][c] = data[tw][c-borderColumnsWidth];
+//            else
+//                for(int tw=0; tw<ntw; tw++)
+//                    appendedVec[tw][c] = data[tw][nscores-1];
+//        }
+//        //-------------------------------------------------------------------
+//        // first derivative
+//        int offset = nscores;
+//        float[][] deltaVecCur       = new float[ntw][nindices1];
+//
+//        for(int dw=1; dw<=m_nDeltaWindow; dw++)
+//        {
+//            for(int r=0; r<nindices1; r++)
+//                for(int tw=0; tw<ntw; tw++)
+//                    deltaVecCur[tw][r] = appendedVec[tw][indices1[r]+dw] - appendedVec[tw][indices1[r]-dw];
+//            
+//            for(int r=0; r<nindices1; r++)
+//                for(int tw=0; tw<ntw; tw++)
+//                    deltaVec[tw][indices1[r]] = deltaVec[tw][indices1[r]] + deltaVecCur[tw][r]*dw;
+//        }
+//        // final extraction: [ntw][2*dw + nscores + 2*dw] => [ntw][nscores]
+//        for(int sc=0; sc<nscores; sc++)
+//            for(int tw=0; tw<ntw; tw++)
+//                data[tw][sc+offset] = deltaVec[tw][sc+2*m_nDeltaWindow]/nDerivDenom;
+//        
+//        //-------------------------------------------------------------------
+//        // second derivative
+//        offset = 2*nscores;        
+//        float[][] deltadeltaVecCur = new float[ntw][nindices2];        
+//        
+//        for(int dw=1; dw<=m_nDeltaWindow; dw++)
+//        {
+//            for(int r=0; r<nindices2; r++)
+//                for(int tw=0; tw<ntw; tw++)
+//                    deltadeltaVecCur[tw][r] = deltaVec[tw][indices2[r]+dw] - deltaVec[tw][indices2[r]-dw];
+//            
+//            for(int r=0; r<nindices2; r++)
+//                for(int tw=0; tw<ntw; tw++)
+//                    deltadeltaVec[tw][indices2[r]] = deltadeltaVec[tw][indices2[r]] + deltadeltaVecCur[tw][r]*dw;
+//        }
+//        
+//        // final extraction: [ntw][nscores + 4*dw] => [ntw][nscores]
+//        for(int sc=0; sc<nscores; sc++)
+//            for(int tw=0; tw<ntw; tw++)
+//                data[tw][sc+offset] = deltadeltaVec[tw][sc+2*m_nDeltaWindow]/nDerivDenom;
+//        
+//        //-------------------------------------------------------------------
+//    }
+//     
+//    private void initSpectralDerivativeIndices(int ndw, int nscores)
+//    {
+//        nindices1           = nscores + ndw*2;
+//        indices1            = new int[nindices1];
+//        for(int r=0; r<nindices1; r++)
+//            indices1[r]     = ndw + r;
+//
+//        nindices2           = nscores;
+//        indices2            = new int[nindices2];
+//        for(int r=0; r<nindices2; r++)
+//            indices2[r]     = 2*ndw + r;
+//        
+//        nindicesout        = nscores;
+//        indicesout         = new int[nindicesout];
+//        for(int r=0; r<nindicesout; r++)
+//            indicesout[r]  = 2*ndw + r;     
+//        
+//        nDerivDenom = 0;
+//        for(int dw=1; dw<=ndw; dw++)
+//            nDerivDenom = nDerivDenom + 2*(dw*dw);        
+//    }      
     // =======================================================================================================
 }
 

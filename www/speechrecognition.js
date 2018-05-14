@@ -67,10 +67,10 @@ speechrecognition.ENUM.PLUGIN   =
     MFCC_PROCSCHEME_F_T_NOTHR       : 258,      // FilterBanks, Temporal derivatives,           ,       DO NOT threshold frames with null cepstra
     MFCC_PROCSCHEME_F_T_PP_NOTHR    : 259,      // FilterBanks, Temporal derivatives, Pre-processing,   DO NOT threshold frames with null cepstra    
     
-    VAD_RESULT_DETECTION_ONLY               : 260,      // just detect. no MFCC, no save, only callback to WL    
-    VAD_RESULT_SAVE_SENTENCE                : 261,      // save (natively) and/or send data to WL  
-    VAD_RESULT_PROCESS_DATA                 : 262,      // process sentence data (MFCC & TF)
-    VAD_RESULT_PROCESS_DATA_SAVE_SENTENCE   : 263,      // process sentence data (MFCC & TF)    
+    MFCC_PROCSCHEME_F             : 260,      // FilterBanks,                                         Contexting
+    MFCC_PROCSCHEME_F_PP          : 261,      // FilterBanks,                         Pre-processing, Contexting
+    MFCC_PROCSCHEME_F_NOTHR       : 262,      // FilterBanks,                                           DO NOT threshold frames with null cepstra
+    MFCC_PROCSCHEME_F_PP_NOTHR    : 263,      // FilterBanks,                         Pre-processing,   DO NOT threshold frames with null cepstra
     
     TF_DATADEST_MODEL               : 270,      // sentence's cepstra are sent to TF model only
     TF_DATADEST_FILEONLY            : 271,      // sentence's cepstra are written to a file only
@@ -86,8 +86,13 @@ speechrecognition.ENUM.PLUGIN   =
     TF_MODELCLASS_FF                : 280,      // use Feed Forward net
     TF_MODELCLASS_LSTM              : 281,      // use LSTM net
 
-    TRAIN_DATA_ZIPPED               : 290,
+    VAD_RESULT_DETECTION_ONLY               : 290,      // just detect. no MFCC, no save, only callback to WL    
+    VAD_RESULT_SAVE_SENTENCE                : 291,      // save (natively) and/or send data to WL  
+    VAD_RESULT_PROCESS_DATA                 : 292,      // process sentence data (MFCC & TF)
+    VAD_RESULT_PROCESS_DATA_SAVE_SENTENCE   : 293,      // process sentence data (MFCC & TF)    
     
+    TRAIN_DATA_ZIPPED               : 299,
+        
     AUDIODEVICES_INFO               : 300, 
     HEADSET_CONNECTED               : 301,
     HEADSET_DISCONNECTED            : 302, 
@@ -187,7 +192,11 @@ speechrecognition.ENUM.mfcc.processingTypes = [
     {"label": "Filt-Spect"          , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S_NOTHR},
     {"label": "Filt-Spect-PP"       , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S_PP_NOTHR},
     {"label": "Filt-Temp"           , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_NOTHR},
-    {"label": "Filt-Temp-PP"        , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_PP_NOTHR}
+    {"label": "Filt-Temp-PP"        , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_PP_NOTHR},
+    {"label": "Filt-Thr"            , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F},
+    {"label": "Filt-PP-Thr"         , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_PP},
+    {"label": "Filt"                , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_NOTHR},
+    {"label": "Filt-PP"             , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_PP_NOTHR}    
 ];
 //=========================================================================================
 // DEFAULT
