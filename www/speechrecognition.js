@@ -67,10 +67,10 @@ speechrecognition.ENUM.PLUGIN   =
     MFCC_PROCSCHEME_F_T_NOTHR       : 258,      // FilterBanks, Temporal derivatives,           ,       DO NOT threshold frames with null cepstra
     MFCC_PROCSCHEME_F_T_PP_NOTHR    : 259,      // FilterBanks, Temporal derivatives, Pre-processing,   DO NOT threshold frames with null cepstra    
     
-    MFCC_PROCSCHEME_F             : 260,      // FilterBanks,                                         Contexting
-    MFCC_PROCSCHEME_F_PP          : 261,      // FilterBanks,                         Pre-processing, Contexting
-    MFCC_PROCSCHEME_F_NOTHR       : 262,      // FilterBanks,                                           DO NOT threshold frames with null cepstra
-    MFCC_PROCSCHEME_F_PP_NOTHR    : 263,      // FilterBanks,                         Pre-processing,   DO NOT threshold frames with null cepstra
+    MFCC_PROCSCHEME_F               : 260,      // FilterBanks,                                         Contexting
+    MFCC_PROCSCHEME_F_PP            : 261,      // FilterBanks,                         Pre-processing, Contexting
+    MFCC_PROCSCHEME_F_NOTHR         : 262,      // FilterBanks,                                           DO NOT threshold frames with null cepstra
+    MFCC_PROCSCHEME_F_PP_NOTHR      : 263,      // FilterBanks,                         Pre-processing,   DO NOT threshold frames with null cepstra
     
     TF_DATADEST_MODEL               : 270,      // sentence's cepstra are sent to TF model only
     TF_DATADEST_FILEONLY            : 271,      // sentence's cepstra are written to a file only
@@ -407,7 +407,7 @@ speechrecognition.getAudioDevices = function ()
     return promise;  
 };
 
-speechrecognition.loadTFModel = function (mTfCfg) 
+speechrecognition.loadTFNet = function (mTfCfg) 
 {
     var promise = new Promise(function(resolve, reject) {
         successCallback = resolve;
