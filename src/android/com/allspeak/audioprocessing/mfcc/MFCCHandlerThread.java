@@ -359,7 +359,7 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
 //        int nData2Queue     = data.length - nNewData2use + data2reprocess; 
         int nframes                 = Framing.getFrames(nData2Process, mfccParams.nWindowLength, mfccParams.nWindowDistance);
 
-        Log.d(LOG_TAG, "getSamples2Process : nData2Process : " + Integer.toString(nData2Process)  + ", nData2Queue : " + Integer.toString(nData2Queue) +  ", nframes: " + Integer.toString(nframes));
+        //Log.d(LOG_TAG, "getSamples2Process : nData2Process : " + Integer.toString(nData2Process)  + ", nData2Queue : " + Integer.toString(nData2Queue) +  ", nframes: " + Integer.toString(nframes));
 
 
         // assumes that first [0-(nQueueLastIndex-1)] elements of faMFCCQueue contains the still not processed data 

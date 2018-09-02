@@ -221,7 +221,7 @@ public class VAD
             // Speech Started or continued?
             if (!bSpeakingRightNow) startSpeechEvent(analysisBuffer);               // send start event to WL, reset params, then call continueSpeechEvent
             else                    continueSpeechEvent(analysisBuffer, false);     // set nAfterSpeechPeriod=0, then appendSpeech (nCurrentSpeechLength++)
-       }
+        }
         else 
         {
             // No speech was identified this time, was speech previously started?
@@ -239,6 +239,7 @@ public class VAD
             }
             calculateAmbientAverageLevel(fLastAudioLevel);                          // Handle silence
         }
+        //Log.w(LOG_TAG, "ambient levels: " + Float.toString(fAmbientAverageLevel) + ", " + Float.toString(fCurrentThreshold));
         return true;
     }
 
@@ -551,8 +552,10 @@ public class VAD
     
     public boolean adjustVADThreshold(int newthreshold)
     {
-        // alternatively ....I call a function that calculate a new background level
-        mVadParams.nSpeechDetectionThreshold = newthreshold;
+        if(newthreshold > 0)
+            mVadParams.nSpeechDetectionThreshold = newthreshold;
+        else
+            resetAmbientLevels();
         return true;
     }
     //======================================================================================    

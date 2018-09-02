@@ -402,8 +402,7 @@ speechrecognition.getAudioDevices = function ()
         successCallback = resolve;
         errorCallback = reject;
     });
-    cordova.exec(successCallback, errorCallback,
-        speechrecognition.pluginName, "getAudioDevices", []);
+    exec(successCallback, errorCallback, speechrecognition.pluginName, "getAudioDevices", []);
     return promise;  
 };
 
@@ -421,6 +420,22 @@ speechrecognition.loadTFNet = function (mTfCfg)
     exec(successCallback, errorCallback, speechrecognition.pluginName, "loadTFModel", [json_tf_params]);
     
     return promise;
+};
+
+/**
+ * adjustVADThreshold
+ * set a new VAD threshold or ask for threshold reset
+ */
+speechrecognition.adjustVADThreshold = function (threshold) 
+{
+//    if (speechrecognition._capturing) 
+    var promise = new Promise(function(resolve, reject) {
+        successCallback = resolve;
+        errorCallback = reject;
+    });
+    
+   exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, "adjustVADThreshold", [parseInt(threshold)]);
+   return promise;    
 };
 
 //=========================================================================================

@@ -334,8 +334,9 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
         else if (action.equals("adjustVADThreshold")) 
         {
             // an interrupt command is sent to audioreceiver, when it exits from its last cycle, it sends an event here
-            int newthreshold   = args.getInt(0); 
-            
+            int newthreshold   = 0; 
+            if(!args.isNull(0)) newthreshold = args.getInt(0);
+           
             mService.adjustVADThreshold(newthreshold, callbackContext);
             Messaging.sendNoResult2Web(callbackContext);
             return true;

@@ -420,7 +420,7 @@ public class SpeechRecognitionService extends Service
         }            
     }
     
-    public void adjustVADThreshold(int newthreshold, CallbackContext cb)
+    public void adjustVADThreshold(int newthreshold, CallbackContext cb)    // newthreshold = -1 or value sent by WL
     {
         callbackContext             = cb;   
         mVadHT.adjustVADThreshold(newthreshold);

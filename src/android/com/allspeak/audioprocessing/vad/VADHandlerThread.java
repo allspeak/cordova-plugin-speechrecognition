@@ -226,7 +226,8 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
                     break;
 
                 case ENUMS.CAPTURE_STATUS_STOPPED:
-                    vad.stopCapture();
+                    if(vad != null)
+                        vad.stopCapture();
                     bIsCapturing = false;
                     break;
 
@@ -243,7 +244,8 @@ public class VADHandlerThread extends HandlerThread implements Handler.Callback
 
                 case ENUMS.VAD_CMD_ADJUST_THRESHOLD:
                     int newthreshold = b.getInt("newthreshold");
-                    vad.adjustVADThreshold(newthreshold);
+                    if(vad != null)
+                        vad.adjustVADThreshold(newthreshold);
                     break;
             }
             return true;
