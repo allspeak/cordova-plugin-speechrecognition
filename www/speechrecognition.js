@@ -4,6 +4,8 @@ var argscheck   = require('cordova/argscheck'),
     channel     = require('cordova/channel');
 
 var speechrecognition           = {};
+
+speechrecognition.ver = "0.4.0";
 speechrecognition.ENUM          = {};
 
 speechrecognition.pluginName    = "SpeechRecognitionPlugin";
@@ -32,6 +34,8 @@ speechrecognition.ENUM.PLUGIN   =
     TF_STATUS_MODEL_LOADED          : 50, //
     TF_STATUS_PROCESS_STARTED       : 51, //
     TF_RESULT                       : 56, //
+    TF_CMD_RECOGNIZE_FILE           : 57, //
+    TF_RESUME_RECOGNITION           : 58, //
     
     CAPTURE_DATADEST_NONE           : 200,
     CAPTURE_DATADEST_JS_RAW         : 201,
@@ -58,19 +62,19 @@ speechrecognition.ENUM.PLUGIN   =
     
     MFCC_DATATYPE_MFPARAMETERS      : 250,
     MFCC_DATATYPE_MFFILTERS         : 251,
-    MFCC_PROCSCHEME_F_S_CTX         : 252,      // FilterBanks, Spectral derivatives, Contexting
-    MFCC_PROCSCHEME_F_S_PP_CTX      : 253,      // FilterBanks, Spectral derivatives, Pre-processing, Contexting
-    MFCC_PROCSCHEME_F_T_CTX         : 254,      // FilterBanks, Temporal derivatives, Contexting
-    MFCC_PROCSCHEME_F_T_PP_CTX      : 255,      // FilterBanks, Temporal derivatives, Pre-processing, Contexting      
+    MFCC_PROCSCHEME_F_S             : 252,      // FilterBanks, Spectral derivatives, Contexting
+    MFCC_PROCSCHEME_F_S_PP          : 253,      // FilterBanks, Spectral derivatives, Pre-processing, Contexting
+    MFCC_PROCSCHEME_F_T             : 254,      // FilterBanks, Temporal derivatives, Contexting
+    MFCC_PROCSCHEME_F_T_PP          : 255,      // FilterBanks, Temporal derivatives, Pre-processing, Contexting      
     MFCC_PROCSCHEME_F_S_NOTHR       : 256,      // FilterBanks, Spectral derivatives,                   DO NOT threshold frames with null cepstra
     MFCC_PROCSCHEME_F_S_PP_NOTHR    : 257,      // FilterBanks, Spectral derivatives, Pre-processing,   DO NOT threshold frames with null cepstra
     MFCC_PROCSCHEME_F_T_NOTHR       : 258,      // FilterBanks, Temporal derivatives,           ,       DO NOT threshold frames with null cepstra
     MFCC_PROCSCHEME_F_T_PP_NOTHR    : 259,      // FilterBanks, Temporal derivatives, Pre-processing,   DO NOT threshold frames with null cepstra    
     
-    VAD_RESULT_DETECTION_ONLY               : 260,      // just detect. no MFCC, no save, only callback to WL    
-    VAD_RESULT_SAVE_SENTENCE                : 261,      // save (natively) and/or send data to WL  
-    VAD_RESULT_PROCESS_DATA                 : 262,      // process sentence data (MFCC & TF)
-    VAD_RESULT_PROCESS_DATA_SAVE_SENTENCE   : 263,      // process sentence data (MFCC & TF)    
+    MFCC_PROCSCHEME_F               : 260,      // FilterBanks,                                         Contexting
+    MFCC_PROCSCHEME_F_PP            : 261,      // FilterBanks,                         Pre-processing, Contexting
+    MFCC_PROCSCHEME_F_NOTHR         : 262,      // FilterBanks,                                           DO NOT threshold frames with null cepstra
+    MFCC_PROCSCHEME_F_PP_NOTHR      : 263,      // FilterBanks,                         Pre-processing,   DO NOT threshold frames with null cepstra
     
     TF_DATADEST_MODEL               : 270,      // sentence's cepstra are sent to TF model only
     TF_DATADEST_FILEONLY            : 271,      // sentence's cepstra are written to a file only
@@ -83,13 +87,25 @@ speechrecognition.ENUM.PLUGIN   =
     TF_MODELTYPE_USER_READAPTED     : 277,      // RE-ADAPTION of PUA NET made with user sentences (recordings are free)   
     TF_MODELTYPE_COMMON_READAPTED   : 278,      // RE-ADAPTION of CA NET made with user sentences (recordings are free)   
     
-    TRAIN_DATA_READY                : 280,
+    TF_MODELCLASS_FF                : 280,      // use Feed Forward net
+    TF_MODELCLASS_LSTM              : 281,      // use LSTM net
+
+    VAD_RESULT_DETECTION_ONLY               : 290,      // just detect. no MFCC, no save, only callback to WL    
+    VAD_RESULT_SAVE_SENTENCE                : 291,      // save (natively) and/or send data to WL  
+    VAD_RESULT_PROCESS_DATA                 : 292,      // process sentence data (MFCC & TF)
+    VAD_RESULT_PROCESS_DATA_SAVE_SENTENCE   : 293,      // process sentence data (MFCC & TF)    
     
-    AUDIODEVICES_INFO               : 290, // 
-    HEADSET_CONNECTED               : 291,
-    HEADSET_DISCONNECTED            : 292, 
-    HEADSET_CONNECTING              : 293,     
-    HEADSET_DISCONNECTING           : 294     
+    TRAIN_DATA_ZIPPED               : 299,
+        
+    BLUETOOTH_INIT                  : 300, 
+    HEADSET_CONNECTED               : 301,
+    HEADSET_DISCONNECTED            : 302, 
+    HEADSET_CONNECTING              : 303,     
+    HEADSET_DISCONNECTING           : 304,     
+    AUDIOSCO_CONNECTED              : 305,     
+    AUDIOSCO_DISCONNECTED           : 306,
+    HEADSET_EXIST                   : 307,
+    BLUETOOTH_STATUS                : 308
 }; 
 
 // MUST MAP plugin's ERRORS.java
@@ -177,14 +193,18 @@ speechrecognition.ENUM.vad.MAX_MIL_MS = 1000;   // maximum SPEECH_DETECTION_MIN_
 //=========================================================================================
 
 speechrecognition.ENUM.mfcc.processingTypes = [
-    {"label": "Filt-Spec-ctx-Thr"       , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S_CTX},
-    {"label": "Filt-Spectral-PP-ctx-Thr", "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S_PP_CTX},
-    {"label": "Filt-Temp-ctx-Thr"       , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_CTX},
-    {"label": "Filt-Temp-PP-ctx-Thr"    , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_PP_CTX},
-    {"label": "Filt-Spect"              , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S_NOTHR},
-    {"label": "Filt-Spect-PP"           , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S_PP_NOTHR},
-    {"label": "Filt-Temp"               , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_NOTHR},
-    {"label": "Filt-Temp-PP"            , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_PP_NOTHR}
+    {"label": "Filt-Spec-Thr"       , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S},
+    {"label": "Filt-Spectral-PP-Thr", "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S_PP},
+    {"label": "Filt-Temp-Thr"       , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T},
+    {"label": "Filt-Temp-PP-Thr"    , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_PP},
+    {"label": "Filt-Spect"          , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S_NOTHR},
+    {"label": "Filt-Spect-PP"       , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_S_PP_NOTHR},
+    {"label": "Filt-Temp"           , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_NOTHR},
+    {"label": "Filt-Temp-PP"        , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_T_PP_NOTHR},
+    {"label": "Filt-Thr"            , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F},
+    {"label": "Filt-PP-Thr"         , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_PP},
+    {"label": "Filt"                , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_NOTHR},
+    {"label": "Filt-PP"             , "value": speechrecognition.ENUM.PLUGIN.MFCC_PROCSCHEME_F_PP_NOTHR}    
 ];
 //=========================================================================================
 // DEFAULT
@@ -235,12 +255,13 @@ speechrecognition.ENUM.vad.DEFAULT = {
 
 speechrecognition.ENUM.tf.DEFAULT = {
     sLabel                  : "",        
+    nModelClass             : speechrecognition.ENUM.PLUGIN.TF_MODELCLASS_FF,        
     nModelType              : speechrecognition.ENUM.PLUGIN.TF_MODELTYPE_COMMON,        
     nInputParams            : 792,        
     nContextFrames          : 5,        
     nItems2Recognize        : 25,
     sModelFilePath          : "",         
-    sInputNodeName          : "inputs/I",          
+    saInputNodeName         : ["inputs/I"],          
     sOutputNodeName         : "SMO",      
     nDataDest               : speechrecognition.ENUM.PLUGIN.TF_DATADEST_MODEL,      
     fRecognitionThreshold   : 0.1,      
@@ -333,12 +354,13 @@ speechrecognition.checkVadParams = function(vad_params)
 speechrecognition.checkTfParams = function(tf_params)
 {
     speechrecognition.tf.params.sLabel                          = tf_params.sLabel                      || "";          
+    speechrecognition.tf.params.nModelClass                     = tf_params.nModelClass                 || speechrecognition.ENUM.tf.DEFAULT.nModelClass;          
     speechrecognition.tf.params.nModelType                      = tf_params.nModelType                  || speechrecognition.ENUM.tf.DEFAULT.nModelType;          
     speechrecognition.tf.params.nInputParams                    = tf_params.nInputParams                || speechrecognition.ENUM.tf.DEFAULT.nInputParams;          
     speechrecognition.tf.params.nContextFrames                  = tf_params.nContextFrames              || speechrecognition.ENUM.tf.DEFAULT.nContextFrames;          
     speechrecognition.tf.params.nItems2Recognize                = tf_params.nItems2Recognize            || speechrecognition.ENUM.tf.DEFAULT.nItems2Recognize;          
     speechrecognition.tf.params.sModelFilePath                  = tf_params.sModelFilePath              || "";          
-    speechrecognition.tf.params.sInputNodeName                  = tf_params.sInputNodeName              || speechrecognition.ENUM.tf.DEFAULT.sInputNodeName;          
+    speechrecognition.tf.params.saInputNodeName                 = tf_params.saInputNodeName             || [speechrecognition.ENUM.tf.DEFAULT.sInputNodeName];          
     speechrecognition.tf.params.sOutputNodeName                 = tf_params.sOutputNodeName             || speechrecognition.ENUM.tf.DEFAULT.sOutputNodeName;          
     speechrecognition.tf.params.fRecognitionThreshold           = tf_params.fRecognitionThreshold       || speechrecognition.ENUM.tf.DEFAULT.fRecognitionThreshold;
     speechrecognition.tf.params.sCreationTime                   = tf_params.sCreationTime               || "";
@@ -388,12 +410,21 @@ speechrecognition.getAudioDevices = function ()
         successCallback = resolve;
         errorCallback = reject;
     });
-    cordova.exec(successCallback, errorCallback,
-        speechrecognition.pluginName, "getAudioDevices", []);
+    exec(successCallback, errorCallback, speechrecognition.pluginName, "getAudioDevices", []);
     return promise;  
 };
 
-speechrecognition.loadTFModel = function (mTfCfg) 
+speechrecognition.getBluetoothStatus = function () 
+{
+    var promise = new Promise(function(resolve, reject) {
+        successCallback = resolve;
+        errorCallback = reject;
+    });    
+    exec(successCallback, errorCallback, speechrecognition.pluginName, "getBluetoothStatus", []);
+    return promise;  
+};
+
+speechrecognition.loadTFNet = function (mTfCfg) 
 {
     var promise = new Promise(function(resolve, reject) {
         successCallback = resolve;
@@ -409,12 +440,39 @@ speechrecognition.loadTFModel = function (mTfCfg)
     return promise;
 };
 
+/**
+ * adjustVADThreshold
+ * set a new VAD threshold or ask for threshold reset
+ */
+speechrecognition.adjustVADThreshold = function (threshold) 
+{
+//    if (speechrecognition._capturing) 
+    var promise = new Promise(function(resolve, reject) {
+        successCallback = resolve;
+        errorCallback = reject;
+    });
+    
+   exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, "adjustVADThreshold", [parseInt(threshold)]);
+   return promise;    
+};
+
 //=========================================================================================
 // UNIFIED _PLUGINEVENT CALLBACK
 //=========================================================================================
-speechrecognition.startSCOConnection = function (start) {
-    exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, "startSCOConnection", [start]);
+speechrecognition.enableHeadSet = function(enable)
+{
+    if(enable != true && enable != false) return Promise.reject({"message": "enable param of enableHeadSet is not valid: " + enable.toString()});
+    exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, "enableHeadSet", [enable]);
 };
+
+// init BluetoothHeadsetProfile and its listeners...do be done only once !
+speechrecognition.initBluetooth = function(bltsrv_callback)
+{
+    speechrecognition.bluetoothSrvCallback = bltsrv_callback;
+    
+    exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, "initBluetooth", []);
+};
+
 
 /**
  * Start capture of Audio input
@@ -654,23 +712,30 @@ speechrecognition._pluginEvent = function (data) {
                 cordova.fireWindowEvent("speechstatus", {datatype: data.type});
                 break;
                 
-            case speechrecognition.ENUM.PLUGIN.HEADSET_CONNECTED:
+//            case speechrecognition.ENUM.PLUGIN.HEADSET_CONNECTED:
             case speechrecognition.ENUM.PLUGIN.HEADSET_DISCONNECTED:
-                cordova.fireWindowEvent("headsetstatus", {datatype: itemsdata.type});
+            case speechrecognition.ENUM.PLUGIN.HEADSET_CONNECTING:
+            case speechrecognition.ENUM.PLUGIN.AUDIOSCO_CONNECTED:
+            case speechrecognition.ENUM.PLUGIN.AUDIOSCO_DISCONNECTED:
+            case speechrecognition.ENUM.PLUGIN.HEADSET_EXIST:
+                cordova.fireWindowEvent("headsetstatus", {data: data});
                 break;
                 
-            case speechrecognition.ENUM.PLUGIN.TRAIN_DATA_READY:
+            case speechrecognition.ENUM.PLUGIN.TRAIN_DATA_ZIPPED:
                 cordova.fireWindowEvent("traindataready", {items:data.items});
                 break;
                 
             case speechrecognition.ENUM.PLUGIN.TF_RESULT:
                 cordova.fireWindowEvent("recognitionresult", {items:data.items});
                 break;
-            
-            // audiodevices info pass from a promise route    
-//            case speechrecognition.ENUM.PLUGIN.AUDIODEVICES_INFO:
-//                cordova.fireWindowEvent("audiodevicesinfo", {input: data.input, output: data.output});
-//                break;                
+                
+            case speechrecognition.ENUM.PLUGIN.TF_RESUME_RECOGNITION:
+                speechrecognition.resumeSpeechRecognition();
+                break;
+                
+            case speechrecognition.ENUM.PLUGIN.BLUETOOTH_INIT:
+                speechrecognition.bluetoothSrvCallback(data.data);  // inform BluetoothSrv if bluetooth headset profile has been enabled
+                break;
         }
     }
     catch (ex) {

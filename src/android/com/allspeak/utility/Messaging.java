@@ -127,7 +127,6 @@ public class Messaging
         return b;
     }  
     
-    
     public static Bundle sendDataToHandler(Handler handl, int action_code, float[][] data, int nDim1, int nDim2, int nShift)
     {
         if(handl == null) return null;
@@ -192,6 +191,26 @@ public class Messaging
             try
             {
                 JSONObject info = new JSONObject(); 
+                info.put("type", action_code);                
+                PluginResult result = new PluginResult(PluginResult.Status.OK, info);
+                result.setKeepCallback(keepCallback);
+                callbackContext.sendPluginResult(result);
+            }
+            catch(JSONException e) { e.printStackTrace(); }
+        }
+    }  
+    
+    /**
+     * Create a new plugin result and send it back to JavaScript
+     */
+    public static void sendBoolData2Web(CallbackContext callbackContext, int action_code, boolean data, boolean keepCallback) 
+    {
+        if (callbackContext != null) 
+        {
+            try
+            {
+                JSONObject info = new JSONObject(); 
+                info.put("data", data);
                 info.put("type", action_code);                
                 PluginResult result = new PluginResult(PluginResult.Status.OK, info);
                 result.setKeepCallback(keepCallback);

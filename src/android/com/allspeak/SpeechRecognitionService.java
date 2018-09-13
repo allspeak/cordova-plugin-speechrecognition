@@ -202,6 +202,8 @@ public class SpeechRecognitionService extends Service
     //===============================================================================
     public boolean startCapture(CaptureParams cfgParams, MFCCParams mfccParams, CallbackContext cb)
     {
+        String console_msg = "Start capturing";
+        
         try 
         {
             callbackContext = cb;
@@ -237,8 +239,16 @@ public class SpeechRecognitionService extends Service
                 mMfccHTLooper       = mMfccHT.getHandlerLooper();   // get the mfcc looper   
                 bIsCalculatingMFCC  = true;
 
+                console_msg = console_msg +  ", calculating mfcc (proc scheme=" + Integer.toString(mMfccParams.nProcessingScheme) + ", dest=" + Integer.toString(mMfccParams.nDataDest);
+                        
                 if(mMfccParams.sOutputPath != "" && mMfccParams.nDataDest >= ENUMS.MFCC_DATADEST_FILE)
-                     FileUtilities.deleteExternalStorageFile(mMfccParams.sOutputPath + ".dat");
+                {
+                    FileUtilities.deleteExternalStorageFile(mMfccParams.sOutputPath + ".dat");
+                    console_msg = console_msg + ", file=" + mMfccParams.sOutputPath + ".dat" + ")";
+                }
+                else
+                    console_msg = console_msg + ")";
+                 
             }            
             aicCapture                  = new AudioInputCapture(mCaptureParams, mAicServiceHandler, null, mAicServiceHandler);
             nCapturedDataDest           = mCaptureParams.nDataDest;
@@ -255,6 +265,8 @@ public class SpeechRecognitionService extends Service
             resetDataCounters();
             bTriggerAction          = false;            
             aicCapture.start();
+            Log.d(LOG_TAG, console_msg);
+            
             return true;
         }
         catch (Exception e) 
@@ -334,7 +346,7 @@ public class SpeechRecognitionService extends Service
             // I get the length (first in samples, then in frames) of the max allowed speech chunk. 
             int nMaxSpeechLengthSample  = mVadHT.getMaxSpeechLengthSamples();  
             int nMaxSpeechLengthFrames  = Framing.getFrames(nMaxSpeechLengthSample, mMfccParams.nWindowLength, mMfccParams.nWindowDistance);
-            int nParams                 = (mMfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? 3*mMfccParams.nNumberOfMFCCParameters : 3*mMfccParams.nNumberofFilters);
+            int nParams                 = (mMfccParams.nDataType == ENUMS.MFCC_DATATYPE_MFPARAMETERS ? mMfccParams.nNumberOfMFCCParameters : mMfccParams.nNumberofFilters);
 
             // I pass to MFCC to let him allocate the proper cepstra buffer
             mMfccHT.init(mMfccParams, mMfccServiceHandler, tfHTLooper, tfHTLooper, nMaxSpeechLengthSample);       // MFCC send commands & results to TF, status here
@@ -391,7 +403,6 @@ public class SpeechRecognitionService extends Service
         }            
     }
     
-        
     public void getMFCC(MFCCParams mfccParams, String inputpathnoext, String outputpathnoext, boolean overwrite, String[] filefilters, CallbackContext cb)
     {
         try 
@@ -409,7 +420,7 @@ public class SpeechRecognitionService extends Service
         }            
     }
     
-    public void adjustVADThreshold(int newthreshold, CallbackContext cb)
+    public void adjustVADThreshold(int newthreshold, CallbackContext cb)    // newthreshold = -1 or value sent by WL
     {
         callbackContext             = cb;   
         mVadHT.adjustVADThreshold(newthreshold);
@@ -419,55 +430,11 @@ public class SpeechRecognitionService extends Service
     {
         mTfHT.recognizeCepstraFile(cepstra_file_path, wlcb);
     }
-            
-  
+           
     public void zipFolder(String infolder, String outfilename, String[] validext, ExecutorService execServ, CallbackContext wlcb)
     {
         ZipManager.zipFolder(infolder, outfilename, validext, execServ, wlcb);
     }        
-        
-        
-//        String[] fileinfolder;
-//        
-//        String path             = Environment.getExternalStorageDirectory().toString() + "/" + infolder;    // Log.d("Files", "Path: " + path);
-//        File directory          = new File(path);
-//        File[] files            = directory.listFiles();   //Log.d("Files", "Size: "+ files.length);
-//        int norigfiles          = files.length;
-//        String[] fileinfolder   = String[norigfiles];
-//        int nvalidfiles         = 0;
-//        
-//        if(ext != null)
-//        {
-//            // filter by extension
-//            for (int i = 0; i < norigfiles; i++)
-//            {
-//                String filename = files[i].getName();
-//               Log.d("Files", "FileName:" + files[i].getName());
-//                if(StringUtilities.removeExtension(filename) == "ext")
-//                {
-//                    fileinfolder[nvalidfiles] = path + "/" + filename;
-//                    nvalidfiles++;
-//                }
-//            }   
-//            String[] validfiles = new String[nvalidfiles];
-//            for(int f=0; f<nvalidfiles; f++) validfiles[f] = fileinfolder[f];                
-//        }
-//        else
-//        {
-//           String[] validfiles  = new String[norigfiles];
-//           for(int f=0; f<norigfiles; f++) validfiles[f] = path + "/" + files[f].getName(); 
-//        }
-//        
-//        cordova.getThreadPool().execute(new Runnable() 
-//        {
-//            public void run() 
-//            {        
-//               boolean res = ZipManager.zip(validfiles, outfilename);
-//               
-//               
-//            }
-//        }
- 
     
     public boolean isCapturing() {
         return bIsCapturing;
@@ -501,7 +468,7 @@ public class SpeechRecognitionService extends Service
 
         if(bIsCalculatingMFCC)
         {   
-            nMFCCExpectedFrames = Framing.getFrames(nCapturedBytes, mMfccParams.nWindowLength, mMfccParams.nWindowDistance) - mMfccParams.nDeltaWindow;
+            nMFCCExpectedFrames = Framing.getFrames(nCapturedBytes, mMfccParams.nWindowLength, mMfccParams.nWindowDistance); // - mMfccParams.nDeltaWindow; ; derivatives at the end => all frames are valid
             Message newmsg      = Message.obtain(msg);  // get a copy of the original message
             newmsg.what         = ENUMS.CAPTURE_RESULT; // I rename the msg code in order to tell mfccHT that are captured data not to be sent to TF
             mMfccHTLooper.sendMessage(newmsg); 
@@ -593,8 +560,9 @@ public class SpeechRecognitionService extends Service
             // calculate how many frames must be still processed
             if(bIsCalculatingMFCC) 
             {
-                nMFCCExpectedFrames = Framing.getFrames(ntotalReadBytes, mMfccParams.nWindowLength, mMfccParams.nWindowDistance) - mMfccParams.nDeltaWindow;
+                nMFCCExpectedFrames = Framing.getFrames(ntotalReadBytes, mMfccParams.nWindowLength, mMfccParams.nWindowDistance); // - mMfccParams.nDeltaWindow; derivatives at the end => all frames are valid
                 nMFCCFrames2beProcessed = nMFCCExpectedFrames - nMFCCProcessedFrames;
+                Log.d(LOG_TAG, "onCaptureStop : expected frames : " + nMFCCExpectedFrames  + ", processed frames : " + Integer.toString(nMFCCProcessedFrames) +  ", still to be processed: " + Integer.toString(nMFCCFrames2beProcessed));
             }     
             
             // do I have to save the speech wav ?
@@ -695,8 +663,8 @@ public class SpeechRecognitionService extends Service
         nMFCCFrames2beProcessed = nMFCCExpectedFrames - nMFCCProcessedFrames;
         
        Log.d(LOG_TAG, "onMFCCProgress : expected frames : " + nMFCCExpectedFrames  + ", processed frames : " + Integer.toString(nMFCCProcessedFrames) +  ", still to be processed: " + Integer.toString(nMFCCFrames2beProcessed));
-       Log.d(LOG_TAG, "onMFCCProgress : captured blocks: " + Integer.toString(nCapturedBlocks) + ", mfccprocessed blocks: " + Integer.toString(nMFCCProcessedBlocks));
-       Log.d(LOG_TAG, "------");
+//       Log.d(LOG_TAG, "onMFCCProgress : captured blocks: " + Integer.toString(nCapturedBlocks) + ", mfccprocessed blocks: " + Integer.toString(nMFCCProcessedBlocks));
+//       Log.d(LOG_TAG, "------");
         
         
         //check if this is the last cepstra packet (bTriggerAction=true has been set by onStopCapture)
@@ -818,7 +786,7 @@ public class SpeechRecognitionService extends Service
                     switch((int)msg.what) //get message type
                     {
                         case ENUMS.MFCC_STATUS_PROGRESS_DATA:
-                            // da MFCC::exportData
+                            // da MFCC::exportData when nDataDest = MFCC_DATADEST_FILE
                             service.onMFCCProgress(Integer.parseInt(b.getString("progress")));
                             break;
                             
@@ -979,3 +947,50 @@ public class SpeechRecognitionService extends Service
     }
     //=================================================================================================
 }
+
+
+
+
+        
+        
+//        String[] fileinfolder;
+//        
+//        String path             = Environment.getExternalStorageDirectory().toString() + "/" + infolder;    // Log.d("Files", "Path: " + path);
+//        File directory          = new File(path);
+//        File[] files            = directory.listFiles();   //Log.d("Files", "Size: "+ files.length);
+//        int norigfiles          = files.length;
+//        String[] fileinfolder   = String[norigfiles];
+//        int nvalidfiles         = 0;
+//        
+//        if(ext != null)
+//        {
+//            // filter by extension
+//            for (int i = 0; i < norigfiles; i++)
+//            {
+//                String filename = files[i].getName();
+//               Log.d("Files", "FileName:" + files[i].getName());
+//                if(StringUtilities.removeExtension(filename) == "ext")
+//                {
+//                    fileinfolder[nvalidfiles] = path + "/" + filename;
+//                    nvalidfiles++;
+//                }
+//            }   
+//            String[] validfiles = new String[nvalidfiles];
+//            for(int f=0; f<nvalidfiles; f++) validfiles[f] = fileinfolder[f];                
+//        }
+//        else
+//        {
+//           String[] validfiles  = new String[norigfiles];
+//           for(int f=0; f<norigfiles; f++) validfiles[f] = path + "/" + files[f].getName(); 
+//        }
+//        
+//        cordova.getThreadPool().execute(new Runnable() 
+//        {
+//            public void run() 
+//            {        
+//               boolean res = ZipManager.zip(validfiles, outfilename);
+//               
+//               
+//            }
+//        }
+ 

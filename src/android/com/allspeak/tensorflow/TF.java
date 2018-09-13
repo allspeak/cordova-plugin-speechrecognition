@@ -27,7 +27,9 @@ import com.allspeak.utility.FileUtilities;
 import com.allspeak.utility.Messaging;
 
 import com.allspeak.audioprocessing.Framing;
-        
+import com.allspeak.audioprocessing.mfcc.MFCC;
+
+
 import com.allspeak.tensorflow.TensorFlowSpeechClassifier;
 import com.allspeak.tensorflow.Classifier.Recognition;
 import com.allspeak.tensorflow.Classifier;
@@ -119,19 +121,13 @@ public class TF
                 exists = false;
                 err += (" " + sModelFilePath);
             }
-//            if(!FileUtilities.existFile(sLabelFilePath))
-//            {            
-//                exists = false;
-//                err += (" " + sLabelFilePath);               
-//            }
-
             if(exists)
             {
                 mClassifier = TensorFlowSpeechClassifier.create(
                                     mTfParams.mAssetManager,
                                     sModelFilePath,
                                     mTfParams.nInputParams,
-                                    mTfParams.sInputNodeName,
+                                    mTfParams.saInputNodeName,
                                     mTfParams.sOutputNodeName,
                                     mTfParams.getTitles());
             
@@ -150,61 +146,85 @@ public class TF
         }          
     }
    
-    public void doRecognize(float[][] cepstra, int frames2recognize)    // cepstra = [?][72]
+    public void doRecognize(float[][] simplecepstra, int frames2recognize, int deltawindow)    // simplecepstra = [?][24]
     {
-        float[][] contextedCepstra = null;
-        
-        if(cepstra[0].length != mTfParams.nInputParams)
+        try
         {
-            Framing.normalizeFrames(cepstra, frames2recognize);
-            contextedCepstra = Framing.getContextedFrames(cepstra, mTfParams.nContextFrames, mTfParams.nInputParams, frames2recognize);  // [?][72] => [?][792]
-        }
-        else
-            contextedCepstra = cepstra;
-        
-        if(mClassifier != null)
-        {
-            List<Recognition> results = mClassifier.recognizeSpeech(contextedCepstra, mTfParams.fRecognitionThreshold);
+            int nscores         = simplecepstra[0].length;
+            float[][] cepstra   = MFCC.finalizeData(simplecepstra, frames2recognize, mTfParams.nProcessingScheme, nscores, deltawindow);
             
-//            String recognizedWavPath = mTfParams.saAudioPath[Integer.parseInt(results.get(0).id)];
-            
-            try
+            if(cepstra != null)
             {
-                JSONObject output       = new JSONObject();  
-                output.put("type", ENUMS.TF_RESULT);
+                int validframes     = cepstra.length;
 
-                JSONArray items         = new JSONArray();  
-                for (Recognition result : results) 
-                {
-                    JSONObject record   = new JSONObject();
-                    record.put("title", result.getTitle());
-                    record.put("confidence", String.format(Locale.US, "%.1f%%", result.getConfidence() * 100.0f)); 
-                    record.put("id", result.getId()); 
-                    items.put(record);
-                } 
-                output.put("items", items);
-                Messaging.sendUpdate2Web(callbackContext, output, true); 
-                
-                switch((int)mTfParams.nDataDest)
-                {
-                    case ENUMS.TF_DATADEST_MODEL_FILE:
-                    case ENUMS.TF_DATADEST_FILEONLY:
-//                        String outfile      = "AllSpeak/audiofiles/temp/cepstra_live.dat";
-//                        String outfile_ctx  = "AllSpeak/audiofiles/temp/ctx_cepstra_live.dat";
-//                        
-//                        FileUtilities.write2DArrayToFile(cepstra, frames2recognize, outfile, "%.4f", true);
-////                        FileUtilities.write2DArrayToFile(contextedCepstra, frames2recognize, outfile_ctx, "%.4f", true);
-//                        break;
+                if(validframes > 2*mTfParams.nContextFrames)
+                {                
+        //            Framing.normalizeFrames(cepstra, frames2recognize);
+
+                    float[][] contextedCepstra = null;
+                    if(cepstra[0].length != mTfParams.nInputParams)
+                        contextedCepstra = Framing.getContextedFrames(cepstra, mTfParams.nContextFrames, mTfParams.nInputParams, validframes);  // [?][72] => [?][792]
+                    else
+                        contextedCepstra = cepstra;
+
+                    if(mClassifier != null)
+                    {
+                        List<Recognition> results = null;
+                        switch((int)mTfParams.nModelClass)
+                        {
+                            case ENUMS.TF_MODELCLASS_FF:
+                                results = mClassifier.recognizeSpeech(contextedCepstra, validframes, mTfParams.fRecognitionThreshold);
+                                break;
+
+                            case ENUMS.TF_MODELCLASS_LSTM:
+                                results = mClassifier.recognizeLSTMSpeech(contextedCepstra, validframes);
+                                break;
+                        }
+        //            String recognizedWavPath = mTfParams.saAudioPath[Integer.parseInt(results.get(0).id)];
+                        JSONObject output       = new JSONObject();  
+                        output.put("type", ENUMS.TF_RESULT);
+
+                        JSONArray items         = new JSONArray();  
+                        for (Recognition result : results) 
+                        {
+                            JSONObject record   = new JSONObject();
+                            record.put("title", result.getTitle());
+                            record.put("confidence", String.format(Locale.US, "%.1f%%", result.getConfidence() * 100.0f)); 
+                            record.put("id", result.getId()); 
+                            items.put(record);
+                        } 
+                        output.put("items", items);
+                        Messaging.sendUpdate2Web(callbackContext, output, true); 
+
+                        switch((int)mTfParams.nDataDest)
+                        {
+                            case ENUMS.TF_DATADEST_MODEL_FILE:
+                            case ENUMS.TF_DATADEST_FILEONLY:
+        //                        String outfile      = "AllSpeak/audiofiles/temp/cepstra_live.dat";FileUtilities.write2DArrayToFile(cepstra, validframes, outfile, "%.4f", true);
+        //                        String outfile_ctx  = "AllSpeak/audiofiles/temp/ctx_cepstra_live.dat";FileUtilities.write2DArrayToFile(contextedCepstra, validframes, outfile_ctx, "%.4f", true);
+                                break;
+                        }
+                        return;
+                    }
+                    else
+                    {
+                        Messaging.sendErrorString2Web(callbackContext, "TF model not loaded", ERRORS.TF_ERROR_NOMODEL, true);
+                        return;
+                    }
                 }
             }
-            catch(Exception e)
-            {
-                e.printStackTrace();                  
-               Log.e(LOG_TAG, e.getMessage(), e);
-                Messaging.sendErrorString2Web(callbackContext, e.getMessage(), ERRORS.TF_ERROR, true);
-            }            
+            // 
+            // valid cepstra are null or are < 2*contectframes. send a resume event to plugin javascript that directly call the plugin resumeSpeechRecognition
+            JSONObject output       = new JSONObject();  
+            output.put("type", ENUMS.TF_RESUME_RECOGNITION);                
+            Messaging.sendUpdate2Web(callbackContext, output, true);                 
         }
-        else Messaging.sendErrorString2Web(callbackContext, "TF model not loaded", ERRORS.TF_ERROR_NOMODEL, true);
+        catch(Exception e)
+        {
+            e.printStackTrace();                  
+            Log.e(LOG_TAG, e.getMessage(), e);
+            Messaging.sendErrorString2Web(callbackContext, e.getMessage(), ERRORS.TF_ERROR, true);
+        }             
     }
     //=================================================================================================================
     // PRIVATE

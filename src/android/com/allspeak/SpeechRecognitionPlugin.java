@@ -94,7 +94,7 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
         try
         {
 //            initBTConnection();
-            mAudioDevicesManager = new AudioDevicesManager(mContext, mAudioManager);
+            mAudioDevicesManager = new AudioDevicesManager(mContext);
             boolean conn = bindService();
             
 //            int jniOutput = HelloCJni.calculate(2,5);  int res = 2 + jniOutput;
@@ -188,12 +188,11 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
             Messaging.sendErrorString2Web(callbackContext, "Service not binded. FATAL ERROR", ERRORS.SERVICE_INIT, true);
             return true;
         }
-        
+        // FIRST AUDIO STUFFS: getAudioDevices / startSCOConnection / bluetooth_status
         if (action.equals("getAudioDevices")) 
         {
             try
             {
-                mAudioDevicesManager.setCallback(callbackContext);
                 JSONObject audiodevicesinfo = mAudioDevicesManager.exportAudioDevicesJSON();
                 Messaging.sendUpdate2Web(callbackContext, audiodevicesinfo, true);
                 return true;
@@ -205,6 +204,25 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
                 return true;                        
             }
         }
+        else if (action.equals("initBluetooth")) 
+        {
+            mAudioDevicesManager.setCallback(callbackContext);
+            boolean res = mAudioDevicesManager.start();
+            Messaging.sendBoolData2Web(callbackContext, ENUMS.BLUETOOTH_INIT, res, true);
+            return true;
+        } 
+        else if (action.equals("enableHeadSet")) 
+        {
+            mAudioDevicesManager.enableHeadSet((boolean)args.get(0));   // enable headset
+            Messaging.sendNoResult2Web(callbackContext);
+            return true;
+        } 
+        else if (action.equals("getBluetoothStatus")) 
+        {
+            JSONObject bluetooth_status = mAudioDevicesManager.getBluetoothStatus();
+            Messaging.sendUpdate2Web(callbackContext, bluetooth_status, true);
+            return true;
+        }         
         else if (action.equals("startCapture")) 
         {
             try 
@@ -280,8 +298,6 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
                 
                 boolean loaded = mService.loadTFModel(mTfParams, callbackContext);
                 Messaging.sendNoResult2Web(callbackContext);
-
-//                callbackContext.success();
                 return true;
             }
             catch (Exception e) 
@@ -334,24 +350,10 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
         else if (action.equals("adjustVADThreshold")) 
         {
             // an interrupt command is sent to audioreceiver, when it exits from its last cycle, it sends an event here
-            int newthreshold   = args.getInt(0); 
-            
-            mService.adjustVADThreshold(newthreshold, callbackContext);
-            Messaging.sendNoResult2Web(callbackContext);
-            return true;
-        } 
-        else if (action.equals("startSCOConnection")) 
-        {
-//            bUseHeadSet = (boolean)args.get(0);
-            
-            mAudioDevicesManager.startBTHSConnection((boolean)args.get(0));
-            Messaging.sendNoResult2Web(callbackContext);
-            return true;
-        } 
-        else if (action.equals("isBTHSconnected")) 
-        {
+            int newthreshold   = 0; 
+            if(!args.isNull(0)) newthreshold = args.getInt(0);
            
-            mAudioDevicesManager.isBTHSconnected();
+            mService.adjustVADThreshold(newthreshold, callbackContext);
             Messaging.sendNoResult2Web(callbackContext);
             return true;
         } 
@@ -450,6 +452,7 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
             mContext.unbindService(mConnection);
             mBound = false;
         }
+        mAudioDevicesManager.onDestroy();
     }
     
     @Override
@@ -463,22 +466,11 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
 //        }        
     }
     
-    @Override
-    public void onPause(boolean multitasking)
-    {
-        mAudioDevicesManager.onPause();
-
-//        mContext.unregisterReceiver(mBluetoothScoReceiver);
-//        mAudioManager.stopBluetoothSco();        
-
-    }
-    
-    @Override
-    public void onResume(boolean multitasking)
-    {
-        mAudioDevicesManager.onResume();
-//        initBTConnection();
-    }
+//    @Override
+//    public void onPause(boolean multitasking){}
+//    
+//    @Override
+//    public void onResume(boolean multitasking){}
         
 //    @Override
 //    public void onNewIntent(Intent intent) {
@@ -520,62 +512,3 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
 
     //=================================================================================================
 }
-
-    
-//    
-//    private void initBTConnection()
-//    {
-//        IntentFilter intentFilter = new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED);
-//        mContext.registerReceiver(mBluetoothScoReceiver, intentFilter);
-//
-//        
-////        AudioDeviceInfo[] adIN  = new AudioDeviceInfo[10];
-////        AudioDeviceInfo[] adOUT = new AudioDeviceInfo[10];
-////        adIN                    = mAudioManager.getDevices(AudioManager.GET_DEVICES_INPUTS);
-////        adOUT                   = mAudioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS);
-//        
-//        
-//        mAudioManager.startBluetoothSco();          
-//    }
-//    
-//    private BroadcastReceiver mBluetoothScoReceiver = new BroadcastReceiver() 
-//    {
-//        @Override
-//        public void onReceive(Context context, Intent intent) 
-//        {
-//            int state = intent.getIntExtra(AudioManager.EXTRA_SCO_AUDIO_STATE, -1);
-//            
-//            try
-//            {
-//                isHeadSetConnected  = false;
-//                JSONObject info     = new JSONObject(); 
-//                
-//                if(state == AudioManager.SCO_AUDIO_STATE_ERROR)
-//                    Messaging.sendErrorString2Web(callbackContext, "headset connection error", ERRORS.HEADSET_ERROR, true);
-//                else
-//                {
-//                    switch (state)
-//                    {
-//                        case AudioManager.SCO_AUDIO_STATE_CONNECTED:
-//                            info.put("type", ENUMS.HEADSET_CONNECTED);  
-//                            isHeadSetConnected = true;
-//                            break;
-//
-//                        case AudioManager.SCO_AUDIO_STATE_DISCONNECTED:
-//                            info.put("type", ENUMS.HEADSET_DISCONNECTED);  
-//                            isHeadSetConnected = false;
-//                            break;
-//
-//                        case AudioManager.SCO_AUDIO_STATE_CONNECTING:
-//                            info.put("type", ENUMS.HEADSET_CONNECTING);  
-//                            isHeadSetConnected = false;
-//                            break;
-//                    }
-//
-//                    Messaging.sendUpdate2Web(callbackContext, info, true);
-//                }
-//            }
-//            catch (JSONException e){e.printStackTrace();}              
-//        }
-//    };      
-//

@@ -80,9 +80,11 @@ public interface Classifier {
     }
   }
 
-  List<Recognition> recognizeSpeech(float[][] framesCepstra);
+  List<Recognition> recognizeSpeech(float[][] framesCepstra, int frames2recognize);
   
-  List<Recognition> recognizeSpeech(float[][] framesCepstra, float threshold);
+  List<Recognition> recognizeSpeech(float[][] framesCepstra, int frames2recognize, float threshold);
+
+  List<Recognition> recognizeLSTMSpeech(float[][] framesCepstra, int frames2recognize);
   
   void enableStatLogging(final boolean debug);
   

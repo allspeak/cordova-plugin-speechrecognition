@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <plugin id="cordova-plugin-speechrecognition"
-        version="0.3.0"
+        version="0.4.0"
         xmlns="http://apache.org/cordova/ns/plugins/1.0"
         xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -50,6 +50,7 @@
         <source-file src="src/android/com/allspeak/audioprocessing/mfcc/MFCC.java" target-dir="src/com/allspeak/audioprocessing/mfcc" />
         <source-file src="src/android/com/allspeak/audioprocessing/mfcc/MFCCHandlerThread.java" target-dir="src/com/allspeak/audioprocessing/mfcc" />
         <source-file src="src/android/com/allspeak/audioprocessing/mfcc/MFCCCalcJAudio.java" target-dir="src/com/allspeak/audioprocessing/mfcc" />
+        <source-file src="src/android/com/allspeak/audioprocessing/mfcc/MFCCDerivatives.java" target-dir="src/com/allspeak/audioprocessing/mfcc" />
         <source-file src="src/android/com/allspeak/audioprocessing/mfcc/MFCCParams.java" target-dir="src/com/allspeak/audioprocessing/mfcc" />
         <source-file src="src/android/com/allspeak/audioprocessing/Framing.java" target-dir="src/com/allspeak/audioprocessing" />
         <source-file src="src/android/com/allspeak/audioprocessing/vad/VAD.java" target-dir="src/com/allspeak/audioprocessing/vad" />
@@ -65,14 +66,8 @@
         <source-file src="src/android/com/allspeak/utility/FileUtilities.java" target-dir="src/com/allspeak/utility/" />   
         <source-file src="src/android/com/allspeak/utility/TrackPerformance.java" target-dir="src/com/allspeak/utility/" />  
         <source-file src="src/android/com/allspeak/utility/AudioDevicesManager.java" target-dir="src/com/allspeak/utility/" />  
-        <source-file src="src/android/com/allspeak/utility/BluetoothHeadsetManager.java" target-dir="src/com/allspeak/utility/" />  
+        <source-file src="src/android/com/allspeak/utility/BluetoothHeadsetUtils.java" target-dir="src/com/allspeak/utility/" />  
         <source-file src="src/android/com/allspeak/utility/ArrayList2d.java" target-dir="src/com/allspeak/utility/" />  
         <source-file src="src/android/com/allspeak/utility/ZipManager.java" target-dir="src/com/allspeak/utility/" />  
-        
-<!--        <source-file src="src/android/libs/libandroid_tensorflow_inference_java.jar" target-dir="libs" />
-        <source-file src="src/android/libs/armeabi-v7a/libtensorflow_inference.so" target-dir="libs/armeabi" />        -->
-        <!--<source-file src="src/android/libs/gson-2.6.2.jar" target-dir="libs" />-->        
-<!--        <source-file src="src/android/com/allspeak/audioprocessing/HelloJni.java" target-dir="src/android/com/allspeak/audioprocessing/" />
-        <source-file src="src/android/libs/armeabi-v7a/libhello-jni.so" target-dir="libs/armeabi/" />        -->
     </platform>
 </plugin>
