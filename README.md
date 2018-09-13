@@ -4,7 +4,7 @@ This Cordova plugin implements several operation necessary to perform Automatic 
 
 it does:
 
-- audio capture from the device microphone
+- audio capture from the device microphone and/or paired bluetooth headset
 - voice activity detection
 - MFCC features calculation
 - TF inference on a trained pb net file
