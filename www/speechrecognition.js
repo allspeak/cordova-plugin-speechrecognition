@@ -4,6 +4,8 @@ var argscheck   = require('cordova/argscheck'),
     channel     = require('cordova/channel');
 
 var speechrecognition           = {};
+
+speechrecognition.ver = "0.4.0";
 speechrecognition.ENUM          = {};
 
 speechrecognition.pluginName    = "SpeechRecognitionPlugin";
@@ -32,6 +34,8 @@ speechrecognition.ENUM.PLUGIN   =
     TF_STATUS_MODEL_LOADED          : 50, //
     TF_STATUS_PROCESS_STARTED       : 51, //
     TF_RESULT                       : 56, //
+    TF_CMD_RECOGNIZE_FILE           : 57, //
+    TF_RESUME_RECOGNITION           : 58, //
     
     CAPTURE_DATADEST_NONE           : 200,
     CAPTURE_DATADEST_JS_RAW         : 201,
@@ -93,11 +97,15 @@ speechrecognition.ENUM.PLUGIN   =
     
     TRAIN_DATA_ZIPPED               : 299,
         
-    AUDIODEVICES_INFO               : 300, 
+    BLUETOOTH_INIT                  : 300, 
     HEADSET_CONNECTED               : 301,
     HEADSET_DISCONNECTED            : 302, 
     HEADSET_CONNECTING              : 303,     
-    HEADSET_DISCONNECTING           : 304     
+    HEADSET_DISCONNECTING           : 304,     
+    AUDIOSCO_CONNECTED              : 305,     
+    AUDIOSCO_DISCONNECTED           : 306,
+    HEADSET_EXIST                   : 307,
+    BLUETOOTH_STATUS                : 308
 }; 
 
 // MUST MAP plugin's ERRORS.java
@@ -406,6 +414,16 @@ speechrecognition.getAudioDevices = function ()
     return promise;  
 };
 
+speechrecognition.getBluetoothStatus = function () 
+{
+    var promise = new Promise(function(resolve, reject) {
+        successCallback = resolve;
+        errorCallback = reject;
+    });    
+    exec(successCallback, errorCallback, speechrecognition.pluginName, "getBluetoothStatus", []);
+    return promise;  
+};
+
 speechrecognition.loadTFNet = function (mTfCfg) 
 {
     var promise = new Promise(function(resolve, reject) {
@@ -441,9 +459,20 @@ speechrecognition.adjustVADThreshold = function (threshold)
 //=========================================================================================
 // UNIFIED _PLUGINEVENT CALLBACK
 //=========================================================================================
-speechrecognition.startSCOConnection = function (start) {
-    exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, "startSCOConnection", [start]);
+speechrecognition.enableHeadSet = function(enable)
+{
+    if(enable != true && enable != false) return Promise.reject({"message": "enable param of enableHeadSet is not valid: " + enable.toString()});
+    exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, "enableHeadSet", [enable]);
 };
+
+// init BluetoothHeadsetProfile and its listeners...do be done only once !
+speechrecognition.initBluetooth = function(bltsrv_callback)
+{
+    speechrecognition.bluetoothSrvCallback = bltsrv_callback;
+    
+    exec(speechrecognition._pluginEvent, speechrecognition._pluginError, speechrecognition.pluginName, "initBluetooth", []);
+};
+
 
 /**
  * Start capture of Audio input
@@ -683,9 +712,13 @@ speechrecognition._pluginEvent = function (data) {
                 cordova.fireWindowEvent("speechstatus", {datatype: data.type});
                 break;
                 
-            case speechrecognition.ENUM.PLUGIN.HEADSET_CONNECTED:
+//            case speechrecognition.ENUM.PLUGIN.HEADSET_CONNECTED:
             case speechrecognition.ENUM.PLUGIN.HEADSET_DISCONNECTED:
-                cordova.fireWindowEvent("headsetstatus", {datatype: itemsdata.type});
+            case speechrecognition.ENUM.PLUGIN.HEADSET_CONNECTING:
+            case speechrecognition.ENUM.PLUGIN.AUDIOSCO_CONNECTED:
+            case speechrecognition.ENUM.PLUGIN.AUDIOSCO_DISCONNECTED:
+            case speechrecognition.ENUM.PLUGIN.HEADSET_EXIST:
+                cordova.fireWindowEvent("headsetstatus", {data: data});
                 break;
                 
             case speechrecognition.ENUM.PLUGIN.TRAIN_DATA_ZIPPED:
@@ -695,11 +728,14 @@ speechrecognition._pluginEvent = function (data) {
             case speechrecognition.ENUM.PLUGIN.TF_RESULT:
                 cordova.fireWindowEvent("recognitionresult", {items:data.items});
                 break;
-            
-            // audiodevices info pass from a promise route    
-//            case speechrecognition.ENUM.PLUGIN.AUDIODEVICES_INFO:
-//                cordova.fireWindowEvent("audiodevicesinfo", {input: data.input, output: data.output});
-//                break;                
+                
+            case speechrecognition.ENUM.PLUGIN.TF_RESUME_RECOGNITION:
+                speechrecognition.resumeSpeechRecognition();
+                break;
+                
+            case speechrecognition.ENUM.PLUGIN.BLUETOOTH_INIT:
+                speechrecognition.bluetoothSrvCallback(data.data);  // inform BluetoothSrv if bluetooth headset profile has been enabled
+                break;
         }
     }
     catch (ex) {

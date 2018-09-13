@@ -153,10 +153,13 @@ public class Framing
         }
         // create return array
         int lenvalid = validcepstra.size();
-        float[][] validframes = new float[lenvalid][col];
-        for(int f = 0; f < lenvalid; f++)  validframes[f] = validcepstra.get(f).clone();
-        
-        return validframes;
+        if(lenvalid > 0)
+        {
+            float[][] validframes = new float[lenvalid][col];
+            for(int f = 0; f < lenvalid; f++)  validframes[f] = validcepstra.get(f).clone();
+            return validframes;
+        }
+        else    return null;
     }
     
     public static void normalizeFrames(float[][] cepstra)
@@ -214,6 +217,10 @@ public class Framing
         float[][] contextedCepstra      = new float[frames2recognize][noutparams];
         int startId, endId, cnt,corr_pf = 0;
         
+        int deltaInternalFrames         = frames2recognize-nctxframes; 
+//        deltaInternalFrames             = Math.max(0, deltaInternalFrames); // for tiny sequences this was <0 & following if could be skipped
+
+        int a = 0;
         // append Context frames (from 72 => 792 = tfParams.nInputParam)
         for (int f=0; f<frames2recognize; f++)
         {
@@ -221,13 +228,12 @@ public class Framing
             endId   = f + nctxframes + 1; // won't be included in the for...
             cnt     = 0;
             
-            if(f < (frames2recognize-nctxframes))
+            if(f < deltaInternalFrames)
             {
                 // from frames = [0 : frames2recognize-nctxframes-1]
                 for(int pf=startId; pf<endId; pf++)
                 {
-                    if(pf < 0)  corr_pf = 0;
-                    else        corr_pf = pf;
+                    corr_pf = Math.max(0, pf);
                     for(int ff=0; ff<ncepstra; ff++)
                     {
                         contextedCepstra[f][cnt] = cepstra[corr_pf][ff];                
@@ -240,9 +246,7 @@ public class Framing
                 // from frames = [frames2recognize-nctxframes : frames2recognize-1]
                 for(int pf=startId; pf<endId; pf++)
                 {
-                    if(pf > (frames2recognize-1))   corr_pf = frames2recognize-1;
-                    else                            corr_pf = pf;
-                    
+                    corr_pf = Math.min(frames2recognize-1, pf);
                     for(int ff=0; ff<ncepstra; ff++)
                     {
                         contextedCepstra[f][cnt] = cepstra[corr_pf][ff];                

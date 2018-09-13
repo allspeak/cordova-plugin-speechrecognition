@@ -476,9 +476,10 @@ public class MFCCHandlerThread extends HandlerThread implements Handler.Callback
                 case ENUMS.MFCC_CMD_FINALIZEDATA: 
                     
                     float[][] final_data = MFCC.finalizeData(faCalculatedCepstra, nProcessedFrames, mfccParams.nProcessingScheme, nScores, mfccParams.nDeltaWindow);
-                    if(final_data == null) Messaging.sendErrorString2Web(mWlCb, "unknown processing scheme", ERRORS.MFCC_ERROR, true); 
-                        
-                    mfcc.exportData(final_data);
+                    if(final_data != null) 
+                        mfcc.exportData(final_data);
+                    else
+                        Messaging.sendErrorString2Web(mWlCb, "cepstra are null", ERRORS.MFCC_ERROR, true); 
                     break;
             }
             return true;

@@ -388,7 +388,8 @@ public class MFCC
                 break;
         }
         // Normalize
-        Framing.normalizeFrames(final_data);
+        if(final_data != null)
+            Framing.normalizeFrames(final_data);
         
         return final_data;
     }    

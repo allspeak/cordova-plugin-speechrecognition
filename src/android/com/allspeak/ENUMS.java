@@ -37,6 +37,7 @@ public class ENUMS
     public static final int TF_CMD_NEWCEPSTRA           = 55; // new cepstra arrived      
     public static final int TF_RESULT                   = 56; //      
     public static final int TF_CMD_RECOGNIZE_FILE       = 57; //      
+    public static final int TF_RESUME_RECOGNITION       = 58; //      
     
     public static final int VAD_CMD_ADJUST_THRESHOLD    = 60; //      
     
@@ -105,11 +106,15 @@ public class ENUMS
     
     public static final int TRAIN_DATA_ZIPPED               = 299; // 
     
-    public static final int AUDIODEVICES_INFO               = 300; // 
+    public static final int BLUETOOTH_INIT                  = 300; // 
     public static final int HEADSET_CONNECTED               = 301;
     public static final int HEADSET_DISCONNECTED            = 302; // 
     public static final int HEADSET_CONNECTING              = 303; // 
     public static final int HEADSET_DISCONNECTING           = 304; // 
+    public static final int AUDIOSCO_CONNECTED              = 305; // 
+    public static final int AUDIOSCO_DISCONNECTED           = 306; // 
+    public static final int HEADSET_EXIST                   = 307; // 
+    public static final int BLUETOOTH_STATUS                = 308; // 
     
     
 }   

@@ -150,62 +150,79 @@ public class TF
     {
         try
         {
-            int nscores = simplecepstra[0].length;
-            float[][] cepstra = MFCC.finalizeData(simplecepstra, frames2recognize, mTfParams.nProcessingScheme, nscores, deltawindow);
-
-            int validframes = cepstra.length;
-//            Framing.normalizeFrames(cepstra, frames2recognize);
-
-            float[][] contextedCepstra = null;
-            if(cepstra[0].length != mTfParams.nInputParams)
-                contextedCepstra = Framing.getContextedFrames(cepstra, mTfParams.nContextFrames, mTfParams.nInputParams, validframes);  // [?][72] => [?][792]
-            else
-                contextedCepstra = cepstra;
-
-            if(mClassifier != null)
+            int nscores         = simplecepstra[0].length;
+            float[][] cepstra   = MFCC.finalizeData(simplecepstra, frames2recognize, mTfParams.nProcessingScheme, nscores, deltawindow);
+            
+            if(cepstra != null)
             {
-                List<Recognition> results = null;
-                switch((int)mTfParams.nModelClass)
-                {
-                    case ENUMS.TF_MODELCLASS_FF:
-                        results = mClassifier.recognizeSpeech(contextedCepstra, validframes, mTfParams.fRecognitionThreshold);
-                        break;
+                int validframes     = cepstra.length;
 
-                    case ENUMS.TF_MODELCLASS_LSTM:
-                        results = mClassifier.recognizeLSTMSpeech(contextedCepstra, validframes);
-                        break;
-                }
-//            String recognizedWavPath = mTfParams.saAudioPath[Integer.parseInt(results.get(0).id)];
-                JSONObject output       = new JSONObject();  
-                output.put("type", ENUMS.TF_RESULT);
+                if(validframes > 2*mTfParams.nContextFrames)
+                {                
+        //            Framing.normalizeFrames(cepstra, frames2recognize);
 
-                JSONArray items         = new JSONArray();  
-                for (Recognition result : results) 
-                {
-                    JSONObject record   = new JSONObject();
-                    record.put("title", result.getTitle());
-                    record.put("confidence", String.format(Locale.US, "%.1f%%", result.getConfidence() * 100.0f)); 
-                    record.put("id", result.getId()); 
-                    items.put(record);
-                } 
-                output.put("items", items);
-                Messaging.sendUpdate2Web(callbackContext, output, true); 
-                
-                switch((int)mTfParams.nDataDest)
-                {
-                    case ENUMS.TF_DATADEST_MODEL_FILE:
-                    case ENUMS.TF_DATADEST_FILEONLY:
-//                        String outfile      = "AllSpeak/audiofiles/temp/cepstra_live.dat";FileUtilities.write2DArrayToFile(cepstra, validframes, outfile, "%.4f", true);
-//                        String outfile_ctx  = "AllSpeak/audiofiles/temp/ctx_cepstra_live.dat";FileUtilities.write2DArrayToFile(contextedCepstra, validframes, outfile_ctx, "%.4f", true);
-                        break;
+                    float[][] contextedCepstra = null;
+                    if(cepstra[0].length != mTfParams.nInputParams)
+                        contextedCepstra = Framing.getContextedFrames(cepstra, mTfParams.nContextFrames, mTfParams.nInputParams, validframes);  // [?][72] => [?][792]
+                    else
+                        contextedCepstra = cepstra;
+
+                    if(mClassifier != null)
+                    {
+                        List<Recognition> results = null;
+                        switch((int)mTfParams.nModelClass)
+                        {
+                            case ENUMS.TF_MODELCLASS_FF:
+                                results = mClassifier.recognizeSpeech(contextedCepstra, validframes, mTfParams.fRecognitionThreshold);
+                                break;
+
+                            case ENUMS.TF_MODELCLASS_LSTM:
+                                results = mClassifier.recognizeLSTMSpeech(contextedCepstra, validframes);
+                                break;
+                        }
+        //            String recognizedWavPath = mTfParams.saAudioPath[Integer.parseInt(results.get(0).id)];
+                        JSONObject output       = new JSONObject();  
+                        output.put("type", ENUMS.TF_RESULT);
+
+                        JSONArray items         = new JSONArray();  
+                        for (Recognition result : results) 
+                        {
+                            JSONObject record   = new JSONObject();
+                            record.put("title", result.getTitle());
+                            record.put("confidence", String.format(Locale.US, "%.1f%%", result.getConfidence() * 100.0f)); 
+                            record.put("id", result.getId()); 
+                            items.put(record);
+                        } 
+                        output.put("items", items);
+                        Messaging.sendUpdate2Web(callbackContext, output, true); 
+
+                        switch((int)mTfParams.nDataDest)
+                        {
+                            case ENUMS.TF_DATADEST_MODEL_FILE:
+                            case ENUMS.TF_DATADEST_FILEONLY:
+        //                        String outfile      = "AllSpeak/audiofiles/temp/cepstra_live.dat";FileUtilities.write2DArrayToFile(cepstra, validframes, outfile, "%.4f", true);
+        //                        String outfile_ctx  = "AllSpeak/audiofiles/temp/ctx_cepstra_live.dat";FileUtilities.write2DArrayToFile(contextedCepstra, validframes, outfile_ctx, "%.4f", true);
+                                break;
+                        }
+                        return;
+                    }
+                    else
+                    {
+                        Messaging.sendErrorString2Web(callbackContext, "TF model not loaded", ERRORS.TF_ERROR_NOMODEL, true);
+                        return;
+                    }
                 }
             }
-            else Messaging.sendErrorString2Web(callbackContext, "TF model not loaded", ERRORS.TF_ERROR_NOMODEL, true);
+            // 
+            // valid cepstra are null or are < 2*contectframes. send a resume event to plugin javascript that directly call the plugin resumeSpeechRecognition
+            JSONObject output       = new JSONObject();  
+            output.put("type", ENUMS.TF_RESUME_RECOGNITION);                
+            Messaging.sendUpdate2Web(callbackContext, output, true);                 
         }
         catch(Exception e)
         {
             e.printStackTrace();                  
-           Log.e(LOG_TAG, e.getMessage(), e);
+            Log.e(LOG_TAG, e.getMessage(), e);
             Messaging.sendErrorString2Web(callbackContext, e.getMessage(), ERRORS.TF_ERROR, true);
         }             
     }
