@@ -63,6 +63,9 @@ public class SpeechRecognitionService extends Service
     private final AudioCaptureHandler mAicServiceHandler    = new AudioCaptureHandler(this);
     private AudioInputCapture aicCapture                    = null;                                   // Capture instance
 
+    private CallbackContext captureCallbackContext          = null; // I define a propretary callback for capturing, to be used when I have to stop capturing for buffer overfilling
+    boolean bBufferDepletedStopCapturing                    = false;
+    
     private float[] faCapturedChunk                         = null;
     private boolean bIsCapturing                            = false;
     
@@ -70,7 +73,7 @@ public class SpeechRecognitionService extends Service
     private int nCapturedDataDest                           = ENUMS.CAPTURE_DATADEST_NONE;
     private int nCapturedBlocks                             = 0;
     private int nCapturedBytes                              = 0;
-    
+    private int nMaxChunkLengthSamples                      = 0;    // buffer dimension
     //-----------------------------------------------------------------------------------------------
     // PLAYBACK
     private AudioManager mAudioManager                  = null;
@@ -206,8 +209,9 @@ public class SpeechRecognitionService extends Service
         
         try 
         {
-            callbackContext = cb;
-            mCaptureParams  = cfgParams;
+            callbackContext         = cb;
+            captureCallbackContext  = cb;
+            mCaptureParams          = cfgParams;
             
             // If I want to write the captured WAV, I create the buffer
             switch((int)mCaptureParams.nDataDest)
@@ -216,8 +220,9 @@ public class SpeechRecognitionService extends Service
                 case ENUMS.CAPTURE_DATADEST_FILE_JS_RAW:
                 case ENUMS.CAPTURE_DATADEST_FILE_JS_DB:
                 case ENUMS.CAPTURE_DATADEST_FILE_JS_RAWDB:
-                    int nMaxChunkLengthSamples  = VAD.getMaxSpeechLengthSamples(mCaptureParams.nChunkMaxLengthMS, mCaptureParams.nSampleRate, mCaptureParams.nBufferSize);                                                // 63*1024 = 64512
-                    faCapturedChunk             = new float[nMaxChunkLengthSamples];             
+                    bBufferDepletedStopCapturing    = false;
+                    nMaxChunkLengthSamples          = VAD.getMaxSpeechLengthSamples(mCaptureParams.nChunkMaxLengthMS, mCaptureParams.nSampleRate, mCaptureParams.nBufferSize);                                                // 63*1024 = 64512
+                    faCapturedChunk                 = new float[nMaxChunkLengthSamples];             
                     break;
                 default:
                     faCapturedChunk = null;
@@ -460,17 +465,51 @@ public class SpeechRecognitionService extends Service
     // - return raw data to web layer if selected
     public void onCaptureData(Message msg)
     {
-        Bundle b        = msg.getData(); 
-        float[] data    = b.getFloatArray("data");  
+        if(bBufferDepletedStopCapturing)    return; // waiting for onCaptureStop...don't do anything !
+        
+        Bundle b                = msg.getData(); 
+        float[] data            = b.getFloatArray("data");  
+        
+        float[] valid_data      = null;     // final dta vector after checking buffer filling
         
         nCapturedBlocks++;  
-        nCapturedBytes += data.length;
+        int newSamples2write    = data.length;
+        nCapturedBytes         += newSamples2write;
+        
+        // prevent overfilling the recording buffer: calculate exceeding samples
+        // if > 0 : - truncate the new chunk data
+        //          - stop capturing.
+        int exceeding_samples = nCapturedBytes - nMaxChunkLengthSamples;
+        
+        if(faCapturedChunk != null)
+        {
+            // I'm writing to a file, thus I have a buffer not to overfill
+            if(exceeding_samples >= 0)
+            {
+                nCapturedBytes              = nMaxChunkLengthSamples;
+                newSamples2write            = data.length - exceeding_samples;
+                bBufferDepletedStopCapturing = true;
 
-        if(bIsCalculatingMFCC)
+                // create the valid buffer
+                valid_data  = new float[newSamples2write];
+                System.arraycopy(data, 0, valid_data, 0, newSamples2write); 
+                stopCapture(captureCallbackContext);
+            }
+            else valid_data = data;
+        }
+        if(bIsCalculatingMFCC && newSamples2write > 0)
         {   
-            nMFCCExpectedFrames = Framing.getFrames(nCapturedBytes, mMfccParams.nWindowLength, mMfccParams.nWindowDistance); // - mMfccParams.nDeltaWindow; ; derivatives at the end => all frames are valid
-            Message newmsg      = Message.obtain(msg);  // get a copy of the original message
+            Message newmsg      = Message.obtain(msg);  // get a copy of the original message            
             newmsg.what         = ENUMS.CAPTURE_RESULT; // I rename the msg code in order to tell mfccHT that are captured data not to be sent to TF
+            
+            // if I truncated the orginal chunk data, I have to substitute the original one with the truncated one
+            if(bBufferDepletedStopCapturing)
+            {
+                Bundle bb       = new Bundle();
+                bb.putFloatArray("data", valid_data);
+                newmsg.setData(bb);
+            }
+            nMFCCExpectedFrames = Framing.getFrames(nCapturedBytes, mMfccParams.nWindowLength, mMfccParams.nWindowDistance); // - mMfccParams.nDeltaWindow; ; derivatives at the end => all frames are valid
             mMfccHTLooper.sendMessage(newmsg); 
         }
            
@@ -486,7 +525,7 @@ public class SpeechRecognitionService extends Service
                     case ENUMS.CAPTURE_DATADEST_FILE_JS_RAW:
                     case ENUMS.CAPTURE_DATADEST_FILE_JS_DB:
                     case ENUMS.CAPTURE_DATADEST_FILE_JS_RAWDB:
-                        System.arraycopy(data,0, faCapturedChunk, nCapturedBytes-data.length, data.length); // I already incremented nCapturedBytes, thus I append before
+                        System.arraycopy(valid_data,0, faCapturedChunk, nCapturedBytes - newSamples2write, newSamples2write); // I already incremented nCapturedBytes, thus I append before
                         break;
                 }                
                 // check WEB destination
@@ -500,7 +539,7 @@ public class SpeechRecognitionService extends Service
                 {
                     case ENUMS.CAPTURE_DATADEST_JS_RAW:
                     case ENUMS.CAPTURE_DATADEST_FILE_JS_RAW:
-                        decoded  = Arrays.toString(data);
+                        decoded  = Arrays.toString(valid_data);
                         info.put("data", decoded);
                         Messaging.sendUpdate2Web(callbackContext, info, true);
                         break;
@@ -508,7 +547,7 @@ public class SpeechRecognitionService extends Service
                     case ENUMS.CAPTURE_DATADEST_JS_DB:
                     case ENUMS.CAPTURE_DATADEST_FILE_JS_DB:
 
-                        rms       = AudioInputCapture.getAudioLevels(data);
+                        rms       = AudioInputCapture.getAudioLevels(valid_data);
                         decibels  = AudioInputCapture.getDecibelFromAmplitude(rms);
                         info.put("decibels", decibels);
                         Messaging.sendUpdate2Web(callbackContext, info, true);
@@ -518,7 +557,7 @@ public class SpeechRecognitionService extends Service
                     case ENUMS.CAPTURE_DATADEST_FILE_JS_RAWDB:
                         decoded  = Arrays.toString(data);
                         info.put("data", decoded);
-                        rms       = AudioInputCapture.getAudioLevels(data);
+                        rms       = AudioInputCapture.getAudioLevels(valid_data);
                         decibels  = AudioInputCapture.getDecibelFromAmplitude(rms);
                         info.put("decibels", decibels);
                         Messaging.sendUpdate2Web(callbackContext, info, true);
