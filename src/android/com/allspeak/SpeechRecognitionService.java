@@ -549,7 +549,10 @@ public class SpeechRecognitionService extends Service
 
                         rms       = AudioInputCapture.getAudioLevels(valid_data);
                         decibels  = AudioInputCapture.getDecibelFromAmplitude(rms);
-                        info.put("decibels", decibels);
+                        if(decibels != Float.NEGATIVE_INFINITY)
+                            info.put("decibels", decibels);
+                        else
+                            info.put("decibels", -100);
                         Messaging.sendUpdate2Web(callbackContext, info, true);
                         break;
 
@@ -559,8 +562,10 @@ public class SpeechRecognitionService extends Service
                         info.put("data", decoded);
                         rms       = AudioInputCapture.getAudioLevels(valid_data);
                         decibels  = AudioInputCapture.getDecibelFromAmplitude(rms);
-                        info.put("decibels", decibels);
-                        Messaging.sendUpdate2Web(callbackContext, info, true);
+                        if(decibels != Float.NEGATIVE_INFINITY)
+                            info.put("decibels", decibels);
+                        else
+                            info.put("decibels", -100);                        Messaging.sendUpdate2Web(callbackContext, info, true);
                         break;
                 }
             }

@@ -193,8 +193,11 @@ public class AudioInputCapture
      * @returns {number}
      * @private
      */
-    public static float getDecibelFromAmplitude(float amplitudeLevel) {
-        return (float) (20*Math.log10(amplitudeLevel));
+    public static float getDecibelFromAmplitude(float amplitudeLevel) 
+    {
+        float res = (float) (20*Math.log10(amplitudeLevel));
+//        if(res == Float.NEGATIVE_INFINITY)  res = -100;
+        return res;
     }    
     //========================================================================================
 }
