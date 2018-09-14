@@ -5,7 +5,7 @@ var argscheck   = require('cordova/argscheck'),
 
 var speechrecognition           = {};
 
-speechrecognition.ver = "0.4.0";
+speechrecognition.ver = "0.4.1";
 speechrecognition.ENUM          = {};
 
 speechrecognition.pluginName    = "SpeechRecognitionPlugin";
