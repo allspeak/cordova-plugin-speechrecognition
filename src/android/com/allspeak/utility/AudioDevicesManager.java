@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
 
+import android.content.BroadcastReceiver;
 import android.bluetooth.BluetoothDevice;
 
 import android.media.AudioDeviceCallback;
@@ -46,18 +47,26 @@ import android.util.Log;
 //    private boolean mIsStarted; 
 //    private boolean mAutoConnect
 
+// adds wired devices management, calculating mIsWiredConnected & mHasWiredMic and adding them to the bluetoothStatus json
 public class AudioDevicesManager extends BluetoothHeadsetUtils
 {
     private static final String LOG_TAG         = "AudioDevicesManager";
     private CallbackContext callbackContext     = null;
   
+    private Context mContext                    = null;
     ArrayList2d<AudioDeviceInfo> mAd            = new ArrayList2d<AudioDeviceInfo>();
+    
+    private boolean mIsWiredConnected           = false;
+    private boolean mHasWiredMic                = false;    // false is a earphone only, true: mic only or mic earphone
     
     //=========================================================================================================================
     public AudioDevicesManager(Context context)
     {
         super(context);
-        mAd = getAudioDevices();
+        mContext    = context;
+        mAd         = getAudioDevices();
+        
+        mContext.registerReceiver(mWiredMicrophoneBroadcastReceiver, new IntentFilter(Intent.ACTION_HEADSET_PLUG));
     }
     
     public void setCallback(CallbackContext clb)
@@ -68,12 +77,12 @@ public class AudioDevicesManager extends BluetoothHeadsetUtils
     //=========================================================================================================================
     // CALLS FROM WL
     //=========================================================================================================================
-    public JSONObject getBluetoothStatus()
+    public JSONObject getAudioIOStatus()
     {
-        return getBluetoothStatus(mConnectedHeadset, ENUMS.BLUETOOTH_STATUS);
+        return getAudioIOStatus(mConnectedHeadset, ENUMS.AUDIO_IO_STATUS);
     }    
     
-    public JSONObject getBluetoothStatus(BluetoothDevice device, int event_type)
+    public JSONObject getAudioIOStatus(BluetoothDevice device, int event_type)
     {
         try
         {
@@ -83,6 +92,8 @@ public class AudioDevicesManager extends BluetoothHeadsetUtils
             res.put("mIsOnHeadsetSco"       , mIsOnHeadsetSco);
             res.put("mExistHeadsetConnected", mExistHeadsetConnected);
             res.put("mAutoConnect"          , mAutoConnect);
+            res.put("mIsWiredConnected"     , mIsWiredConnected);
+            res.put("mHasWiredMic"          , mHasWiredMic);
             
             if(device != null)
             {
@@ -150,40 +161,102 @@ public class AudioDevicesManager extends BluetoothHeadsetUtils
     }    
         
     //==============================================================================================
+    // WIRED DEVICE LISTENER
+    //==============================================================================================
+    private BroadcastReceiver mWiredMicrophoneBroadcastReceiver = new BroadcastReceiver()
+    {
+        @Override
+        public void onReceive(Context context, Intent intent) 
+        {
+            final String action = intent.getAction();
+            if (Intent.ACTION_HEADSET_PLUG.equals(action)) 
+            {
+                mIsWiredConnected   = (intent.getIntExtra("state", -1) == 1 ? true  : false);
+                String connstr      = (mIsWiredConnected ? "connected"  : "disconnected");
+                
+                String micstr;
+                if(mIsWiredConnected)
+                {
+                    mHasWiredMic    = (intent.getIntExtra("microphone", -1) == 1 ? true  : false);
+                    micstr          = (mHasWiredMic ? "(WITH microphone) "  : "(WITHOUT microphone) ");
+                    if(mHasWiredMic)    onWiredMicConnected();
+                    else                onWiredEarPhoneConnected();
+                }
+                else    
+                {
+                    if(mHasWiredMic)    onWiredMicDisconnected();
+                    else                onWiredEarPhoneDisconnected();                    
+                    micstr          = (mHasWiredMic ? "(WITH microphone) "  : "(WITHOUT microphone) ");
+                    mHasWiredMic    = false;
+                }
+                getAudioDevices();
+                Log.d("HeadSetPlugInTest", "wired device " + micstr + connstr  );
+            }
+        }        
+    };
+    //==============================================================================================
     // CALLBACK TO WL
     //==============================================================================================
+
+    //=======================================================
+    // wired
+    public void onWiredMicConnected()
+    {
+        Messaging.sendUpdate2Web(callbackContext, getAudioIOStatus(mConnectedHeadset, ENUMS.WIREDMIC_CONNECTED), true);
+    };
+
+    public void onWiredMicDisconnected()
+    {
+        Messaging.sendUpdate2Web(callbackContext, getAudioIOStatus(mConnectedHeadset, ENUMS.WIREDMIC_DISCONNECTED), true);
+    };
+
+    public void onWiredEarPhoneConnected()
+    {
+        Messaging.sendUpdate2Web(callbackContext, getAudioIOStatus(mConnectedHeadset, ENUMS.WIREDEAR_CONNECTED), true);
+    };
+
+    public void onWiredEarPhoneDisconnected()
+    {
+        Messaging.sendUpdate2Web(callbackContext, getAudioIOStatus(mConnectedHeadset, ENUMS.WIREDEAR_DISCONNECTED), true);
+    };
+    
+    //=======================================================
+    // bluetooth
     public void onHeadsetDisconnected(BluetoothDevice device)
     {
         Log.i(LOG_TAG, "onHeadsetDisconnected");
-        Messaging.sendUpdate2Web(callbackContext, getBluetoothStatus(device, ENUMS.HEADSET_DISCONNECTED), true);
+        Messaging.sendUpdate2Web(callbackContext, getAudioIOStatus(device, ENUMS.HEADSET_DISCONNECTED), true);
     };
 
     public void onHeadsetConnecting(BluetoothDevice device)
     {
         Log.i(LOG_TAG, "onHeadsetConnecting");
-        Messaging.sendUpdate2Web(callbackContext, getBluetoothStatus(device, ENUMS.HEADSET_CONNECTING), true);
+        Messaging.sendUpdate2Web(callbackContext, getAudioIOStatus(device, ENUMS.HEADSET_CONNECTING), true);
     };
 
     public void onExistHeadset(BluetoothDevice device)
     {
         Log.i(LOG_TAG, "onExistHeadset");
-        Messaging.sendUpdate2Web(callbackContext, getBluetoothStatus(device, ENUMS.HEADSET_EXIST), true);
+        Messaging.sendUpdate2Web(callbackContext, getAudioIOStatus(device, ENUMS.HEADSET_EXIST), true);
     };
     
     public void onScoAudioDisconnected(BluetoothDevice device)
     {
         Log.i(LOG_TAG, "onScoAudioDisconnected");
-        Messaging.sendUpdate2Web(callbackContext, getBluetoothStatus(device, ENUMS.AUDIOSCO_DISCONNECTED), true);
+        Messaging.sendUpdate2Web(callbackContext, getAudioIOStatus(device, ENUMS.AUDIOSCO_DISCONNECTED), true);
     };
 
     public void onScoAudioConnected(BluetoothDevice device)
     {
         Log.i(LOG_TAG, "onScoAudioConnected");
-        Messaging.sendUpdate2Web(callbackContext, getBluetoothStatus(device, ENUMS.AUDIOSCO_CONNECTED), true);
-    };   
+        Messaging.sendUpdate2Web(callbackContext, getAudioIOStatus(device, ENUMS.AUDIOSCO_CONNECTED), true);
+    }; 
+    
     //=========================================================================================================================
     public ArrayList2d<AudioDeviceInfo> getAudioDevices()
     {
+        mAd.clear();
+        
         AudioDeviceInfo[] inad = mAudioManager.getDevices(AudioManager.GET_DEVICES_INPUTS);
         int l = inad.length;
         for(int d=0; d<l; d++) mAd.Add(inad[d], 0);
@@ -201,6 +274,7 @@ public class AudioDevicesManager extends BluetoothHeadsetUtils
     public void onDestroy()
     {
         stop();
+        mContext.unregisterReceiver(mWiredMicrophoneBroadcastReceiver);
     }
     //=================================================================================================
     //=================================================================================================

@@ -217,10 +217,10 @@ public class SpeechRecognitionPlugin extends CordovaPlugin
             Messaging.sendNoResult2Web(callbackContext);
             return true;
         } 
-        else if (action.equals("getBluetoothStatus")) 
+        else if (action.equals("getAudioIOStatus")) 
         {
-            JSONObject bluetooth_status = mAudioDevicesManager.getBluetoothStatus();
-            Messaging.sendUpdate2Web(callbackContext, bluetooth_status, true);
+            JSONObject audioio_status = mAudioDevicesManager.getAudioIOStatus();
+            Messaging.sendUpdate2Web(callbackContext, audioio_status, true);
             return true;
         }         
         else if (action.equals("startCapture")) 

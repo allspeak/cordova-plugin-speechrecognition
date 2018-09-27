@@ -114,7 +114,10 @@ public class ENUMS
     public static final int AUDIOSCO_CONNECTED              = 305; // 
     public static final int AUDIOSCO_DISCONNECTED           = 306; // 
     public static final int HEADSET_EXIST                   = 307; // 
-    public static final int BLUETOOTH_STATUS                = 308; // 
-    
+    public static final int AUDIO_IO_STATUS                 = 308; // 
+    public static final int WIREDMIC_CONNECTED              = 309;
+    public static final int WIREDEAR_CONNECTED              = 310;
+    public static final int WIREDMIC_DISCONNECTED           = 311; //     
+    public static final int WIREDEAR_DISCONNECTED           = 312; //     
     
 }   

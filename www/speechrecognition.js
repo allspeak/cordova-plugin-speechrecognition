@@ -105,7 +105,11 @@ speechrecognition.ENUM.PLUGIN   =
     AUDIOSCO_CONNECTED              : 305,     
     AUDIOSCO_DISCONNECTED           : 306,
     HEADSET_EXIST                   : 307,
-    BLUETOOTH_STATUS                : 308
+    AUDIO_IO_STATUS                 : 308,
+    WIREDMIC_CONNECTED              : 309,
+    WIREDEAR_CONNECTED              : 310,
+    WIREDMIC_DISCONNECTED           : 311,     
+    WIREDEAR_DISCONNECTED           : 312    
 }; 
 
 // MUST MAP plugin's ERRORS.java
@@ -414,13 +418,13 @@ speechrecognition.getAudioDevices = function ()
     return promise;  
 };
 
-speechrecognition.getBluetoothStatus = function () 
+speechrecognition.getAudioIOStatus = function () 
 {
     var promise = new Promise(function(resolve, reject) {
         successCallback = resolve;
         errorCallback = reject;
     });    
-    exec(successCallback, errorCallback, speechrecognition.pluginName, "getBluetoothStatus", []);
+    exec(successCallback, errorCallback, speechrecognition.pluginName, "getAudioIOStatus", []);
     return promise;  
 };
 
@@ -712,12 +716,15 @@ speechrecognition._pluginEvent = function (data) {
                 cordova.fireWindowEvent("speechstatus", {datatype: data.type});
                 break;
                 
-//            case speechrecognition.ENUM.PLUGIN.HEADSET_CONNECTED:
             case speechrecognition.ENUM.PLUGIN.HEADSET_DISCONNECTED:
             case speechrecognition.ENUM.PLUGIN.HEADSET_CONNECTING:
             case speechrecognition.ENUM.PLUGIN.AUDIOSCO_CONNECTED:
             case speechrecognition.ENUM.PLUGIN.AUDIOSCO_DISCONNECTED:
             case speechrecognition.ENUM.PLUGIN.HEADSET_EXIST:
+            case speechrecognition.ENUM.PLUGIN.WIREDMIC_CONNECTED:
+            case speechrecognition.ENUM.PLUGIN.WIREDEAR_CONNECTED:
+            case speechrecognition.ENUM.PLUGIN.WIREDMIC_DISCONNECTED:
+            case speechrecognition.ENUM.PLUGIN.WIREDEAR_DISCONNECTED:
                 cordova.fireWindowEvent("headsetstatus", {data: data});
                 break;
                 

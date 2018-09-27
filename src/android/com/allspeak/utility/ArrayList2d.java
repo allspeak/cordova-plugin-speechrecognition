@@ -67,6 +67,12 @@ public class ArrayList2d<Type>
         array.get(row).remove(col);
     }
     
+
+    public void clear()
+    {
+        array.clear();
+    }
+    
     public void removeTypeByField(int row, int col)
     {
         array.get(row).remove(col);
